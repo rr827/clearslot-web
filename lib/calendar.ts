@@ -1,39 +1,30 @@
-import { addDays, parseISO } from 'date-fns';
-
-const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
+import { parseISO } from 'date-fns';
 
 export interface BusyBlock {
   start: string;
   end: string;
 }
 
+// All calendar fetching goes through the server-side proxy at /api/calendar/busy.
+// This keeps the token (httpOnly cookie) server-side only.
+// Pass accessToken for the PKCE path (Authorization header); null for server OAuth path.
 export async function fetchBusyBlocks(
-  accessToken: string,
+  accessToken: string | null = null,
   daysAhead: number = 14
 ): Promise<BusyBlock[]> {
-  const timeMin = new Date().toISOString();
-  const timeMax = addDays(new Date(), daysAhead).toISOString();
-
-  const res = await fetch(
-    `${CALENDAR_API}/calendars/primary/events?` +
-      new URLSearchParams({
-        timeMin,
-        timeMax,
-        singleEvents: 'true',
-        orderBy: 'startTime',
-        maxResults: '250',
-      }),
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-
+  const headers: Record<string, string> = {};
+  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+  const res = await fetch(`/api/calendar/busy?daysAhead=${daysAhead}`, { headers });
   if (!res.ok) throw new Error(`Calendar API error: ${res.status}`);
+  return res.json();
+}
 
-  const data = await res.json();
-  const events = data.items || [];
-
-  return events
-    .filter((e: any) => e.start?.dateTime && e.end?.dateTime)
-    .map((e: any) => ({ start: e.start.dateTime, end: e.end.dateTime }));
+// Microsoft path also goes through the same proxy (provider determined by cookie)
+export async function fetchBusyBlocksMicrosoft(
+  accessToken: string | null = null,
+  daysAhead: number = 14
+): Promise<BusyBlock[]> {
+  return fetchBusyBlocks(accessToken, daysAhead);
 }
 
 export function isHourBusy(hour: Date, blocks: BusyBlock[]): boolean {
@@ -45,37 +36,13 @@ export function isHourBusy(hour: Date, blocks: BusyBlock[]): boolean {
   });
 }
 
-export function findMutualFreeSlots(
-  myBlocks: BusyBlock[],
-  theirBlocks: BusyBlock[],
-  daysAhead: number = 14
-): { start: Date; end: Date }[] {
-  const freeSlots: { start: Date; end: Date }[] = [];
-  const now = new Date();
-
-  for (let d = 0; d < daysAhead; d++) {
-    const day = addDays(now, d);
-    for (let h = 6; h < 22; h++) {
-      const slotStart = new Date(day);
-      slotStart.setHours(h, 0, 0, 0);
-      if (slotStart < now) continue;
-      const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
-      if (!isHourBusy(slotStart, myBlocks) && !isHourBusy(slotStart, theirBlocks)) {
-        freeSlots.push({ start: slotStart, end: slotEnd });
-      }
-    }
-  }
-
-  return freeSlots;
-}
-
 export async function createCalendarEvent(
   accessToken: string,
   title: string,
   start: Date,
   end: Date
 ): Promise<string> {
-  const res = await fetch(`${CALENDAR_API}/calendars/primary/events`, {
+  const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,

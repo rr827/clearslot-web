@@ -908,7 +908,8 @@ function RoomContent() {
 
   const handleJoin = () => router.push(`/connect?room=${code}`);
 
-  const isConnected = !!loadToken();
+  // Join buttons are shown based on room membership (myIndex), not calendar connection.
+  // This prevents room creators from seeing join buttons after a browser restart.
 
   if (loading) return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
@@ -1029,7 +1030,7 @@ function RoomContent() {
           {participants.length === 0 ? (
             <div style={{ textAlign: 'center', marginTop: 80, color: '#888', fontSize: 19 }}>
               <p style={{ marginBottom: 8 }}>No one has connected yet.</p>
-              {!isConnected && <button onClick={handleJoin} style={{ fontSize: 19, color: '#4a8000', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Be the first to join →</button>}
+              {myIndex === null && <button onClick={handleJoin} style={{ fontSize: 19, color: '#4a8000', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Be the first to join →</button>}
             </div>
           ) : viewMode === 'week' ? (
             <WeekView weekDates={weekDates} allBlocks={allBlocks} selectedRange={selectedRange} onRangeChange={handleRangeChange} />
@@ -1051,7 +1052,7 @@ function RoomContent() {
               style={{ width: '100%', backgroundColor: '#4a8000', color: '#fff', borderRadius: 11, padding: '12px', fontSize: 18, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
               {copied ? '✓ Link copied!' : 'Copy invite link'}
             </button>
-            {!isConnected && (
+            {myIndex === null && (
               <button onClick={handleJoin}
                 style={{ width: '100%', backgroundColor: '#fff', color: '#4a8000', borderRadius: 11, padding: '12px', fontSize: 18, fontWeight: 600, border: '1.5px solid #4a8000', cursor: 'pointer' }}>
                 Join this room

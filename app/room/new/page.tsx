@@ -2,15 +2,15 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadToken } from '@/lib/auth';
-import { fetchBusyBlocks, BusyBlock } from '@/lib/calendar';
+import { loadToken, isConnected } from '@/lib/auth';
+import { fetchBusyBlocks, fetchBusyBlocksMicrosoft, BusyBlock } from '@/lib/calendar';
 import { encodePayload, AlignedPayload } from '@/lib/payload';
 import { format, addDays, differenceInDays } from 'date-fns';
 
-// This page handles post-OAuth room creation/joining.
-// The /api/auth/google/callback redirects here (state=/room/new).
-// It reads the questionnaire + action from sessionStorage, fetches calendar
-// blocks, encodes the full V2 payload, then creates or joins a room.
+// Post-OAuth bridge page.
+// /api/auth/google/callback redirects here (returnTo: /room/new).
+// Reads questionnaire + action from sessionStorage, fetches calendar blocks
+// via the server-side proxy, encodes the payload, then creates or joins a room.
 
 export default function RoomNewPage() {
   const router = useRouter();
@@ -21,8 +21,11 @@ export default function RoomNewPage() {
     ran.current = true;
 
     (async () => {
+      // isConnected checks sessionStorage (PKCE) OR aligned_auth presence cookie (server OAuth)
+      if (!isConnected()) { router.replace('/connect'); return; }
+      // loadToken returns the PKCE token (sessionStorage); null for server-side OAuth path
+      // (that token is httpOnly — the calendar proxy reads it via cookie automatically)
       const token = loadToken();
-      if (!token) { router.replace('/connect'); return; }
 
       const qRaw = sessionStorage.getItem('aligned_questionnaire');
       const action = sessionStorage.getItem('aligned_room_action') ?? 'create';
@@ -35,15 +38,25 @@ export default function RoomNewPage() {
         end: format(addDays(new Date(), 14), 'yyyy-MM-dd'),
       };
 
-      // Calculate how many days ahead to fetch
       const daysAhead = Math.max(
         14,
         differenceInDays(new Date(range.end + 'T23:59'), new Date()) + 1
       );
 
+      const provider = sessionStorage.getItem('aligned_provider') ?? 'google';
+      sessionStorage.removeItem('aligned_provider');
+
       let blocks: BusyBlock[];
       try {
-        blocks = await fetchBusyBlocks(token, daysAhead);
+        if (provider === 'ics') {
+          const raw = sessionStorage.getItem('aligned_ics_blocks');
+          sessionStorage.removeItem('aligned_ics_blocks');
+          blocks = raw ? JSON.parse(raw) : [];
+        } else if (provider === 'microsoft') {
+          blocks = await fetchBusyBlocksMicrosoft(token, daysAhead);
+        } else {
+          blocks = await fetchBusyBlocks(token, daysAhead);
+        }
       } catch {
         blocks = [];
       }
@@ -66,14 +79,12 @@ export default function RoomNewPage() {
         });
         if (res.ok) {
           const { room } = await res.json();
-          // Store which participant index we are
           localStorage.setItem(`room_${code}`, String(room.participants.length - 1));
           router.replace(`/room/${code}`);
         } else {
           router.replace(`/room/${code}?error=join_failed`);
         }
       } else {
-        // Create new room
         const res = await fetch('/api/room/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

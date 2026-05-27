@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useRef, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { format, addDays } from 'date-fns';
 
 type Preference = 'morning' | 'afternoon' | 'evening' | 'none';
@@ -12,12 +12,12 @@ interface Questionnaire {
   preference: Preference | null;
 }
 
+// Read-only scope only — calendar.events prompted separately when adding a meeting
 const SCOPES = [
   'openid',
   'email',
   'profile',
   'https://www.googleapis.com/auth/calendar.readonly',
-  'https://www.googleapis.com/auth/calendar.events',
 ].join(' ');
 
 function Check() {
@@ -33,6 +33,7 @@ function Check() {
 function ConnectContent() {
   const searchParams = useSearchParams();
   const roomCode = searchParams.get('room');
+  const router = useRouter();
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const twoWeeks = format(addDays(new Date(), 14), 'yyyy-MM-dd');
@@ -45,10 +46,23 @@ function ConnectContent() {
   const [sleepTo, setSleepTo] = useState('07:00');
   const [preference, setPreference] = useState<Preference | null>(null);
   const [launching, setLaunching] = useState(false);
+  const [launchingOutlook, setLaunchingOutlook] = useState(false);
+  const [icsStatus, setIcsStatus] = useState<'idle' | 'parsing' | 'ready' | 'error'>('idle');
+  const [icsBlockCount, setIcsBlockCount] = useState(0);
+  const [showExportHint, setShowExportHint] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function launchOAuth(q: Questionnaire) {
+  function storeQuestionnaire(q: Questionnaire) {
     sessionStorage.setItem('aligned_questionnaire', JSON.stringify(q));
     sessionStorage.setItem('aligned_room_action', roomCode ? `join:${roomCode.toUpperCase()}` : 'create');
+  }
+
+  async function launchOAuth(q: Questionnaire) {
+    storeQuestionnaire(q);
+    sessionStorage.setItem('aligned_provider', 'google');
+    const res = await fetch('/api/auth/state', { method: 'POST' });
+    const { nonce } = await res.json();
+    const state = JSON.stringify({ nonce, returnTo: '/room/new' });
     const params = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       redirect_uri: `${window.location.origin}/api/auth/google/callback`,
@@ -56,9 +70,26 @@ function ConnectContent() {
       scope: SCOPES,
       access_type: 'offline',
       prompt: 'select_account consent',
-      state: '/room/new',
+      state,
     });
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  }
+
+  async function launchMicrosoftOAuth(q: Questionnaire) {
+    storeQuestionnaire(q);
+    sessionStorage.setItem('aligned_provider', 'microsoft');
+    const res = await fetch('/api/auth/state', { method: 'POST' });
+    const { nonce } = await res.json();
+    const state = JSON.stringify({ nonce, returnTo: '/room/new' });
+    const params = new URLSearchParams({
+      client_id: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
+      redirect_uri: `${window.location.origin}/api/auth/microsoft/callback`,
+      response_type: 'code',
+      scope: 'openid email profile Calendars.Read offline_access',
+      prompt: 'select_account',
+      state,
+    });
+    window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;
   }
 
   const handleOAuth = () => {
@@ -68,6 +99,58 @@ function ConnectContent() {
       sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
       preference,
     });
+  };
+
+  const handleOutlookOAuth = () => {
+    setLaunchingOutlook(true);
+    launchMicrosoftOAuth({
+      range: { start: rangeStart, end: rangeEnd },
+      sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
+      preference,
+    });
+  };
+
+  const handleIcsFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIcsStatus('parsing');
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        // Parse ICS busy blocks inline (simple VEVENT extraction)
+        const blocks: { start: string; end: string }[] = [];
+        const events = text.split('BEGIN:VEVENT');
+        for (let i = 1; i < events.length; i++) {
+          const ev = events[i];
+          const dtstart = ev.match(/DTSTART(?:;[^:]+)?:(\d{8}T\d{6}Z?)/);
+          const dtend = ev.match(/DTEND(?:;[^:]+)?:(\d{8}T\d{6}Z?)/);
+          if (dtstart && dtend) {
+            const parseIcsDate = (s: string) => {
+              const y = s.slice(0, 4), mo = s.slice(4, 6), d = s.slice(6, 8);
+              const h = s.slice(9, 11), mi = s.slice(11, 13), sec = s.slice(13, 15);
+              return new Date(`${y}-${mo}-${d}T${h}:${mi}:${sec}${s.endsWith('Z') ? 'Z' : ''}`).toISOString();
+            };
+            blocks.push({ start: parseIcsDate(dtstart[1]), end: parseIcsDate(dtend[1]) });
+          }
+        }
+        setIcsBlockCount(blocks.length);
+        setIcsStatus('ready');
+        const q: Questionnaire = {
+          range: { start: rangeStart, end: rangeEnd },
+          sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
+          preference,
+        };
+        storeQuestionnaire(q);
+        sessionStorage.setItem('aligned_provider', 'ics');
+        sessionStorage.setItem('aligned_ics_blocks', JSON.stringify(blocks));
+        router.push('/room/new');
+      } catch {
+        setIcsStatus('error');
+      }
+    };
+    reader.onerror = () => setIcsStatus('error');
+    reader.readAsText(file);
   };
 
   const skipAll = () => {
@@ -81,6 +164,8 @@ function ConnectContent() {
   };
 
   const sectionLabel = { fontSize: 11, fontWeight: 600 as const, color: '#4a8000', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 12 };
+
+  const busy = launching || launchingOutlook || icsStatus === 'parsing';
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f0', fontFamily: 'system-ui, sans-serif' }}>
@@ -194,8 +279,9 @@ function ConnectContent() {
 
         {/* ── Connect ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
-          <button onClick={handleOAuth} disabled={launching}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#4a8000', color: '#fff', borderRadius: 14, padding: '17px', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: launching ? 0.7 : 1 }}>
+          {/* Google */}
+          <button onClick={handleOAuth} disabled={busy} type="button"
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#4a8000', color: '#fff', borderRadius: 14, padding: '17px', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="white" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="white" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -204,6 +290,57 @@ function ConnectContent() {
             </svg>
             {launching ? 'Redirecting...' : 'Continue with Google'}
           </button>
+
+          {/* Outlook */}
+          <button onClick={handleOutlookOAuth} disabled={busy} type="button"
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#fff', color: '#1a2e0a', borderRadius: 14, padding: '17px', fontSize: 15, fontWeight: 600, border: '1.5px solid #d8d8d2', cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="4" width="20" height="16" rx="2" fill="#0078D4"/>
+              <path d="M2 8l10 6 10-6" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            {launchingOutlook ? 'Redirecting...' : 'Continue with Outlook'}
+          </button>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#e8e8e2' }} />
+            <span style={{ fontSize: 12, color: '#bbb' }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#e8e8e2' }} />
+          </div>
+
+          {/* .ics upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".ics,text/calendar"
+            style={{ display: 'none' }}
+            onChange={handleIcsFile}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={busy}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'transparent', color: '#6B7280', borderRadius: 14, padding: '14px 17px', fontSize: 14, fontWeight: 500, border: '1.5px dashed #d8d8d2', cursor: 'pointer', opacity: busy ? 0.5 : 1 }}
+          >
+            {icsStatus === 'parsing' ? 'Reading file…' : icsStatus === 'ready' ? `✓ ${icsBlockCount} events loaded` : icsStatus === 'error' ? 'Error reading file — try again' : 'Upload calendar file (.ics)'}
+          </button>
+          <p style={{ textAlign: 'center', fontSize: 12, color: '#bbb', marginTop: -4 }}>
+            Apple Calendar · Yahoo · Proton · any other calendar
+          </p>
+
+          {/* How to export hint */}
+          <button type="button" onClick={() => setShowExportHint(v => !v)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '0 0 4px' }}>
+            How to export a .ics file {showExportHint ? '▲' : '▼'}
+          </button>
+          {showExportHint && (
+            <div style={{ backgroundColor: '#f9f9f6', borderRadius: 10, padding: '12px 16px', fontSize: 12, color: '#6B7280', lineHeight: 1.8, border: '1px solid #e8e8e2' }}>
+              <strong style={{ color: '#374151' }}>Google Calendar</strong> → Settings → Import &amp; Export → Export<br />
+              <strong style={{ color: '#374151' }}>Apple Calendar</strong> → File → Export → Export…<br />
+              <strong style={{ color: '#374151' }}>Outlook</strong> → Settings → General → Privacy &amp; data → Export mailbox
+            </div>
+          )}
+
           <p style={{ textAlign: 'center', fontSize: 12, color: '#bbb' }}>Read-only access · No event details stored · Free</p>
         </div>
 

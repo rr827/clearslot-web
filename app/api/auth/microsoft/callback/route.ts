@@ -25,14 +25,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/?error=invalid_state', request.url));
   }
 
-  const returnTo = parsedState.returnTo ?? (stateParam?.startsWith('/') ? stateParam : '/room/new');
+  const returnTo = parsedState.returnTo ?? '/room/new';
 
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
-  const redirectUri = `${request.nextUrl.origin}/api/auth/google/callback`;
+  const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!;
+  const clientSecret = process.env.MICROSOFT_CLIENT_SECRET!;
+  const redirectUri = `${request.nextUrl.origin}/api/auth/microsoft/callback`;
 
   try {
-    const res = await fetch('https://oauth2.googleapis.com/token', {
+    const res = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!res.ok) {
-      console.error('Google token exchange failed:', await res.text());
+      console.error('Microsoft token exchange failed:', await res.text());
       return NextResponse.redirect(new URL('/?error=token_exchange', request.url));
     }
 
@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(new URL(returnTo, request.url));
     const isProduction = process.env.NODE_ENV === 'production';
 
-    // httpOnly token — not readable by client JS
     response.cookies.set('aligned_token', access_token, {
       httpOnly: true,
       path: '/',
@@ -64,7 +63,6 @@ export async function GET(request: NextRequest) {
       secure: isProduction,
     });
 
-    // Presence cookies — readable by client to detect auth state
     response.cookies.set('aligned_auth', '1', {
       httpOnly: false,
       path: '/',
@@ -72,7 +70,7 @@ export async function GET(request: NextRequest) {
       sameSite: 'lax',
       secure: isProduction,
     });
-    response.cookies.set('aligned_provider', 'google', {
+    response.cookies.set('aligned_provider', 'microsoft', {
       httpOnly: false,
       path: '/',
       maxAge: THIRTY_DAYS,
@@ -80,12 +78,11 @@ export async function GET(request: NextRequest) {
       secure: isProduction,
     });
 
-    // Clear the nonce cookie
     response.cookies.set('oauth_state', '', { path: '/', maxAge: 0 });
 
     return response;
   } catch (err) {
-    console.error('Google OAuth callback error:', err);
+    console.error('Microsoft OAuth callback error:', err);
     return NextResponse.redirect(new URL('/?error=server', request.url));
   }
 }

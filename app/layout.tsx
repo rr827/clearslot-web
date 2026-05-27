@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { DM_Sans } from 'next/font/google';
-import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import AnalyticsWrapper from './components/AnalyticsWrapper';
 import ErrorBoundary from './components/ErrorBoundary';
 import './globals.css';
 
@@ -31,7 +31,7 @@ export default function RootLayout({
     <html lang="en" className={dmSans.variable}>
       <body className={`${dmSans.className} antialiased`}>
         <ErrorBoundary>{children}</ErrorBoundary>
-        <Analytics />
+        <AnalyticsWrapper />
         <SpeedInsights />
       </body>
     </html>

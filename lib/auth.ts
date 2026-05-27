@@ -1,23 +1,20 @@
-const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
-
+// Read-only scope — calendar.events prompted separately when adding a meeting
 const SCOPES = [
   'openid',
   'profile',
   'email',
   'https://www.googleapis.com/auth/calendar.readonly',
-  'https://www.googleapis.com/auth/calendar.events',
 ].join(' ');
 
 const TOKEN_KEY = 'aligned_token';
 const TOKEN_EXPIRY_KEY = 'aligned_token_expiry';
 
+export { SCOPES };
+
 function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
   const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
   return match ? decodeURIComponent(match[1]) : null;
-}
-
-function deleteCookie(name: string): void {
-  document.cookie = `${name}=; path=/; max-age=0`;
 }
 
 function getRedirectUri(): string {
@@ -50,7 +47,7 @@ export async function startGoogleAuth(returnTo?: string): Promise<void> {
   if (returnTo) sessionStorage.setItem('auth_return_to', returnTo);
 
   const params = new URLSearchParams({
-    client_id: CLIENT_ID,
+    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
     redirect_uri: getRedirectUri(),
     response_type: 'code',
     scope: SCOPES,
@@ -74,7 +71,7 @@ export async function exchangeCode(
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code,
-      client_id: CLIENT_ID,
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       redirect_uri: getRedirectUri(),
       grant_type: 'authorization_code',
       code_verifier: codeVerifier,
@@ -99,6 +96,8 @@ export function saveToken(accessToken: string, expiresIn: number): void {
 }
 
 export function loadToken(): string | null {
+  // Token is now httpOnly on the server OAuth path — not readable by JS.
+  // This only returns a token for the PKCE path (sessionStorage).
   const token = sessionStorage.getItem(TOKEN_KEY);
   const expiry = sessionStorage.getItem(TOKEN_EXPIRY_KEY);
 
@@ -110,23 +109,6 @@ export function loadToken(): string | null {
     return token;
   }
 
-  // Fall back to cookies set by server-side OAuth callback
-  const cookieToken = getCookie(TOKEN_KEY);
-  const cookieExpiry = getCookie(TOKEN_EXPIRY_KEY);
-
-  if (cookieToken && cookieExpiry) {
-    sessionStorage.setItem(TOKEN_KEY, cookieToken);
-    sessionStorage.setItem(TOKEN_EXPIRY_KEY, cookieExpiry);
-    deleteCookie(TOKEN_KEY);
-    deleteCookie(TOKEN_EXPIRY_KEY);
-
-    if (Date.now() > Number(cookieExpiry) - 5 * 60 * 1000) {
-      clearToken();
-      return null;
-    }
-    return cookieToken;
-  }
-
   return null;
 }
 
@@ -136,7 +118,11 @@ export function clearToken(): void {
 }
 
 export function isConnected(): boolean {
-  return loadToken() !== null;
+  if (typeof window === 'undefined') return false;
+  // PKCE path: token in sessionStorage
+  if (sessionStorage.getItem(TOKEN_KEY)) return true;
+  // Server OAuth path: token is httpOnly, but aligned_auth=1 signals connected
+  return getCookie('aligned_auth') === '1';
 }
 
 export function getReturnTo(): string {
