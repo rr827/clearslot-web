@@ -10,6 +10,7 @@ interface Questionnaire {
   range: { start: string; end: string };
   sleep: { from: string; to: string } | null;
   preference: Preference | null;
+  blocked?: { from: string; to: string }[] | null;
 }
 
 // Read-only scope only — calendar.events prompted separately when adding a meeting
@@ -49,6 +50,8 @@ function ConnectContent() {
   const [launchingOutlook, setLaunchingOutlook] = useState(false);
   const [icsStatus, setIcsStatus] = useState<'idle' | 'parsing' | 'ready' | 'error'>('idle');
   const [icsBlockCount, setIcsBlockCount] = useState(0);
+  const [blockedEnabled, setBlockedEnabled] = useState(false);
+  const [blockedRanges, setBlockedRanges] = useState<{ from: string; to: string }[]>([{ from: '12:00', to: '13:00' }]);
   const [showExportHint, setShowExportHint] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,22 +95,21 @@ function ConnectContent() {
     window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;
   }
 
+  const getQuestionnaire = () => ({
+    range: { start: rangeStart, end: rangeEnd },
+    sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
+    preference,
+    blocked: blockedEnabled && blockedRanges.length > 0 ? blockedRanges : null,
+  });
+
   const handleOAuth = () => {
     setLaunching(true);
-    launchOAuth({
-      range: { start: rangeStart, end: rangeEnd },
-      sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
-      preference,
-    });
+    launchOAuth(getQuestionnaire());
   };
 
   const handleOutlookOAuth = () => {
     setLaunchingOutlook(true);
-    launchMicrosoftOAuth({
-      range: { start: rangeStart, end: rangeEnd },
-      sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
-      preference,
-    });
+    launchMicrosoftOAuth(getQuestionnaire());
   };
 
   const handleIcsFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,12 +138,7 @@ function ConnectContent() {
         }
         setIcsBlockCount(blocks.length);
         setIcsStatus('ready');
-        const q: Questionnaire = {
-          range: { start: rangeStart, end: rangeEnd },
-          sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
-          preference,
-        };
-        storeQuestionnaire(q);
+        storeQuestionnaire(getQuestionnaire());
         sessionStorage.setItem('aligned_provider', 'ics');
         sessionStorage.setItem('aligned_ics_blocks', JSON.stringify(blocks));
         router.push('/room/new');
@@ -275,6 +272,51 @@ function ConnectContent() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* ── Blocked time ── */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div>
+              <p style={{ ...sectionLabel, marginBottom: 2 }}>Blocked time</p>
+              <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>Recurring daily ranges you never want scheduled</p>
+            </div>
+            <button type="button" aria-label="Toggle blocked time" onClick={() => setBlockedEnabled(v => !v)}
+              style={{ width: 44, height: 26, borderRadius: 999, backgroundColor: blockedEnabled ? '#4a8000' : '#d8d8d2', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              <div style={{ position: 'absolute', top: 3, left: blockedEnabled ? 21 : 3, width: 20, height: 20, borderRadius: '50%', backgroundColor: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+            </button>
+          </div>
+          {blockedEnabled && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {blockedRanges.map((r, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 4 }}>From</label>
+                    <input type="time" value={r.from} aria-label="Block from"
+                      onChange={e => setBlockedRanges(prev => prev.map((x, j) => j === i ? { ...x, from: e.target.value } : x))}
+                      style={inputStyle} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 4 }}>To</label>
+                    <input type="time" value={r.to} aria-label="Block to"
+                      onChange={e => setBlockedRanges(prev => prev.map((x, j) => j === i ? { ...x, to: e.target.value } : x))}
+                      style={inputStyle} />
+                  </div>
+                  {blockedRanges.length > 1 && (
+                    <button type="button" aria-label="Remove blocked range"
+                      onClick={() => setBlockedRanges(prev => prev.filter((_, j) => j !== i))}
+                      style={{ marginTop: 18, width: 28, height: 28, borderRadius: '50%', border: '1px solid #e0e0d8', background: '#fff', cursor: 'pointer', fontSize: 16, color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={() => setBlockedRanges(prev => [...prev, { from: '12:00', to: '13:00' }])}
+                style={{ alignSelf: 'flex-start', fontSize: 13, color: '#4a8000', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontWeight: 500 }}>
+                + Add another range
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Connect ── */}

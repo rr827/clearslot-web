@@ -21,6 +21,31 @@ function getWeekDates(base: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
 }
 
+/** Expand recurring daily blocked time ranges into concrete BusyBlocks over a date range */
+function expandBlockedRanges(
+  range: { start: string; end: string },
+  blocked: { from: string; to: string }[] | null | undefined
+): BusyBlock[] {
+  if (!blocked?.length) return [];
+  const result: BusyBlock[] = [];
+  const rangeStart = new Date(range.start + 'T00:00:00');
+  const rangeEnd = new Date(range.end + 'T23:59:59');
+  for (let d = new Date(rangeStart); d <= rangeEnd; d = new Date(d.getTime() + 86400000)) {
+    for (const b of blocked) {
+      const [fH, fM] = b.from.split(':').map(Number);
+      const [tH, tM] = b.to.split(':').map(Number);
+      const blockStart = new Date(d);
+      blockStart.setHours(fH, fM, 0, 0);
+      const blockEnd = new Date(d);
+      blockEnd.setHours(tH, tM, 0, 0);
+      if (blockEnd > blockStart) {
+        result.push({ start: blockStart.toISOString(), end: blockEnd.toISOString() });
+      }
+    }
+  }
+  return result;
+}
+
 /** How many of the participants are free during [slotStart, slotEnd] */
 function overlapCount(
   slotStart: Date,
@@ -826,12 +851,16 @@ function RoomContent() {
 
         const decoded = data.participants.map(p => decodePayload(p));
         setParticipants(decoded);
-        setAllBlocks(decoded.map(p => p.blocks));
+        setAllBlocks(decoded.map(p => [
+          ...p.blocks,
+          ...expandBlockedRanges(p.range, p.blocked),
+        ]));
 
         const idx = localStorage.getItem(`room_${code}`);
         setMyIndex(idx !== null ? parseInt(idx) : null);
 
-        const slots = rankSlots(decoded.map(p => p.blocks), decoded.map(p => p.preference), weekDates);
+        const expandedBlocks = decoded.map(p => [...p.blocks, ...expandBlockedRanges(p.range, p.blocked)]);
+        const slots = rankSlots(expandedBlocks, decoded.map(p => p.preference), weekDates);
         setRankedSlots(slots);
       } catch {
         setError('Failed to load room.');

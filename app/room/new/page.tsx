@@ -66,6 +66,7 @@ export default function RoomNewPage() {
         sleep: q?.sleep ?? null,
         preference: q?.preference ?? null,
         blocks,
+        blocked: q?.blocked ?? null,
       };
 
       const encoded = encodePayload(payload);

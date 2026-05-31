@@ -41,7 +41,8 @@ function validatePayload(encodedPayload: string): void {
 function generateCode(): string {
   // Exclude ambiguous chars (0/O, 1/I/L)
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
 }
 
 export async function createRoom(encodedPayload: string): Promise<string> {

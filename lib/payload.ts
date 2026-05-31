@@ -7,6 +7,7 @@ export interface AlignedPayload {
   sleep: { from: string; to: string } | null;
   preference: Preference | null;
   blocks: BusyBlock[];
+  blocked?: { from: string; to: string }[] | null; // recurring daily time ranges to hard-block
   uid?: string;          // stable random UUID for duplicate-join detection
   displayName?: string;  // user-chosen display name (optional, privacy-controlled)
 }
@@ -61,6 +62,7 @@ export function encodePayload(payload: AlignedPayload): string {
       Math.floor(new Date(b.start).getTime() / 1000),
       Math.floor(new Date(b.end).getTime() / 1000),
     ]),
+    bk: payload.blocked?.length ? payload.blocked.map(b => [b.from, b.to]) : null,
     u: payload.uid ?? null,
     dn: payload.displayName ?? null,
   };
@@ -84,11 +86,15 @@ export function decodePayload(encoded: string): AlignedPayload {
             end: new Date(e * 1000).toISOString(),
           }))
         : (raw.blocks ?? []);
+      const blocked: { from: string; to: string }[] | null = raw.bk
+        ? (raw.bk as string[][]).map(([f, t]) => ({ from: f, to: t }))
+        : (raw.blocked ?? null);
       return {
         range,
         sleep,
         preference,
         blocks,
+        blocked,
         uid: raw.u ?? raw.uid ?? undefined,
         displayName: raw.dn ?? raw.displayName ?? undefined,
       };
