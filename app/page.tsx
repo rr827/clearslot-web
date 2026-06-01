@@ -86,7 +86,7 @@ export default function Home() {
             <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.4)', lineHeight: 1.8, marginBottom: 32 }}>
               Every event gets stripped to a start time and end time. Nothing else. No names, no meetings, no context. Just blocks of time.
             </p>
-            {['No account or sign-up required', 'Event details stay on your device', 'Nothing stored on our servers', 'Room data never leaves the session'].map((item) => (
+            {['No account or sign-up required', 'Event titles and details never transmitted', 'Room availability stored 48 hours, then deleted', 'Event details stay on your device'].map((item) => (
               <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 16, color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>
                 <span style={{ color: '#c8f97a', fontSize: 16 }}>✓</span>
                 {item}
