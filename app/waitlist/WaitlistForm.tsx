@@ -229,7 +229,7 @@ export default function WaitlistForm() {
                   transition: 'background-color 0.15s',
                 }}
               >
-                {status === 'loading' ? 'Joining...' : 'Get early access'}
+                {status === 'loading' ? 'Joining...' : 'Get on the waitlist'}
               </button>
 
               {status === 'error' && (
