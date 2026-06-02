@@ -1,10 +1,12 @@
-import { Redis } from '@upstash/redis';
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-});
+function db() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,13 +22,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
     }
 
-    const entry = {
-      email: normalized,
-      joinedAt: new Date().toISOString(),
-    };
+    const { error } = await db()
+      .from('waitlist')
+      .insert({ email: normalized });
 
-    await redis.set(`waitlist:${normalized}`, entry);
-    await redis.lpush('waitlist:all', normalized);
+    if (error) {
+      // Unique violation = already signed up, treat as success
+      if (error.code === '23505') {
+        return NextResponse.json({ success: true }, { status: 200 });
+      }
+      console.error('Waitlist error:', error);
+      return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
