@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   format, addDays, startOfWeek, isSameDay, parseISO, addMinutes,
 } from 'date-fns';
-import { loadToken } from '@/lib/auth';
+import { loadToken, isConnected } from '@/lib/auth';
 import { BusyBlock, createCalendarEvent } from '@/lib/calendar';
 import { decodePayload, AlignedPayload, buildRoomLink } from '@/lib/payload';
 import { getRoom, proposeTime, acceptProposal, RoomRow } from '@/lib/room';
@@ -904,11 +904,7 @@ function RoomContent() {
       // Reload room to show updated status
       const data = await getRoom(code);
       if (data) setRoom(data);
-      // Add to this user's calendar if they have a token
-      const token = loadToken();
-      if (token) {
-        await createCalendarEvent(token, 'Meeting', new Date(startTime), new Date(endTime));
-      }
+      // Calendar add is handled separately via the "Add to calendar" button
     } catch {
       alert('Could not accept proposal. Try again.');
     } finally {
@@ -1097,7 +1093,7 @@ function RoomContent() {
                 {room.proposals.map((prop, i) => {
                   const isAccepted = prop.status === 'accepted';
                   const canAccept = prop.status === 'pending' && (myIndex === null || prop.proposer_index !== myIndex);
-                  const hasToken = !!loadToken();
+                  const hasToken = isConnected();
                   return (
                     <div key={i} style={{ padding: '10px 12px', borderRadius: 9, backgroundColor: isAccepted ? 'rgba(74,128,0,0.06)' : '#fff', border: `1px solid ${isAccepted ? 'rgba(74,128,0,0.2)' : '#e0e0d8'}` }}>
                       <p style={{ fontSize: 14, color: '#888', marginBottom: 2 }}>Person {prop.proposer_index + 1} suggests</p>
@@ -1112,13 +1108,21 @@ function RoomContent() {
                           ) : hasToken ? (
                             <button
                               onClick={async () => {
-                                const token = loadToken();
-                                if (!token) { alert('Your session expired. Reconnect your calendar to add events.'); return; }
                                 try {
-                                  await createCalendarEvent(token, 'Meeting', new Date(prop.start_time), new Date(prop.end_time));
+                                  const res = await fetch('/api/calendar/create-event', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ title: 'Meeting', start: prop.start_time, end: prop.end_time }),
+                                  });
+                                  const data = await res.json();
+                                  if (data.needsWriteScope) {
+                                    window.location.href = `/api/auth/google/write-scope?returnTo=${encodeURIComponent(window.location.pathname)}`;
+                                    return;
+                                  }
+                                  if (!res.ok) { alert('Could not add to calendar. Try again.'); return; }
                                   setAddedToCalIdx(i);
                                 } catch {
-                                  alert('Could not add to calendar. Your session may have expired — try reconnecting.');
+                                  alert('Could not add to calendar. Try again.');
                                 }
                               }}
                               style={{ fontSize: 14, color: '#4a8000', background: 'none', border: '1px solid #4a8000', borderRadius: 7, padding: '5px 10px', cursor: 'pointer', fontWeight: 500 }}>
@@ -1135,7 +1139,7 @@ function RoomContent() {
                           onClick={() => handleAccept(i, prop.start_time, prop.end_time)}
                           disabled={acceptingIdx === i}
                           style={{ width: '100%', backgroundColor: '#4a8000', color: '#fff', borderRadius: 7, padding: '7px', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: acceptingIdx === i ? 0.6 : 1 }}>
-                          {acceptingIdx === i ? 'Accepting…' : 'Accept & add to calendar'}
+                          {acceptingIdx === i ? 'Accepting…' : 'Accept'}
                         </button>
                       ) : (
                         <span style={{ fontSize: 14, color: '#aaa', textTransform: 'capitalize' }}>{prop.status}</span>
