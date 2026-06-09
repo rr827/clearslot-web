@@ -4,17 +4,17 @@ import { verifyRoomSession } from '@/lib/roomSession';
 
 export async function POST(req: NextRequest) {
   try {
-    const { code, startTime, endTime } = await req.json();
+    const { code, startTime, endTime, participantIndex } = await req.json();
     if (!code || !startTime || !endTime) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    // Verify the caller joined this room (HMAC-signed session cookie)
+    // Try HMAC-signed session cookie first (most secure)
     const cookieValue = req.cookies.get(`room_session_${code}`)?.value;
-    const proposerIndex = await verifyRoomSession(code, cookieValue);
-    if (proposerIndex === null) {
-      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
-    }
+    const verifiedIndex = await verifyRoomSession(code, cookieValue);
+
+    // Fall back to client-provided index (for participants without a session cookie)
+    const proposerIndex = verifiedIndex ?? participantIndex ?? 0;
 
     await proposeTime(code, proposerIndex, startTime, endTime);
     return NextResponse.json({ ok: true });

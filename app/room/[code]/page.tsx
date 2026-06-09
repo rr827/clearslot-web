@@ -911,7 +911,7 @@ function RoomContent() {
       const res = await fetch('/api/room/propose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, startTime: selectedRange.start.toISOString(), endTime: selectedRange.end.toISOString() }),
+        body: JSON.stringify({ code, startTime: selectedRange.start.toISOString(), endTime: selectedRange.end.toISOString(), participantIndex: myIndex }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
