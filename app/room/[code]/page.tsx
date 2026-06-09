@@ -5,14 +5,15 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   format, addDays, startOfWeek, isSameDay, parseISO, addMinutes,
 } from 'date-fns';
-import { loadToken, isConnected } from '@/lib/auth';
+import { isConnected } from '@/lib/auth';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { BusyBlock, createCalendarEvent } from '@/lib/calendar';
 import { decodePayload, AlignedPayload, buildRoomLink } from '@/lib/payload';
-import { getRoom, proposeTime, acceptProposal, RoomRow } from '@/lib/room';
+import { RoomRow } from '@/lib/room';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type DailyView = 'swimlane' | 'grid' | 'arc';
+type DailyView = 'swimlane' | 'grid';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -102,7 +103,7 @@ function rankSlots(
 
 type SelectedRange = { start: Date; end: Date } | null;
 
-const PARTICIPANT_COLORS = ['#4a8000', '#1c3461', '#7a3800', '#5a0a5a', '#0a4a5a'];
+const PARTICIPANT_COLORS = ['#22C55E', '#1c3461', '#7a3800', '#5a0a5a', '#0a4a5a'];
 
 // ── WeekView grid constants ─────────────────────────────────────────────────
 const HOUR_HEIGHT = 56; // px per hour
@@ -128,17 +129,17 @@ function WeekGridLines() {
         return (
           <g key={i}>
             {/* Hour — solid */}
-            <line x1={0} y1={y} x2="100%" y2={y} stroke="#bbb" strokeWidth={1} />
+            <line x1={0} y1={y} x2="100%" y2={y} stroke="#D1FAE5" strokeWidth={1} />
             {i < GRID_TOTAL_HOURS && (
               <>
                 {/* 30-min — dashed */}
                 <line x1={0} y1={y + HOUR_HEIGHT / 2} x2="100%" y2={y + HOUR_HEIGHT / 2}
-                  stroke="#d4d4d4" strokeWidth={0.8} strokeDasharray="4 4" />
+                  stroke="#E5E7EB" strokeWidth={0.8} strokeDasharray="4 4" />
                 {/* 15-min — light dashed */}
                 <line x1={0} y1={y + HOUR_HEIGHT / 4} x2="100%" y2={y + HOUR_HEIGHT / 4}
-                  stroke="#e4e4e4" strokeWidth={0.6} strokeDasharray="2 6" />
+                  stroke="#F3F4F6" strokeWidth={0.6} strokeDasharray="2 6" />
                 <line x1={0} y1={y + (HOUR_HEIGHT * 3) / 4} x2="100%" y2={y + (HOUR_HEIGHT * 3) / 4}
-                  stroke="#e4e4e4" strokeWidth={0.6} strokeDasharray="2 6" />
+                  stroke="#F3F4F6" strokeWidth={0.6} strokeDasharray="2 6" />
               </>
             )}
           </g>
@@ -217,9 +218,9 @@ function WeekView({
       <div style={{ display: 'grid', gridTemplateColumns: '44px repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
         <div />
         {weekDates.map(date => (
-          <div key={date.toISOString()} style={{ textAlign: 'center', padding: '6px 0', fontSize: 16, fontWeight: 600, color: isSameDay(date, new Date()) ? '#4a8000' : '#888', letterSpacing: '0.05em' }}>
+          <div key={date.toISOString()} style={{ textAlign: 'center', padding: '6px 0', fontSize: 16, fontWeight: 600, color: isSameDay(date, new Date()) ? '#22C55E' : '#6B7280', letterSpacing: '0.05em' }}>
             <div>{format(date, 'EEE').toUpperCase()}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: isSameDay(date, new Date()) ? '#4a8000' : '#1a2e0a' }}>{format(date, 'd')}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: isSameDay(date, new Date()) ? '#22C55E' : '#374151' }}>{format(date, 'd')}</div>
           </div>
         ))}
       </div>
@@ -231,7 +232,7 @@ function WeekView({
           {Array.from({ length: GRID_TOTAL_HOURS + 1 }, (_, i) => {
             const h = GRID_DAY_START + i;
             return (
-              <div key={h} style={{ position: 'absolute', top: i * HOUR_HEIGHT - 8, right: 6, fontSize: 13, color: '#bbb', lineHeight: 1 }}>
+              <div key={h} style={{ position: 'absolute', top: i * HOUR_HEIGHT - 8, right: 6, fontSize: 13, color: '#9CA3AF', lineHeight: 1 }}>
                 {i === 0 ? '' : h === 12 ? '12p' : h > 12 ? `${h - 12}p` : `${h}a`}
               </div>
             );
@@ -268,7 +269,7 @@ function WeekView({
               style={{
                 flex: 1,
                 height: GRID_H,
-                backgroundColor: '#daf5b0',
+                backgroundColor: '#DCFCE7',
                 position: 'relative',
                 cursor: 'crosshair',
                 userSelect: 'none',
@@ -307,8 +308,8 @@ function WeekView({
                   top: `${selStartPct}%`,
                   height: `${selEndPct - selStartPct}%`,
                   left: 0, right: 0,
-                  backgroundColor: 'rgba(74,128,0,0.2)',
-                  border: '2px solid #4a8000',
+                  backgroundColor: 'rgba(74,222,128,0.6)',
+                  border: '2px solid #22C55E',
                   borderRadius: 3,
                   pointerEvents: 'none',
                 }} />
@@ -321,8 +322,8 @@ function WeekView({
                   top: `${dragStartPct}%`,
                   height: `${dragEndPct - dragStartPct}%`,
                   left: 0, right: 0,
-                  backgroundColor: 'rgba(74,128,0,0.25)',
-                  border: '2px solid #4a8000',
+                  backgroundColor: 'rgba(74,222,128,0.6)',
+                  border: '2px solid #22C55E',
                   borderRadius: 3,
                   pointerEvents: 'none',
                 }} />
@@ -451,7 +452,7 @@ function SwimLaneView({
               </div>
               <div
                 onMouseDown={handleMouseDown}
-                style={{ flex: 1, height: 40, borderRadius: 8, backgroundColor: '#d8f5b8', position: 'relative', cursor: 'crosshair', overflow: 'hidden', userSelect: 'none' }}>
+                style={{ flex: 1, height: 40, borderRadius: 8, backgroundColor: '#DCFCE7', position: 'relative', cursor: 'crosshair', overflow: 'hidden', userSelect: 'none' }}>
                 {/* Busy blocks */}
                 {busySegments.map((seg, j) => (
                   <div key={j} style={{
@@ -471,8 +472,8 @@ function SwimLaneView({
                     left: `${toPercent(Math.max(selStartMin, DAY_START))}%`,
                     width: `${toPercent(Math.min(selEndMin, DAY_END)) - toPercent(Math.max(selStartMin, DAY_START))}%`,
                     top: 0, bottom: 0,
-                    backgroundColor: 'rgba(74,128,0,0.2)',
-                    border: '2px solid #4a8000',
+                    backgroundColor: 'rgba(74,222,128,0.6)',
+                    border: '2px solid #22C55E',
                     borderRadius: 4,
                     pointerEvents: 'none',
                   }} />
@@ -484,8 +485,8 @@ function SwimLaneView({
                     left: `${toPercent(dragStartMin)}%`,
                     width: `${toPercent(dragEndMin) - toPercent(dragStartMin)}%`,
                     top: 0, bottom: 0,
-                    backgroundColor: 'rgba(74,128,0,0.25)',
-                    border: '2px solid #4a8000',
+                    backgroundColor: 'rgba(74,222,128,0.6)',
+                    border: '2px solid #22C55E',
                     borderRadius: 4,
                     pointerEvents: 'none',
                   }} />
@@ -497,15 +498,15 @@ function SwimLaneView({
 
         {/* Overlap band */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 92, fontSize: 16, color: '#4a8000', textAlign: 'right', fontWeight: 600, flexShrink: 0 }}>Overlap</div>
-          <div style={{ flex: 1, height: 20, borderRadius: 8, backgroundColor: '#f0f0ea', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ width: 92, fontSize: 16, color: '#22C55E', textAlign: 'right', fontWeight: 600, flexShrink: 0 }}>Overlap</div>
+          <div style={{ flex: 1, height: 20, borderRadius: 8, backgroundColor: '#F0FDF4', position: 'relative', overflow: 'hidden' }}>
             {overlapBands.map((band, i) => (
               <div key={i} style={{
                 position: 'absolute',
                 left: `${toPercent(band.startMin)}%`,
                 width: `${toPercent(band.endMin) - toPercent(band.startMin)}%`,
                 top: 0, bottom: 0,
-                backgroundColor: '#4a8000',
+                backgroundColor: '#22C55E',
                 borderRadius: 3,
               }} />
             ))}
@@ -514,7 +515,7 @@ function SwimLaneView({
 
         {/* Live drag time label */}
         {drag && dragEndMin > dragStartMin && (
-          <div style={{ marginLeft: 100, fontSize: 15, color: '#4a8000', fontWeight: 500 }}>
+          <div style={{ marginLeft: 100, fontSize: 15, color: '#22C55E', fontWeight: 500 }}>
             {format(new Date(date).setHours(Math.floor(dragStartMin / 60), dragStartMin % 60), 'h:mm a')}
             {' – '}
             {format(new Date(date).setHours(Math.floor(dragEndMin / 60), dragEndMin % 60), 'h:mm a')}
@@ -609,9 +610,9 @@ function GridDayView({
       {/* Day header */}
       <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr', gap: 2, marginBottom: 4 }}>
         <div />
-        <div style={{ textAlign: 'center', padding: '6px 0', fontSize: 16, fontWeight: 600, color: isSameDay(date, new Date()) ? '#4a8000' : '#888', letterSpacing: '0.05em' }}>
+        <div style={{ textAlign: 'center', padding: '6px 0', fontSize: 16, fontWeight: 600, color: isSameDay(date, new Date()) ? '#22C55E' : '#6B7280', letterSpacing: '0.05em' }}>
           <div>{format(date, 'EEE').toUpperCase()}</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: isSameDay(date, new Date()) ? '#4a8000' : '#1a2e0a' }}>{format(date, 'd')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: isSameDay(date, new Date()) ? '#22C55E' : '#374151' }}>{format(date, 'd')}</div>
         </div>
       </div>
 
@@ -622,7 +623,7 @@ function GridDayView({
           {Array.from({ length: GRID_TOTAL_HOURS + 1 }, (_, i) => {
             const h = GRID_DAY_START + i;
             return (
-              <div key={h} style={{ position: 'absolute', top: i * HOUR_HEIGHT - 8, right: 6, fontSize: 13, color: '#bbb', lineHeight: 1 }}>
+              <div key={h} style={{ position: 'absolute', top: i * HOUR_HEIGHT - 8, right: 6, fontSize: 13, color: '#9CA3AF', lineHeight: 1 }}>
                 {i === 0 ? '' : h === 12 ? '12p' : h > 12 ? `${h - 12}p` : `${h}a`}
               </div>
             );
@@ -632,7 +633,7 @@ function GridDayView({
         {/* Day column */}
         <div
           onMouseDown={handleMouseDown}
-          style={{ flex: 1, height: GRID_H, backgroundColor: '#daf5b0', position: 'relative', cursor: 'crosshair', userSelect: 'none', borderRadius: 4, overflow: 'hidden' }}
+          style={{ flex: 1, height: GRID_H, backgroundColor: '#DCFCE7', position: 'relative', cursor: 'crosshair', userSelect: 'none', borderRadius: 4, overflow: 'hidden' }}
         >
           <WeekGridLines />
 
@@ -658,16 +659,16 @@ function GridDayView({
           {selOnThisDay && selEndPct > selStartPct && (
             <div style={{
               position: 'absolute', top: `${selStartPct}%`, height: `${selEndPct - selStartPct}%`,
-              left: 0, right: 0, backgroundColor: 'rgba(74,128,0,0.2)',
-              border: '2px solid #4a8000', borderRadius: 3, pointerEvents: 'none',
+              left: 0, right: 0, backgroundColor: 'rgba(74,222,128,0.6)',
+              border: '2px solid #22C55E', borderRadius: 3, pointerEvents: 'none',
             }} />
           )}
 
           {drag && dragEndPct > dragStartPct && (
             <div style={{
               position: 'absolute', top: `${dragStartPct}%`, height: `${dragEndPct - dragStartPct}%`,
-              left: 0, right: 0, backgroundColor: 'rgba(74,128,0,0.25)',
-              border: '2px solid #4a8000', borderRadius: 3, pointerEvents: 'none',
+              left: 0, right: 0, backgroundColor: 'rgba(74,222,128,0.6)',
+              border: '2px solid #22C55E', borderRadius: 3, pointerEvents: 'none',
             }} />
           )}
         </div>
@@ -706,7 +707,7 @@ function ArcClockView({
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <svg width={svgSize} height={svgSize} style={{ cursor: 'default' }}>
         {/* Background circle */}
-        <circle cx={cx} cy={cy} r={outerR + 6} fill="#f0f0ea" />
+        <circle cx={cx} cy={cy} r={outerR + 6} fill="#F0FDF4" />
 
         {/* Hour ticks */}
         {[6, 9, 12, 15, 18, 21].map(h => {
@@ -731,7 +732,7 @@ function ArcClockView({
             <g key={i}>
               {/* Base arc (free) */}
               <path d={arcPath(r, hourToAngle(6), hourToAngle(22))} fill="none"
-                stroke="#d4edbb" strokeWidth={ringGap - 2} strokeLinecap="butt" />
+                stroke="#F0FDF4" strokeWidth={ringGap - 2} strokeLinecap="butt" />
               {/* Busy segments */}
               {busySegs.map((seg, j) => {
                 const startH = seg.startMin / 60;
@@ -782,7 +783,7 @@ function ArcClockView({
         })}
 
         {/* Center label */}
-        <text x={cx} y={cy - 6} textAnchor="middle" fontSize={15} fill="#4a8000" fontWeight={600}>
+        <text x={cx} y={cy - 6} textAnchor="middle" fontSize={15} fill="#22C55E" fontWeight={600}>
           {participants.length > 0 ? 'Group overview' : ''}
         </text>
         <text x={cx} y={cy + 12} textAnchor="middle" fontSize={13} fill="#888">
@@ -792,11 +793,25 @@ function ArcClockView({
 
       {/* Legend */}
       <div style={{ display: 'flex', gap: 16, fontSize: 16, color: '#888', flexWrap: 'wrap', justifyContent: 'center' }}>
-        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, backgroundColor: '#d4edbb', marginRight: 4 }} />Free</span>
+        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, backgroundColor: '#F0FDF4', marginRight: 4 }} />Free</span>
         <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, backgroundColor: 'rgba(0,160,140,0.6)', marginRight: 4 }} />Overlap</span>
         <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, backgroundColor: '#aaa', marginRight: 4 }} />Busy/Sleep</span>
       </div>
     </div>
+  );
+}
+
+// ── Skeleton helper ─────────────────────────────────────────────────────────
+
+function Sk({ w, h, r = 6, style }: { w?: string | number; h: number; r?: number; style?: React.CSSProperties }) {
+  return (
+    <div style={{
+      width: w ?? '100%', height: h, borderRadius: r, flexShrink: 0,
+      background: 'linear-gradient(90deg, #e8e8e2 25%, #f2f2ec 50%, #e8e8e2 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'skshimmer 1.4s ease-in-out infinite',
+      ...style,
+    }} />
   );
 }
 
@@ -806,6 +821,7 @@ function RoomContent() {
   const params = useParams();
   const router = useRouter();
   const code = (params.code as string).toUpperCase();
+  const isMobile = useIsMobile();
 
   const [room, setRoom] = useState<RoomRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -827,6 +843,9 @@ function RoomContent() {
   const [copied, setCopied] = useState(false);
   const [acceptingIdx, setAcceptingIdx] = useState<number | null>(null);
   const [addedToCalIdx, setAddedToCalIdx] = useState<number | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSentIdx, setInviteSentIdx] = useState<number | null>(null);
+  const [sendingInviteIdx, setSendingInviteIdx] = useState<number | null>(null);
   const [showAppBanner, setShowAppBanner] = useState(false);
 
   useEffect(() => {
@@ -845,8 +864,9 @@ function RoomContent() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await getRoom(code);
-        if (!data) { setError('Room not found or expired.'); setLoading(false); return; }
+        const res = await fetch(`/api/room/${code}`);
+        if (!res.ok) { setError('Room not found or expired.'); setLoading(false); return; }
+        const data: RoomRow = await res.json();
         setRoom(data);
 
         const decoded = data.participants.map(p => decodePayload(p));
@@ -888,7 +908,15 @@ function RoomContent() {
     if (!selectedRange || myIndex === null) return;
     setProposing(true);
     try {
-      await proposeTime(code, myIndex, selectedRange.start.toISOString(), selectedRange.end.toISOString());
+      const res = await fetch('/api/room/propose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, startTime: selectedRange.start.toISOString(), endTime: selectedRange.end.toISOString() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Failed to propose');
+      }
       setProposed(true);
     } catch {
       alert('Could not save proposal. Try again.');
@@ -899,16 +927,60 @@ function RoomContent() {
 
   const handleAccept = async (proposalIndex: number, startTime: string, endTime: string) => {
     setAcceptingIdx(proposalIndex);
+    // Optimistic update
+    setRoom(prev => {
+      if (!prev) return prev;
+      const proposals = prev.proposals.map((p, i) =>
+        i === proposalIndex ? { ...p, status: 'accepted' as const } : p
+      );
+      return { ...prev, proposals };
+    });
     try {
-      await acceptProposal(code, proposalIndex);
-      // Reload room to show updated status
-      const data = await getRoom(code);
-      if (data) setRoom(data);
-      // Calendar add is handled separately via the "Add to calendar" button
+      const res = await fetch('/api/room/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, proposalIndex }),
+      });
+      if (!res.ok) throw new Error('Failed to accept');
     } catch {
+      // Revert on failure
+      setRoom(prev => {
+        if (!prev) return prev;
+        const proposals = prev.proposals.map((p, i) =>
+          i === proposalIndex ? { ...p, status: 'pending' as const } : p
+        );
+        return { ...prev, proposals };
+      });
       alert('Could not accept proposal. Try again.');
     } finally {
       setAcceptingIdx(null);
+    }
+  };
+
+  const handleSendInvite = async (idx: number, startTime: string, endTime: string) => {
+    if (!inviteEmail.trim()) return;
+    setSendingInviteIdx(idx);
+    try {
+      const res = await fetch('/api/calendar/create-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Meeting', start: startTime, end: endTime, attendeeEmail: inviteEmail.trim() }),
+      });
+      const data = await res.json();
+      if (data.needsWriteScope) {
+        window.location.href = `/api/auth/google/write-scope?returnTo=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      if (!res.ok) throw new Error('Failed');
+      setInviteSentIdx(idx);
+    } catch {
+      // Fall back to mailto
+      const subject = `Meeting - ${format(parseISO(startTime), 'EEE MMM d, h:mm a')}`;
+      const body = `Meeting confirmed!\n\nDate: ${format(parseISO(startTime), 'EEEE, MMMM d, yyyy')}\nTime: ${format(parseISO(startTime), 'h:mm a')} \u2013 ${format(parseISO(endTime), 'h:mm a')}\n\nRoom link: ${window.location.href}`;
+      window.open(`mailto:${encodeURIComponent(inviteEmail.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+      setInviteSentIdx(idx);
+    } finally {
+      setSendingInviteIdx(null);
     }
   };
 
@@ -937,38 +1009,85 @@ function RoomContent() {
   // This prevents room creators from seeing join buttons after a browser restart.
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-      <div style={{ width: 32, height: 32, border: '2px solid rgba(74,128,0,0.3)', borderTopColor: '#4a8000', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
+      <style>{`@keyframes skshimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
+
+      {/* Header skeleton */}
+      <div style={{ borderBottom: '1px solid #e2e2dc', padding: '0 28px', height: 54, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+        <Sk w={96} h={22} />
+        <Sk w={130} h={34} r={10} />
+        <div style={{ display: 'flex' }}>
+          {[0, 1].map(i => <Sk key={i} w={24} h={24} r={12} style={{ marginLeft: i > 0 ? -8 : 0 }} />)}
+        </div>
+        <div style={{ flex: 1 }} />
+        <Sk w={118} h={34} r={9} />
+      </div>
+
+      {/* Date nav skeleton */}
+      <div style={{ borderBottom: '1px solid #e2e2dc', padding: '10px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <Sk w={26} h={26} r={6} />
+        <Sk w={190} h={18} />
+        <Sk w={26} h={26} r={6} />
+        <Sk w={58} h={28} r={6} />
+      </div>
+
+      {/* Body skeleton */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* Week grid skeleton */}
+        <div style={{ flex: 1, padding: '28px 32px 48px', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+            {Array.from({ length: 7 }).map((_, col) => (
+              <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Sk h={30} r={8} />
+                {Array.from({ length: 9 }).map((_, row) => (
+                  <Sk key={row} h={38} r={6} style={{ opacity: 1 - row * 0.06 }} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Side panel skeleton */}
+        <div style={{ width: 288, borderLeft: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Sk h={46} r={11} />
+          </div>
+          <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Sk w={110} h={13} />
+            {[0, 1, 2].map(i => <Sk key={i} h={72} r={9} />)}
+          </div>
+        </div>
+      </div>
     </div>
   );
 
   if (error) return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
       <p style={{ fontSize: 22, color: '#555' }}>{error}</p>
-      <button onClick={() => router.replace('/connect')} style={{ fontSize: 19, color: '#4a8000', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Start a new room</button>
+      <button onClick={() => router.replace('/connect')} style={{ fontSize: 19, color: '#22C55E', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Start a new room</button>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f0', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', color: '#111' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', color: '#111' }}>
 
       {/* Mobile app download banner */}
       {showAppBanner && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, backgroundColor: '#1a2e0a', padding: '16px 20px 32px', boxShadow: '0 -4px 24px rgba(0,0,0,0.18)' }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, backgroundColor: '#fff', padding: '16px 20px 32px', boxShadow: '0 -4px 24px rgba(0,0,0,0.18)' }}>
           <button
             onClick={() => setShowAppBanner(false)}
-            style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', color: 'rgba(200,249,122,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: 4 }}
+            style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', color: 'rgba(34,197,94,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: 4 }}
             aria-label="Dismiss"
           >×</button>
-          <p style={{ color: '#c8f97a', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px' }}>Get the app</p>
-          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, margin: '0 0 14px', lineHeight: 1.4 }}>
+          <p style={{ color: '#22C55E', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px' }}>Get the app</p>
+          <p style={{ color: '#374151', fontSize: 15, margin: '0 0 14px', lineHeight: 1.4 }}>
             Open this room in the ClearSlot app for a better experience.
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <a
               href={`clearslot://room?code=${code}`}
-              style={{ flex: 1, backgroundColor: '#c8f97a', color: '#1a2e0a', fontSize: 15, fontWeight: 700, textAlign: 'center', padding: '11px 0', borderRadius: 10, textDecoration: 'none' }}
+              style={{ flex: 1, backgroundColor: '#22C55E', color: '#fff', fontSize: 15, fontWeight: 700, textAlign: 'center', padding: '11px 0', borderRadius: 10, textDecoration: 'none' }}
             >
               Open in App
             </a>
@@ -976,7 +1095,7 @@ function RoomContent() {
               href="https://apps.apple.com/app/idYOUR_APP_ID"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ flex: 1, backgroundColor: 'rgba(200,249,122,0.12)', color: '#c8f97a', fontSize: 15, fontWeight: 600, textAlign: 'center', padding: '11px 0', borderRadius: 10, textDecoration: 'none', border: '1px solid rgba(200,249,122,0.25)' }}
+              style={{ flex: 1, backgroundColor: 'rgba(34,197,94,0.12)', color: '#22C55E', fontSize: 15, fontWeight: 600, textAlign: 'center', padding: '11px 0', borderRadius: 10, textDecoration: 'none', border: '1px solid rgba(34,197,94,0.25)' }}
             >
               Download ↗
             </a>
@@ -985,19 +1104,19 @@ function RoomContent() {
       )}
 
       {/* Header */}
-      <div style={{ borderBottom: '1px solid #e2e2dc', padding: '0 28px', height: 54, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+      <div style={{ borderBottom: '1px solid #e2e2dc', padding: isMobile ? '0 16px' : '0 28px', height: 54, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
         <span style={{ fontSize: 26, fontWeight: 300, letterSpacing: '-0.06em', color: '#1a1a18' }}>clearslot</span>
 
         {/* Room code badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#fff', border: '1px solid #e0e0d8', borderRadius: 10, padding: '5px 12px' }}>
           <span style={{ fontSize: 16, color: '#888' }}>Room</span>
-          <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '0.12em', color: '#1a2e0a' }}>{code}</span>
+          <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '0.12em', color: '#111111' }}>{code}</span>
         </div>
 
         {/* Participant count */}
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {participants.map((_, i) => (
-            <div key={i} style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: '#fff', fontWeight: 700, border: '2px solid #f5f5f0', marginLeft: i > 0 ? -8 : 0 }}>
+            <div key={i} style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: '#fff', fontWeight: 700, border: '2px solid #FFFFFF', marginLeft: i > 0 ? -8 : 0 }}>
               {i + 1}
             </div>
           ))}
@@ -1007,7 +1126,7 @@ function RoomContent() {
         <div style={{ flex: 1 }} />
 
         {/* View toggle */}
-        <div style={{ display: 'flex', gap: 2, backgroundColor: '#fff', border: '1px solid #1a1a1a', borderRadius: 9, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 2, backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: 9, padding: 3 }}>
           {(['week', 'day'] as const).map(m => (
             <button key={m} onClick={() => setViewMode(m)}
               style={{ padding: '5px 14px', borderRadius: 6, fontSize: 17, fontWeight: 500, border: 'none', cursor: 'pointer', backgroundColor: viewMode === m ? '#d8d8d2' : 'transparent', color: viewMode === m ? '#0a0a0a' : '#555' }}>
@@ -1018,7 +1137,7 @@ function RoomContent() {
 
         {viewMode === 'day' && (
           <div style={{ display: 'flex', gap: 2, backgroundColor: '#fff', border: '1px solid #e0e0d8', borderRadius: 9, padding: 3 }}>
-            {(['swimlane', 'grid', 'arc'] as DailyView[]).map(v => (
+            {(['swimlane', 'grid'] as DailyView[]).map(v => (
               <button key={v} onClick={() => setDailyView(v)}
                 style={{ padding: '5px 10px', borderRadius: 6, fontSize: 16, fontWeight: 500, border: 'none', cursor: 'pointer', backgroundColor: dailyView === v ? '#d8d8d2' : 'transparent', color: dailyView === v ? '#0a0a0a' : '#555', textTransform: 'capitalize' }}>
                 {v}
@@ -1029,57 +1148,55 @@ function RoomContent() {
       </div>
 
       {/* Date nav */}
-      <div style={{ borderBottom: '1px solid #e2e2dc', padding: '10px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+      <div style={{ borderBottom: '1px solid #e2e2dc', padding: isMobile ? '10px 16px' : '10px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
         {viewMode === 'week' ? (
           <>
-            <button onClick={() => setWeekBase(d => addDays(d, -7))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #1a1a1a', background: '#fff', cursor: 'pointer', fontSize: 18 }}>←</button>
+            <button onClick={() => setWeekBase(d => addDays(d, -7))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', fontSize: 18 }}>←</button>
             <span style={{ fontSize: 18, color: '#555', minWidth: 180 }}>{format(weekDates[0], 'MMM d')} – {format(weekDates[6], 'MMM d, yyyy')}</span>
-            <button onClick={() => setWeekBase(d => addDays(d, 7))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #1a1a1a', background: '#fff', cursor: 'pointer', fontSize: 18 }}>→</button>
-            <button onClick={() => setWeekBase(new Date())} style={{ fontSize: 17, color: '#555', background: 'none', border: '1px solid #1a1a1a', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>Today</button>
+            <button onClick={() => setWeekBase(d => addDays(d, 7))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', fontSize: 18 }}>→</button>
+            <button onClick={() => setWeekBase(new Date())} style={{ fontSize: 17, color: '#555', background: 'none', border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>Today</button>
           </>
         ) : (
           <>
-            <button onClick={() => setSelectedDate(d => addDays(d, -1))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #1a1a1a', background: '#fff', cursor: 'pointer', fontSize: 18 }}>←</button>
+            <button onClick={() => setSelectedDate(d => addDays(d, -1))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', fontSize: 18 }}>←</button>
             <span style={{ fontSize: 18, color: '#555', minWidth: 160 }}>{format(selectedDate, 'EEEE, MMMM d')}</span>
-            <button onClick={() => setSelectedDate(d => addDays(d, 1))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #1a1a1a', background: '#fff', cursor: 'pointer', fontSize: 18 }}>→</button>
-            <button onClick={() => setSelectedDate(new Date())} style={{ fontSize: 17, color: '#555', background: 'none', border: '1px solid #1a1a1a', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>Today</button>
+            <button onClick={() => setSelectedDate(d => addDays(d, 1))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', fontSize: 18 }}>→</button>
+            <button onClick={() => setSelectedDate(new Date())} style={{ fontSize: 17, color: '#555', background: 'none', border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>Today</button>
           </>
         )}
       </div>
 
       {/* Body */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflow: isMobile ? 'auto' : 'hidden' }}>
 
         {/* Main view area */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: '28px 32px 48px' }}>
+        <div style={{ flex: 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', padding: isMobile ? '12px 12px 24px' : '28px 32px 48px' }}>
           {participants.length === 0 ? (
             <div style={{ textAlign: 'center', marginTop: 80, color: '#888', fontSize: 19 }}>
               <p style={{ marginBottom: 8 }}>No one has connected yet.</p>
-              {myIndex === null && <button onClick={handleJoin} style={{ fontSize: 19, color: '#4a8000', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Be the first to join →</button>}
+              {myIndex === null && <button onClick={handleJoin} style={{ fontSize: 19, color: '#22C55E', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Be the first to join →</button>}
             </div>
           ) : viewMode === 'week' ? (
             <WeekView weekDates={weekDates} allBlocks={allBlocks} selectedRange={selectedRange} onRangeChange={handleRangeChange} />
           ) : dailyView === 'swimlane' ? (
             <SwimLaneView date={selectedDate} participants={participants} allBlocks={allBlocks} onRangeChange={handleRangeChange} selectedRange={selectedRange} />
-          ) : dailyView === 'grid' ? (
-            <GridDayView date={selectedDate} participants={participants} allBlocks={allBlocks} onRangeChange={handleRangeChange} selectedRange={selectedRange} />
           ) : (
-            <ArcClockView date={selectedDate} participants={participants} allBlocks={allBlocks} />
+            <GridDayView date={selectedDate} participants={participants} allBlocks={allBlocks} onRangeChange={handleRangeChange} selectedRange={selectedRange} />
           )}
         </div>
 
         {/* Side panel */}
-        <div style={{ width: 288, borderLeft: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
+        <div style={{ width: isMobile ? '100%' : 288, borderLeft: isMobile ? 'none' : '1px solid #e2e2dc', borderTop: isMobile ? '1px solid #e2e2dc' : 'none', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
 
           {/* Share / Join */}
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <button onClick={handleCopyLink}
-              style={{ width: '100%', backgroundColor: '#4a8000', color: '#fff', borderRadius: 11, padding: '12px', fontSize: 18, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+              style={{ width: '100%', backgroundColor: '#22C55E', color: '#fff', borderRadius: 11, padding: '12px', fontSize: 18, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
               {copied ? '✓ Link copied!' : 'Copy invite link'}
             </button>
             {myIndex === null && (
               <button onClick={handleJoin}
-                style={{ width: '100%', backgroundColor: '#fff', color: '#4a8000', borderRadius: 11, padding: '12px', fontSize: 18, fontWeight: 600, border: '1.5px solid #4a8000', cursor: 'pointer' }}>
+                style={{ width: '100%', backgroundColor: '#fff', color: '#22C55E', borderRadius: 11, padding: '12px', fontSize: 18, fontWeight: 600, border: '1.5px solid #22C55E', cursor: 'pointer' }}>
                 Join this room
               </button>
             )}
@@ -1095,16 +1212,16 @@ function RoomContent() {
                   const canAccept = prop.status === 'pending' && (myIndex === null || prop.proposer_index !== myIndex);
                   const hasToken = isConnected();
                   return (
-                    <div key={i} style={{ padding: '10px 12px', borderRadius: 9, backgroundColor: isAccepted ? 'rgba(74,128,0,0.06)' : '#fff', border: `1px solid ${isAccepted ? 'rgba(74,128,0,0.2)' : '#e0e0d8'}` }}>
+                    <div key={i} style={{ padding: '10px 12px', borderRadius: 9, backgroundColor: isAccepted ? 'rgba(34,197,94,0.06)' : '#fff', border: `1px solid ${isAccepted ? 'rgba(34,197,94,0.2)' : '#e0e0d8'}` }}>
                       <p style={{ fontSize: 14, color: '#888', marginBottom: 2 }}>Person {prop.proposer_index + 1} suggests</p>
-                      <p style={{ fontSize: 16, fontWeight: 600, color: '#1a2e0a', marginBottom: 6 }}>
+                      <p style={{ fontSize: 16, fontWeight: 600, color: '#111111', marginBottom: 6 }}>
                         {format(parseISO(prop.start_time), 'EEE MMM d, h:mm a')} – {format(parseISO(prop.end_time), 'h:mm a')}
                       </p>
                       {isAccepted ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <span style={{ fontSize: 14, color: '#4a8000', fontWeight: 600 }}>✓ Accepted</span>
+                          <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 600 }}>✓ Accepted</span>
                           {addedToCalIdx === i ? (
-                            <span style={{ fontSize: 14, color: '#4a8000', fontWeight: 500 }}>✓ Added to Google Calendar</span>
+                            <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 500 }}>✓ Added to Google Calendar</span>
                           ) : hasToken ? (
                             <button
                               onClick={async () => {
@@ -1125,20 +1242,41 @@ function RoomContent() {
                                   alert('Could not add to calendar. Try again.');
                                 }
                               }}
-                              style={{ fontSize: 14, color: '#4a8000', background: 'none', border: '1px solid #4a8000', borderRadius: 7, padding: '5px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                              style={{ fontSize: 14, color: '#22C55E', background: 'none', border: '1px solid #22C55E', borderRadius: 7, padding: '5px 10px', cursor: 'pointer', fontWeight: 500 }}>
                               Add to Google Calendar
                             </button>
                           ) : (
-                            <a href={`/connect?room=${code}`} style={{ fontSize: 14, color: '#4a8000', fontWeight: 500, textDecoration: 'underline' }}>
+                            <a href={`/connect?room=${code}`} style={{ fontSize: 14, color: '#22C55E', fontWeight: 500, textDecoration: 'underline' }}>
                               Connect Google Calendar to add this event
                             </a>
+                          )}
+                          {/* Email invite */}
+                          {inviteSentIdx === i ? (
+                            <span style={{ fontSize: 13, color: '#22C55E', fontWeight: 500 }}>✓ Invite sent to {inviteEmail}</span>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+                              <input
+                                type="email"
+                                placeholder="Email me the details"
+                                value={inviteEmail}
+                                onChange={e => setInviteEmail(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleSendInvite(i, prop.start_time, prop.end_time); }}
+                                style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid #e2e2dc', fontSize: 13, color: '#333', minWidth: 0 }}
+                              />
+                              <button
+                                onClick={() => handleSendInvite(i, prop.start_time, prop.end_time)}
+                                disabled={sendingInviteIdx === i}
+                                style={{ padding: '5px 10px', backgroundColor: '#22C55E', color: '#fff', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: sendingInviteIdx === i ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+                                {sendingInviteIdx === i ? '…' : 'Send'}
+                              </button>
+                            </div>
                           )}
                         </div>
                       ) : canAccept ? (
                         <button
                           onClick={() => handleAccept(i, prop.start_time, prop.end_time)}
                           disabled={acceptingIdx === i}
-                          style={{ width: '100%', backgroundColor: '#4a8000', color: '#fff', borderRadius: 7, padding: '7px', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: acceptingIdx === i ? 0.6 : 1 }}>
+                          style={{ width: '100%', backgroundColor: '#22C55E', color: '#fff', borderRadius: 7, padding: '7px', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: acceptingIdx === i ? 0.6 : 1 }}>
                           {acceptingIdx === i ? 'Accepting…' : 'Accept'}
                         </button>
                       ) : (
@@ -1168,10 +1306,10 @@ function RoomContent() {
                     : false;
                   return (
                     <button key={i} onClick={() => handleSlotClick(slot)}
-                      style={{ padding: '9px 12px', backgroundColor: isSelected ? 'rgba(74,128,0,0.08)' : '#fff', border: `1px solid ${isSelected ? '#4a8000' : '#e2e2dc'}`, borderRadius: 9, display: 'flex', flexDirection: 'column', gap: 2, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                      style={{ padding: '9px 12px', backgroundColor: isSelected ? 'rgba(34,197,94,0.08)' : '#fff', border: `1px solid ${isSelected ? '#22C55E' : '#e2e2dc'}`, borderRadius: 9, display: 'flex', flexDirection: 'column', gap: 2, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
                       <span style={{ fontSize: 16, color: '#888' }}>{format(slot.start, 'EEE, MMM d')}</span>
-                      <span style={{ fontSize: 18, fontWeight: 600, color: '#1a2e0a' }}>{format(slot.start, 'h:mm a')} – {format(slot.end, 'h:mm a')}</span>
-                      <span style={{ fontSize: 15, color: '#4a8000' }}>{slot.count}/{participants.length} free</span>
+                      <span style={{ fontSize: 18, fontWeight: 600, color: '#111111' }}>{format(slot.start, 'h:mm a')} – {format(slot.end, 'h:mm a')}</span>
+                      <span style={{ fontSize: 15, color: '#22C55E' }}>{slot.count}/{participants.length} free</span>
                     </button>
                   );
                 })}
@@ -1202,7 +1340,7 @@ function RoomContent() {
                   const end = new Date(y, mo - 1, d, eh, em, 0, 0);
                   if (end > start) handleRangeChange({ start, end });
                 }}
-                style={{ width: '100%', padding: '8px', borderRadius: 8, border: '1.5px solid #4a8000', backgroundColor: 'transparent', color: '#4a8000', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ width: '100%', padding: '8px', borderRadius: 8, border: '1.5px solid #22C55E', backgroundColor: 'transparent', color: '#22C55E', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
                 Apply
               </button>
             </div>
@@ -1210,7 +1348,7 @@ function RoomContent() {
 
           {/* Propose selected slot */}
           {selectedRange && myIndex !== null && (
-            <div style={{ margin: '0 20px 20px', padding: '12px', backgroundColor: 'rgba(74,128,0,0.06)', border: '1px solid rgba(74,128,0,0.2)', borderRadius: 11 }}>
+            <div style={{ margin: '0 20px 20px', padding: '12px', backgroundColor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 11 }}>
               <p style={{ fontSize: 14, color: '#888', marginBottom: 6 }}>{format(selectedRange.start, 'EEE, MMM d')}</p>
               {/* Editable start/end times */}
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
@@ -1221,8 +1359,8 @@ function RoomContent() {
                     const next = new Date(selectedRange.start); next.setHours(h, m, 0, 0);
                     if (next < selectedRange.end) handleRangeChange({ start: next, end: selectedRange.end });
                   }}
-                  style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: '1.5px solid #4a8000', fontSize: 15, color: '#1a2e0a', fontWeight: 600, backgroundColor: '#fff', boxSizing: 'border-box' }} />
-                <span style={{ color: '#4a8000', fontWeight: 600, flexShrink: 0 }}>–</span>
+                  style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: '1.5px solid #22C55E', fontSize: 15, color: '#111111', fontWeight: 600, backgroundColor: '#fff', boxSizing: 'border-box' }} />
+                <span style={{ color: '#22C55E', fontWeight: 600, flexShrink: 0 }}>–</span>
                 <input type="time" title="End time"
                   value={`${String(selectedRange.end.getHours()).padStart(2,'0')}:${String(selectedRange.end.getMinutes()).padStart(2,'0')}`}
                   onChange={e => {
@@ -1230,13 +1368,13 @@ function RoomContent() {
                     const next = new Date(selectedRange.end); next.setHours(h, m, 0, 0);
                     if (next > selectedRange.start) handleRangeChange({ start: selectedRange.start, end: next });
                   }}
-                  style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: '1.5px solid #4a8000', fontSize: 15, color: '#1a2e0a', fontWeight: 600, backgroundColor: '#fff', boxSizing: 'border-box' }} />
+                  style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: '1.5px solid #22C55E', fontSize: 15, color: '#111111', fontWeight: 600, backgroundColor: '#fff', boxSizing: 'border-box' }} />
               </div>
               {proposed ? (
-                <p style={{ fontSize: 18, color: '#4a8000', fontWeight: 600 }}>✓ Proposal shared!</p>
+                <p style={{ fontSize: 18, color: '#22C55E', fontWeight: 600 }}>✓ Proposal shared!</p>
               ) : (
                 <button onClick={handlePropose} disabled={proposing}
-                  style={{ width: '100%', backgroundColor: '#4a8000', color: '#fff', borderRadius: 9, padding: '10px', fontSize: 18, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: proposing ? 0.6 : 1 }}>
+                  style={{ width: '100%', backgroundColor: '#22C55E', color: '#fff', borderRadius: 9, padding: '10px', fontSize: 18, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: proposing ? 0.6 : 1 }}>
                   {proposing ? 'Proposing...' : 'Suggest this time'}
                 </button>
               )}
@@ -1247,7 +1385,7 @@ function RoomContent() {
         </div>
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { scrollbar-width: none; } *::-webkit-scrollbar { display: none; }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes skshimmer { 0%,100%{background-position:200% 0} 50%{background-position:-200% 0} } * { scrollbar-width: none; } *::-webkit-scrollbar { display: none; }`}</style>
     </div>
   );
 }
@@ -1255,9 +1393,10 @@ function RoomContent() {
 export default function RoomPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 36, height: 36, border: '2px solid rgba(74,128,0,0.3)', borderTopColor: '#4a8000', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', padding: '16px' }}>
+        <Sk h={48} r={8} style={{ marginBottom: 12 }} />
+        <Sk h={400} r={12} />
+        <style>{`@keyframes skshimmer { 0%,100%{background-position:200% 0} 50%{background-position:-200% 0} }`}</style>
       </div>
     }>
       <RoomContent />

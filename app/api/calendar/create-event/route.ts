@@ -8,19 +8,29 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { title, start, end } = await request.json();
+    const { title, start, end, attendeeEmail } = await request.json();
 
-    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    const eventBody: Record<string, unknown> = {
+      summary: title ?? 'Meeting',
+      start: { dateTime: start },
+      end: { dateTime: end },
+    };
+
+    if (attendeeEmail && typeof attendeeEmail === 'string') {
+      eventBody.attendees = [{ email: attendeeEmail }];
+    }
+
+    const url = attendeeEmail
+      ? 'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all'
+      : 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${writeToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        summary: title ?? 'Meeting',
-        start: { dateTime: start },
-        end: { dateTime: end },
-      }),
+      body: JSON.stringify(eventBody),
     });
 
     if (res.status === 401) {

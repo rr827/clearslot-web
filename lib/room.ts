@@ -19,7 +19,7 @@ export interface RoomRow {
 function db() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
 
@@ -121,6 +121,8 @@ export async function proposeTime(
   const supabase = db();
   const room = await getRoom(code);
   if (!room) throw new Error('Room not found');
+
+  if (room.proposals.length >= 50) throw new Error('Too many proposals in this room');
 
   // Deduplicate: don't add an identical pending proposal
   const duplicate = room.proposals.some(

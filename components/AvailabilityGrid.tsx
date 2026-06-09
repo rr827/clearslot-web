@@ -16,9 +16,9 @@ const TIMELINE_HEIGHT = HOUR_HEIGHT * TOTAL_HOURS;
 //   only them free → light blue   (I'm busy)
 //   both busy      → dark grey
 const COLOR = {
-  free:      '#d4edbb',   // single cal: free
+  free:      '#F0FDF4',   // single cal: free
   busy:      '#dcdcd4',   // single cal: busy (light grey)
-  bothFree:  '#8fcc5a',   // two cals: both free (green)
+  bothFree:  '#4ADE80',   // two cals: both free (medium green)
   meFree:    '#fef3b0',   // two cals: only I'm free (light yellow)
   themFree:  '#bde0f5',   // two cals: only they're free (light blue)
   bothBusy:  '#b8b8b0',   // two cals: both busy (dark grey)
@@ -132,7 +132,7 @@ export default function AvailabilityGrid({ dates, myBlocks, theirBlocks }: Props
 
             {/* Today outline */}
             {isToday && (
-              <div style={{ position: 'absolute', inset: 0, border: '2px solid rgba(74,128,0,0.3)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', inset: 0, border: '2px solid rgba(0,230,58,0.3)', pointerEvents: 'none' }} />
             )}
           </div>
         );

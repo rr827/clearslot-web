@@ -5,13 +5,13 @@ import { checkRateLimit } from '@/lib/rateLimit';
 function db() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
-  if (!checkRateLimit(`waitlist:${ip}`, 5, 60_000)) {
+  if (!(await checkRateLimit(`waitlist:${ip}`, 5, 60_000))) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 

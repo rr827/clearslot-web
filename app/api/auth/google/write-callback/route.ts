@@ -12,13 +12,18 @@ export async function GET(request: NextRequest) {
 
   const expectedNonce = request.cookies.get('oauth_write_state')?.value;
   let parsedState: { nonce?: string; returnTo?: string } = {};
-  try { parsedState = stateParam ? JSON.parse(stateParam) : {}; } catch {}
-
-  if (parsedState.nonce && parsedState.nonce !== expectedNonce) {
+  try {
+    parsedState = stateParam ? JSON.parse(stateParam) : {};
+  } catch {
     return NextResponse.redirect(new URL('/?error=invalid_state', request.url));
   }
 
-  const returnTo = parsedState.returnTo ?? '/room/new';
+  if (parsedState.nonce !== expectedNonce) {
+    return NextResponse.redirect(new URL('/?error=invalid_state', request.url));
+  }
+
+  const rawReturnTo = parsedState.returnTo ?? '/room/new';
+  const returnTo = rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : '/room/new';
 
   try {
     const res = await fetch('https://oauth2.googleapis.com/token', {

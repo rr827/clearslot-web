@@ -1,69 +1,52 @@
 'use client';
 
-// Animated demo of the week view drag-select interaction
-// Used on the landing page hero
-
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-const HOUR_LABELS = [
-  { label: '6a', pct: 0 },
-  { label: '9a', pct: 18.75 },
-  { label: '12p', pct: 37.5 },
-  { label: '3p', pct: 56.25 },
-  { label: '6p', pct: 75 },
+const DATES = [8, 9, 10, 11, 12, 13, 14];
+const TODAY = 3; // THU
+
+const PARTICIPANTS = [
+  { name: 'Alex',   color: '#22C55E' },
+  { name: 'Sam',    color: '#4ADE80' },
+  { name: 'Taylor', color: '#86EFAC' },
+  { name: 'Jordan', color: '#D1D5DB' },
 ];
 
-// Participant colors (green = P1, navy = P2)
-const C1 = 'rgba(74,128,0,0.6)';
-const C2 = 'rgba(28,52,97,0.7)';
+const GRID_H = 210; // px — represents 9am–2pm (5 hours)
 
-// Busy blocks: { d: dayIdx, top: %, h: %, c: color }
-// Time positions: 6am=0%, 9am=18.75%, 12pm=37.5%, 3pm=56.25%, 6pm=75%, 10pm=100%
-// Each hour = 6.25%
-const BUSY: { d: number; top: number; h: number; c: string }[] = [
-  // Mon
-  { d: 0, top: 12.5, h: 9.4, c: C1 },   // P1: 8–9:30am
-  { d: 0, top: 37.5, h: 6.25, c: C2 },  // P2: 12–1pm
-  // Tue
-  { d: 1, top: 25, h: 12.5, c: C2 },    // P2: 10am–12pm
-  { d: 1, top: 56.25, h: 6.25, c: C1 }, // P1: 3–4pm
-  // Wed
-  { d: 2, top: 12.5, h: 6.25, c: C1 },  // P1: 8–9am
-  { d: 2, top: 43.75, h: 12.5, c: C2 }, // P2: 1–3pm
-  // Thu
-  { d: 3, top: 25, h: 12.5, c: C2 },    // P2: 10–12pm
-  { d: 3, top: 62.5, h: 6.25, c: C1 },  // P1: 4–5pm
-  // Fri
-  { d: 4, top: 12.5, h: 6.25, c: C1 },  // P1: 8–9am
-  { d: 4, top: 37.5, h: 6.25, c: C2 },  // P2: 12–1pm
-  // Sat
-  { d: 5, top: 50, h: 9.4, c: C1 },     // P1: 2–3:30pm
-  // Sun: free
+// d = dayIndex, t = top%, h = height%, p = participant index
+const BLOCKS = [
+  { d: 0, t: 10, h: 22, p: 0 }, // MON Alex
+  { d: 0, t: 42, h: 18, p: 1 }, // MON Sam
+  { d: 1, t: 20, h: 28, p: 1 }, // TUE Sam
+  { d: 1, t: 68, h: 18, p: 2 }, // TUE Taylor
+  { d: 2, t:  2, h: 22, p: 0 }, // WED Alex
+  { d: 2, t: 40, h: 20, p: 2 }, // WED Taylor
+  { d: 2, t: 72, h: 24, p: 3 }, // WED Jordan
+  { d: 3, t: 32, h: 20, p: 1 }, // THU Sam
+  { d: 4, t: 20, h: 22, p: 0 }, // FRI Alex
+  { d: 4, t: 78, h: 18, p: 2 }, // FRI Taylor
+  { d: 5, t: 10, h: 18, p: 3 }, // SAT Jordan
 ];
 
-// Selection animates on Friday (d=4) from 9am (18.75%) to 3pm (56.25%)
-const SEL_DAY = 4;
-const SEL_TOP = 18.75;   // 9am
-const SEL_HEIGHT = 37.5; // 9am → 3pm = 6hrs = 37.5%
+// Selection on THU grows from 9am (0%) to ~noon (58%)
+const SEL_TOP = 0;
+const SEL_MAX = 56;
 
 const css = `
-@keyframes aligned-sel-grow {
-  0%, 12%   { top: ${SEL_TOP}%; height: 0%;        opacity: 0; }
-  16%        { top: ${SEL_TOP}%; height: 0%;        opacity: 1; }
-  52%        { top: ${SEL_TOP}%; height: ${SEL_HEIGHT}%; opacity: 1; }
-  68%, 80%   { top: ${SEL_TOP}%; height: ${SEL_HEIGHT}%; opacity: 1; }
-  92%, 100%  { top: ${SEL_TOP}%; height: ${SEL_HEIGHT}%; opacity: 0; }
+@keyframes cs-sel {
+  0%, 10%   { height: 0%;          opacity: 0; }
+  16%        { height: 0%;          opacity: 1; }
+  54%        { height: ${SEL_MAX}%; opacity: 1; }
+  68%, 80%   { height: ${SEL_MAX}%; opacity: 1; }
+  90%, 100%  { height: ${SEL_MAX}%; opacity: 0; }
 }
-@keyframes aligned-cursor {
-  0%, 12%  { top: ${SEL_TOP}%;                          opacity: 0; }
-  14%       { top: ${SEL_TOP}%;                          opacity: 1; }
-  52%       { top: ${SEL_TOP + SEL_HEIGHT}%;             opacity: 1; }
-  68%       { top: ${SEL_TOP + SEL_HEIGHT}%;             opacity: 1; }
-  72%       { top: ${SEL_TOP + SEL_HEIGHT}%;             opacity: 0; }
-  100%      { top: ${SEL_TOP + SEL_HEIGHT}%;             opacity: 0; }
-}
-@keyframes aligned-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(200,249,122,0); }
-  50%      { box-shadow: 0 0 0 6px rgba(200,249,122,0.15); }
+@keyframes cs-dot {
+  0%, 10%   { top: ${SEL_TOP}%;             opacity: 0; }
+  14%        { top: ${SEL_TOP}%;             opacity: 1; }
+  54%        { top: ${SEL_TOP + SEL_MAX}%;   opacity: 1; }
+  68%        { top: ${SEL_TOP + SEL_MAX}%;   opacity: 1; }
+  75%        { top: ${SEL_TOP + SEL_MAX}%;   opacity: 0; }
+  100%       { top: ${SEL_TOP + SEL_MAX}%;   opacity: 0; }
 }
 `;
 
@@ -72,135 +55,174 @@ export default function WeekDemo() {
     <>
       <style>{css}</style>
       <div style={{
-        backgroundColor: '#f5f5f0',
-        border: '1px solid #e0e0d8',
+        backgroundColor: '#fff',
+        border: '1px solid #E5E7EB',
         borderRadius: 16,
-        padding: '16px 16px 12px',
-        fontFamily: 'system-ui, sans-serif',
+        padding: '18px 16px 14px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+        fontFamily: 'Inter, system-ui, sans-serif',
         userSelect: 'none',
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Mini app header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 300, letterSpacing: '-0.06em', color: '#1a1a18' }}>clearslot</span>
-          <div style={{ backgroundColor: '#fff', border: '1px solid #e0e0d8', borderRadius: 7, padding: '3px 10px', fontSize: 12, color: '#888' }}>
-            Room <span style={{ fontWeight: 700, letterSpacing: '0.1em', color: '#1a2e0a' }}>WTXPPS</span>
+
+        {/* App header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>Room</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 600, color: '#111', cursor: 'default' }}>
+            Design Sync
+            <span style={{ color: '#9CA3AF', fontSize: 9 }}>▾</span>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
-            {['#4a8000', '#1c3461'].map((c, i) => (
-              <div key={i} style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: '2px solid #f5f5f0', marginLeft: i ? -6 : 0, fontSize: 10, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{i + 1}</div>
-            ))}
-            <span style={{ fontSize: 12, color: '#888', marginLeft: 6, lineHeight: '18px' }}>2 people</span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex' }}>
+              {PARTICIPANTS.map((p, i) => (
+                <div
+                  key={p.name}
+                  style={{
+                    width: 22, height: 22,
+                    borderRadius: '50%',
+                    backgroundColor: p.color,
+                    border: '2px solid #fff',
+                    marginLeft: i > 0 ? -7 : 0,
+                  }}
+                />
+              ))}
+            </div>
+            <span style={{ fontSize: 11, color: '#6B7280' }}>4 people</span>
           </div>
         </div>
 
-        {/* Week view grid */}
-        <div style={{ display: 'flex', gap: 2 }}>
+        {/* Week grid */}
+        <div style={{ display: 'flex', gap: 3 }}>
+
           {/* Time labels */}
-          <div style={{ width: 28, flexShrink: 0, position: 'relative', height: 240 }}>
-            {HOUR_LABELS.map(({ label, pct }) => (
-              <div key={label} style={{ position: 'absolute', top: `calc(${pct}% - 7px)`, right: 4, fontSize: 10, color: '#bbb', lineHeight: 1 }}>
-                {label}
-              </div>
-            ))}
+          <div style={{ width: 30, flexShrink: 0 }}>
+            <div style={{ height: 38 }} />
+            <div style={{ position: 'relative', height: GRID_H }}>
+              {['9am', '10am', '11am', '12pm', '1pm', '2pm'].map((label, i) => (
+                <div
+                  key={label}
+                  style={{
+                    position: 'absolute',
+                    top: `${(i / 5) * 100}%`,
+                    right: 4,
+                    transform: 'translateY(-50%)',
+                    fontSize: 9,
+                    color: '#9CA3AF',
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Day columns */}
-          {DAYS.map((day, dayIdx) => {
-            const isSel = dayIdx === SEL_DAY;
-            const busyForDay = BUSY.filter(b => b.d === dayIdx);
+          {DAYS.map((day, di) => {
+            const isToday = di === TODAY;
+            const dayBlocks = BLOCKS.filter(b => b.d === di);
 
             return (
-              <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Day label */}
-                <div style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: dayIdx === 4 ? '#4a8000' : '#999', letterSpacing: '0.05em', paddingBottom: 3 }}>
-                  {day}
-                  {dayIdx === 4 && <div style={{ fontSize: 13, fontWeight: 700, color: '#4a8000' }}>18</div>}
-                  {dayIdx !== 4 && <div style={{ fontSize: 13, fontWeight: 700, color: '#555' }}>{11 + dayIdx + (dayIdx >= 4 ? 1 : 0)}</div>}
+              <div key={day} style={{ flex: 1 }}>
+
+                {/* Day header */}
+                <div style={{ height: 38, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: 1, paddingTop: 2 }}>
+                  <div style={{ fontSize: 8, fontWeight: 600, color: isToday ? '#22C55E' : '#9CA3AF', letterSpacing: '0.06em' }}>
+                    {day}
+                  </div>
+                  <div style={{
+                    width: 22, height: 22,
+                    borderRadius: '50%',
+                    backgroundColor: isToday ? '#22C55E' : 'transparent',
+                    color: isToday ? '#fff' : '#374151',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {DATES[di]}
+                  </div>
                 </div>
 
-                {/* Column */}
+                {/* Column body */}
                 <div style={{
-                  flex: 1,
-                  height: 210,
-                  backgroundColor: '#daf5b0',
-                  borderRadius: 4,
+                  height: GRID_H,
+                  backgroundColor: '#F9FAFB',
+                  borderRadius: 6,
                   position: 'relative',
                   overflow: 'hidden',
-                  cursor: 'crosshair',
-                  animation: isSel ? 'aligned-pulse 2.5s 1.2s ease-in-out infinite' : undefined,
                 }}>
-                  {/* SVG grid lines */}
-                  <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map(i => {
-                      const y = `${(i / 16) * 100}%`;
-                      return (
-                        <g key={i}>
-                          <line x1={0} y1={y} x2="100%" y2={y} stroke="#bbb" strokeWidth={0.8} />
-                          {i < 16 && (
-                            <>
-                              <line x1={0} y1={`${((i + 0.5) / 16) * 100}%`} x2="100%" y2={`${((i + 0.5) / 16) * 100}%`} stroke="#d4d4d4" strokeWidth={0.6} strokeDasharray="3 3" />
-                              <line x1={0} y1={`${((i + 0.25) / 16) * 100}%`} x2="100%" y2={`${((i + 0.25) / 16) * 100}%`} stroke="#e4e4e4" strokeWidth={0.4} strokeDasharray="2 5" />
-                              <line x1={0} y1={`${((i + 0.75) / 16) * 100}%`} x2="100%" y2={`${((i + 0.75) / 16) * 100}%`} stroke="#e4e4e4" strokeWidth={0.4} strokeDasharray="2 5" />
-                            </>
-                          )}
-                        </g>
-                      );
-                    })}
-                  </svg>
 
-                  {/* Busy blocks */}
-                  {busyForDay.map((b, j) => (
-                    <div key={j} style={{
+                  {/* Hour grid lines */}
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} style={{
                       position: 'absolute',
-                      top: `${b.top}%`,
-                      height: `${b.h}%`,
                       left: 0, right: 0,
-                      backgroundColor: b.c,
+                      top: `${(i / 5) * 100}%`,
+                      borderTop: '1px solid #F3F4F6',
                       pointerEvents: 'none',
                     }} />
                   ))}
 
-                  {/* Animated selection overlay */}
-                  {isSel && (
+                  {/* Availability blocks */}
+                  {dayBlocks.map((b, j) => (
+                    <div key={j} style={{
+                      position: 'absolute',
+                      top: `${b.t}%`,
+                      height: `${b.h}%`,
+                      left: 2, right: 2,
+                      backgroundColor: PARTICIPANTS[b.p].color,
+                      borderRadius: 4,
+                    }} />
+                  ))}
+
+                  {/* Animated selection on today */}
+                  {isToday && (
                     <>
                       <div style={{
                         position: 'absolute',
-                        left: 0, right: 0,
-                        backgroundColor: 'rgba(74,128,0,0.22)',
-                        border: '2px solid #4a8000',
-                        borderRadius: 3,
+                        top: `${SEL_TOP}%`,
+                        left: 2, right: 2,
+                        backgroundColor: 'rgba(74,222,128,0.2)',
+                        border: '1.5px solid #22C55E',
+                        borderRadius: 4,
                         pointerEvents: 'none',
-                        animation: 'aligned-sel-grow 4.8s ease-in-out infinite',
+                        animation: 'cs-sel 5s ease-in-out infinite',
                       }} />
-                      {/* Cursor dot */}
                       <div style={{
                         position: 'absolute',
                         left: '50%',
                         transform: 'translateX(-50%)',
                         width: 8, height: 8,
                         borderRadius: '50%',
-                        backgroundColor: '#4a8000',
+                        backgroundColor: '#22C55E',
+                        boxShadow: '0 0 0 3px rgba(34,197,94,0.2)',
                         pointerEvents: 'none',
-                        animation: 'aligned-cursor 4.8s ease-in-out infinite',
+                        animation: 'cs-dot 5s ease-in-out infinite',
                       }} />
                     </>
                   )}
                 </div>
+
               </div>
             );
           })}
         </div>
 
-        {/* Bottom label */}
-        <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#aaa' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: 'rgba(74,128,0,0.6)', display: 'inline-block' }} />Person 1 busy</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: 'rgba(28,52,97,0.7)', display: 'inline-block' }} />Person 2 busy</span>
+        {/* Legend */}
+        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {PARTICIPANTS.map(p => (
+              <span key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#6B7280' }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: p.color, display: 'inline-block', flexShrink: 0 }} />
+                {p.name}
+              </span>
+            ))}
           </div>
-          <span style={{ fontSize: 11, color: '#4a8000', fontWeight: 500 }}>drag to select →</span>
+          <span style={{ fontSize: 11, color: '#22C55E', fontWeight: 500 }}>Drag to propose →</span>
         </div>
+
       </div>
     </>
   );

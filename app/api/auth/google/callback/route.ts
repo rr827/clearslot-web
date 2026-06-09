@@ -18,14 +18,16 @@ export async function GET(request: NextRequest) {
   try {
     parsedState = stateParam ? JSON.parse(stateParam) : {};
   } catch {
-    // legacy plain-string state — skip nonce check
-  }
-
-  if (parsedState.nonce && parsedState.nonce !== expectedNonce) {
     return NextResponse.redirect(new URL('/?error=invalid_state', request.url));
   }
 
-  const returnTo = parsedState.returnTo ?? (stateParam?.startsWith('/') ? stateParam : '/room/new');
+  if (parsedState.nonce !== expectedNonce) {
+    return NextResponse.redirect(new URL('/?error=invalid_state', request.url));
+  }
+
+  // Only allow relative paths — prevents open redirect to external URLs
+  const rawReturnTo = parsedState.returnTo ?? '/room/new';
+  const returnTo = rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : '/room/new';
 
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;

@@ -20,6 +20,14 @@ function bufToHex(buf: ArrayBuffer): string {
     .join('');
 }
 
+function hexToBuffer(hex: string): ArrayBuffer {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes.buffer;
+}
+
 export async function signRoomSession(code: string, participantIndex: number): Promise<string> {
   const key = await getKey();
   const data = new TextEncoder().encode(`${code}:${participantIndex}`);
@@ -40,10 +48,11 @@ export async function verifyRoomSession(
   const participantIndex = Number(indexStr);
   if (!Number.isInteger(participantIndex) || participantIndex < 0) return null;
 
+  if (hexSig.length % 2 !== 0) return null;
   const key = await getKey();
   const data = new TextEncoder().encode(`${code}:${participantIndex}`);
-  const expected = await crypto.subtle.sign('HMAC', key, data);
-  if (bufToHex(expected) !== hexSig) return null;
+  const valid = await crypto.subtle.verify('HMAC', key, hexToBuffer(hexSig), data);
+  if (!valid) return null;
 
   return participantIndex;
 }

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { format, addDays, isSameDay, differenceInMinutes, startOfWeek, parseISO } from 'date-fns';
 import { loadToken, clearToken } from '@/lib/auth';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { fetchBusyBlocks, createCalendarEvent, BusyBlock } from '@/lib/calendar';
 import { decodeAvailability, buildShareLink } from '@/lib/payload';
 type ViewMode = 'day' | 'workWeek' | 'week';
@@ -71,8 +72,8 @@ function getBlockState(date: Date, startH: number, endH: number, myBlocks: BusyB
 }
 
 const BLOCK_COLOR: Record<BlockState, string> = {
-  bothFree:  '#c8f97a',
-  meFree:    '#4a8000',
+  bothFree:  '#22C55E',
+  meFree:    '#22C55E',
   themFree:  '#1c3461',
   bothBusy:  '#e2e2dc',
 };
@@ -80,6 +81,7 @@ const BLOCK_COLOR: Record<BlockState, string> = {
 function OverlapContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const [myBlocks, setMyBlocks] = useState<BusyBlock[]>([]);
   const [theirBlocks, setTheirBlocks] = useState<BusyBlock[]>([]);
@@ -177,9 +179,9 @@ function OverlapContent() {
   // ── Not connected: welcoming landing page ─────────────────────────────────
   if (!connected && !loading) {
     return (
-      <div className="min-h-screen bg-[#f5f5f0] flex flex-col">
+      <div className="min-h-screen bg-[#FFFFFF] flex flex-col">
         <div className="flex items-center px-5 pt-10 pb-2">
-          <button onClick={() => router.replace('/')} className="flex items-center gap-1.5 text-[13px] text-[#4a8000] font-medium cursor-pointer">
+          <button onClick={() => router.replace('/')} className="flex items-center gap-1.5 text-[13px] text-[#22C55E] font-medium cursor-pointer">
             <span style={{ fontSize: 16 }}>←</span> Back
           </button>
         </div>
@@ -187,24 +189,24 @@ function OverlapContent() {
           <div className="relative mb-8">
             <div className="w-20 h-20 rounded-2xl bg-[#e8f5d0] border-2 border-[#c8e89a] flex items-center justify-center shadow-sm">
               <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
-                <rect x="3" y="7" width="32" height="26" rx="4" fill="#d4edbb" stroke="#4a8000" strokeWidth="2"/>
-                <rect x="3" y="7" width="32" height="8" rx="4" fill="#8fcc5a"/>
-                <rect x="3" y="11" width="32" height="4" fill="#8fcc5a"/>
-                <circle cx="12" cy="4" r="2" fill="#4a8000"/>
-                <circle cx="26" cy="4" r="2" fill="#4a8000"/>
-                <rect x="9" y="19" width="6" height="5" rx="1" fill="#8fcc5a"/>
-                <rect x="17" y="19" width="6" height="5" rx="1" fill="#8fcc5a"/>
+                <rect x="3" y="7" width="32" height="26" rx="4" fill="#d4f7dc" stroke="#22C55E" strokeWidth="2"/>
+                <rect x="3" y="7" width="32" height="8" rx="4" fill="#4ADE80"/>
+                <rect x="3" y="11" width="32" height="4" fill="#4ADE80"/>
+                <circle cx="12" cy="4" r="2" fill="#22C55E"/>
+                <circle cx="26" cy="4" r="2" fill="#22C55E"/>
+                <rect x="9" y="19" width="6" height="5" rx="1" fill="#4ADE80"/>
+                <rect x="17" y="19" width="6" height="5" rx="1" fill="#4ADE80"/>
                 <rect x="9" y="26" width="6" height="4" rx="1" fill="#c8e89a"/>
                 <rect x="17" y="26" width="6" height="4" rx="1" fill="#c8e89a"/>
               </svg>
             </div>
-            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#4a8000] flex items-center justify-center">
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#22C55E] flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
           </div>
-          <h1 className="text-[26px] font-bold text-[#1a2e0a] leading-tight mb-3">You've been invited!</h1>
+          <h1 className="text-[26px] font-bold text-[#111111] leading-tight mb-3">You've been invited!</h1>
           <p className="text-[15px] text-[#5a6a4a] leading-6 max-w-xs">
             Someone shared their schedule with you. Connect your Google Calendar to find the best time to meet.
           </p>
@@ -229,7 +231,7 @@ function OverlapContent() {
         <div className="px-5 mt-auto pb-12">
           <button
             onClick={handleConnect}
-            className="w-full bg-[#4a8000] rounded-2xl py-5 flex items-center justify-center gap-3 text-[16px] font-semibold text-white cursor-pointer shadow-md active:scale-[0.98] transition-transform"
+            className="w-full bg-[#22C55E] rounded-2xl py-5 flex items-center justify-center gap-3 text-[16px] font-semibold text-white cursor-pointer shadow-md active:scale-[0.98] transition-transform"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <rect x="1" y="3" width="18" height="14" rx="3" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.5"/>
@@ -247,10 +249,10 @@ function OverlapContent() {
 
   // ── Connected: full calendar view ─────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f0', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', color: '#111' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', color: '#111' }}>
 
       {/* Header */}
-      <div style={{ borderBottom: '1px solid #e2e2dc', padding: '0 32px', height: 54, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 16 }}>
+      <div style={{ borderBottom: '1px solid #e2e2dc', padding: isMobile ? '0 16px' : '0 32px', height: 54, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 16 }}>
         <span style={{ fontSize: 21, fontWeight: 300, letterSpacing: '-0.06em', flexShrink: 0 }}>clearslot</span>
 
         <div style={{ display: 'flex', gap: 2, backgroundColor: '#ffffff', border: '1px solid #1a1a1a', borderRadius: 9, padding: 3 }}>
@@ -267,13 +269,13 @@ function OverlapContent() {
 
         {viewMode !== 'day' && (
           <button onClick={() => setShowFilter(v => !v)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 7, border: `1px solid ${showFilter ? '#4a8000' : '#dededa'}`, background: showFilter ? 'rgba(74,128,0,0.08)' : '#ffffff', color: showFilter ? '#4a8000' : '#555', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 7, border: `1px solid ${showFilter ? '#22C55E' : '#dededa'}`, background: showFilter ? 'rgba(34,197,94,0.08)' : '#ffffff', color: showFilter ? '#22C55E' : '#555', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M1 2h10M3 6h6M5 10h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             Filter days
             {activeFilters.length < ALL_DAYS.length && (
-              <span style={{ backgroundColor: '#4a8000', color: '#f5f5f0', borderRadius: 999, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{activeFilters.length}</span>
+              <span style={{ backgroundColor: '#22C55E', color: '#FFFFFF', borderRadius: 999, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{activeFilters.length}</span>
             )}
           </button>
         )}
@@ -288,20 +290,20 @@ function OverlapContent() {
 
       {/* Filter panel */}
       {showFilter && viewMode !== 'day' && (
-        <div style={{ borderBottom: '1px solid #e2e2dc', padding: '12px 32px', display: 'flex', alignItems: 'center', gap: 10, backgroundColor: '#f5f5f0', flexShrink: 0 }}>
+        <div style={{ borderBottom: '1px solid #e2e2dc', padding: '12px 32px', display: 'flex', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', flexShrink: 0 }}>
           <span style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '0.12em', marginRight: 4 }}>Show</span>
           <button onClick={() => applyPreset('workWeek')}
-            style={{ padding: '4px 11px', borderRadius: 6, fontSize: 12, border: `1px solid ${JSON.stringify(activeFilters) === JSON.stringify(WORK_DAYS) ? '#4a8000' : '#d8d8d2'}`, background: JSON.stringify(activeFilters) === JSON.stringify(WORK_DAYS) ? 'rgba(74,128,0,0.08)' : '#fafaf7', color: JSON.stringify(activeFilters) === JSON.stringify(WORK_DAYS) ? '#4a8000' : '#777', cursor: 'pointer' }}>
+            style={{ padding: '4px 11px', borderRadius: 6, fontSize: 12, border: `1px solid ${JSON.stringify(activeFilters) === JSON.stringify(WORK_DAYS) ? '#22C55E' : '#d8d8d2'}`, background: JSON.stringify(activeFilters) === JSON.stringify(WORK_DAYS) ? 'rgba(34,197,94,0.08)' : '#fafaf7', color: JSON.stringify(activeFilters) === JSON.stringify(WORK_DAYS) ? '#22C55E' : '#777', cursor: 'pointer' }}>
             Work week
           </button>
           <button onClick={() => applyPreset('all')}
-            style={{ padding: '4px 11px', borderRadius: 6, fontSize: 12, border: `1px solid ${JSON.stringify(activeFilters) === JSON.stringify(ALL_DAYS) ? '#4a8000' : '#d8d8d2'}`, background: JSON.stringify(activeFilters) === JSON.stringify(ALL_DAYS) ? 'rgba(74,128,0,0.08)' : '#fafaf7', color: JSON.stringify(activeFilters) === JSON.stringify(ALL_DAYS) ? '#4a8000' : '#777', cursor: 'pointer' }}>
+            style={{ padding: '4px 11px', borderRadius: 6, fontSize: 12, border: `1px solid ${JSON.stringify(activeFilters) === JSON.stringify(ALL_DAYS) ? '#22C55E' : '#d8d8d2'}`, background: JSON.stringify(activeFilters) === JSON.stringify(ALL_DAYS) ? 'rgba(34,197,94,0.08)' : '#fafaf7', color: JSON.stringify(activeFilters) === JSON.stringify(ALL_DAYS) ? '#22C55E' : '#777', cursor: 'pointer' }}>
             Full week
           </button>
           <div style={{ width: 1, height: 16, backgroundColor: '#dededa', margin: '0 4px' }} />
           {ALL_DAYS.map(day => (
             <button key={day} onClick={() => toggleDayFilter(day)}
-              style={{ width: 36, height: 28, borderRadius: 6, fontSize: 11, fontWeight: 500, border: `1px solid ${activeFilters.includes(day) ? '#4a8000' : '#dededa'}`, background: activeFilters.includes(day) ? 'rgba(74,128,0,0.1)' : '#fafaf7', color: activeFilters.includes(day) ? '#4a8000' : '#555', cursor: 'pointer' }}>
+              style={{ width: 36, height: 28, borderRadius: 6, fontSize: 11, fontWeight: 500, border: `1px solid ${activeFilters.includes(day) ? '#22C55E' : '#dededa'}`, background: activeFilters.includes(day) ? 'rgba(34,197,94,0.1)' : '#fafaf7', color: activeFilters.includes(day) ? '#22C55E' : '#555', cursor: 'pointer' }}>
               {day}
             </button>
           ))}
@@ -316,9 +318,9 @@ function OverlapContent() {
             const isToday = isSameDay(date, new Date());
             return (
               <button key={date.toISOString()} onClick={() => setSelectedDate(date)}
-                style={{ flexShrink: 0, width: 52, padding: '7px 0', borderRadius: 11, display: 'flex', flexDirection: 'column', alignItems: 'center', border: `1px solid ${active ? '#4a8000' : '#dededa'}`, background: active ? 'rgba(74,128,0,0.08)' : '#ffffff', cursor: 'pointer' }}>
-                <span style={{ fontSize: 9, color: active ? '#4a8000' : '#555', marginBottom: 3, letterSpacing: '0.08em' }}>{format(date, 'EEE').toUpperCase()}</span>
-                <span style={{ fontSize: 17, fontWeight: 600, color: active ? '#4a8000' : isToday ? '#444' : '#555' }}>{format(date, 'd')}</span>
+                style={{ flexShrink: 0, width: 52, padding: '7px 0', borderRadius: 11, display: 'flex', flexDirection: 'column', alignItems: 'center', border: `1px solid ${active ? '#22C55E' : '#dededa'}`, background: active ? 'rgba(34,197,94,0.08)' : '#ffffff', cursor: 'pointer' }}>
+                <span style={{ fontSize: 9, color: active ? '#22C55E' : '#555', marginBottom: 3, letterSpacing: '0.08em' }}>{format(date, 'EEE').toUpperCase()}</span>
+                <span style={{ fontSize: 17, fontWeight: 600, color: active ? '#22C55E' : isToday ? '#444' : '#555' }}>{format(date, 'd')}</span>
               </button>
             );
           })}
@@ -333,14 +335,14 @@ function OverlapContent() {
       )}
 
       {/* Body */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflow: isMobile ? 'auto' : 'hidden' }}>
 
         {/* Main: compact overlap grid */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '32px 40px 48px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ flex: 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', padding: isMobile ? '16px 16px 32px' : '32px 40px 48px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 80, gap: 12 }}>
-              <div style={{ width: 20, height: 20, border: '2px solid #4a8000', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ width: 20, height: 20, border: '2px solid #22C55E', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               <p style={{ fontSize: 13, color: '#777' }}>Reading your calendar...</p>
             </div>
           ) : error ? (
@@ -350,7 +352,7 @@ function OverlapContent() {
               {/* Card header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                 <span style={{ fontSize: 20, fontWeight: 600, color: '#f0f0ea', letterSpacing: '-0.02em' }}>When you are both free</span>
-                <span style={{ backgroundColor: 'rgba(200,249,122,0.15)', color: '#c8f97a', border: '1px solid rgba(200,249,122,0.3)', borderRadius: 999, padding: '5px 14px', fontSize: 13, fontWeight: 600 }}>
+                <span style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: '#22C55E', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 999, padding: '5px 14px', fontSize: 13, fontWeight: 600 }}>
                   {freeGaps.length} slots found
                 </span>
               </div>
@@ -360,7 +362,7 @@ function OverlapContent() {
                 {/* Day headers */}
                 <div />
                 {weekDates.map(date => (
-                  <div key={date.toISOString()} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: isSameDay(date, new Date()) ? '#c8f97a' : '#666', letterSpacing: '0.06em', paddingBottom: 4 }}>
+                  <div key={date.toISOString()} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: isSameDay(date, new Date()) ? '#22C55E' : '#666', letterSpacing: '0.06em', paddingBottom: 4 }}>
                     {format(date, 'EEE').toUpperCase()[0]}
                   </div>
                 ))}
@@ -391,8 +393,8 @@ function OverlapContent() {
               {/* Legend */}
               <div style={{ display: 'flex', gap: 20, marginTop: 20, flexWrap: 'wrap' }}>
                 {[
-                  { color: '#c8f97a', label: 'Both free' },
-                  { color: '#4a8000', label: 'You free' },
+                  { color: '#22C55E', label: 'Both free' },
+                  { color: '#22C55E', label: 'You free' },
                   { color: '#1c3461', label: 'Them free' },
                 ].map(({ color, label }) => (
                   <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#888' }}>
@@ -406,7 +408,7 @@ function OverlapContent() {
         </div>
 
         {/* Side panel — free windows + booking */}
-        <div style={{ width: 288, borderLeft: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
+        <div style={{ width: isMobile ? '100%' : 288, borderLeft: isMobile ? 'none' : '1px solid #e2e2dc', borderTop: isMobile ? '1px solid #e2e2dc' : 'none', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
 
           {/* Share */}
           <div style={{ padding: '16px 22px', borderBottom: '1px solid #e2e2dc' }}>
@@ -416,7 +418,7 @@ function OverlapContent() {
               </p>
             )}
             <button onClick={handleShare} disabled={loading || myBlocks.length === 0}
-              style={{ width: '100%', backgroundColor: '#4a8000', color: '#fff', borderRadius: 11, padding: '13px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: loading || myBlocks.length === 0 ? 0.4 : 1 }}>
+              style={{ width: '100%', backgroundColor: '#22C55E', color: '#fff', borderRadius: 11, padding: '13px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: loading || myBlocks.length === 0 ? 0.4 : 1 }}>
               {copied ? 'Link copied!' : 'Share my availability'}
             </button>
           </div>
@@ -438,9 +440,9 @@ function OverlapContent() {
                   const isSelected = selectedSlot?.start.getTime() === gap.start.getTime();
                   return (
                     <button key={i} onClick={() => { setSelectedSlot(isSelected ? null : gap); setBooked(false); }}
-                      style={{ padding: '9px 12px', backgroundColor: isSelected ? 'rgba(74,128,0,0.1)' : '#ffffff', border: `1px solid ${isSelected ? '#4a8000' : '#e2e2dc'}`, borderRadius: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', width: '100%' }}>
+                      style={{ padding: '9px 12px', backgroundColor: isSelected ? 'rgba(34,197,94,0.1)' : '#ffffff', border: `1px solid ${isSelected ? '#22C55E' : '#e2e2dc'}`, borderRadius: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', width: '100%' }}>
                       <span style={{ fontSize: 12, color: '#444' }}>{format(gap.start, 'h:mm a')} – {format(gap.end, 'h:mm a')}</span>
-                      <span style={{ fontSize: 10, color: '#3a6600', backgroundColor: 'rgba(74,128,0,0.1)', padding: '2px 7px', borderRadius: 999, flexShrink: 0, marginLeft: 8 }}>{dur}</span>
+                      <span style={{ fontSize: 10, color: '#16A34A', backgroundColor: 'rgba(34,197,94,0.1)', padding: '2px 7px', borderRadius: 999, flexShrink: 0, marginLeft: 8 }}>{dur}</span>
                     </button>
                   );
                 })}
@@ -450,16 +452,16 @@ function OverlapContent() {
 
           {/* Book selected slot */}
           {selectedSlot && (
-            <div style={{ margin: '0 22px 18px', padding: '12px', backgroundColor: 'rgba(74,128,0,0.06)', border: '1px solid rgba(74,128,0,0.2)', borderRadius: 11 }}>
+            <div style={{ margin: '0 22px 18px', padding: '12px', backgroundColor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 11 }}>
               <p style={{ fontSize: 11, color: '#555', marginBottom: 4 }}>{format(selectedSlot.start, 'EEE, MMM d')}</p>
-              <p style={{ fontSize: 14, fontWeight: 600, color: '#1a2e0a', marginBottom: 10 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#111111', marginBottom: 10 }}>
                 {format(selectedSlot.start, 'h:mm a')} – {format(selectedSlot.end, 'h:mm a')}
               </p>
               {booked ? (
-                <p style={{ fontSize: 13, color: '#4a8000', fontWeight: 600 }}>✓ Added to your calendar!</p>
+                <p style={{ fontSize: 13, color: '#22C55E', fontWeight: 600 }}>✓ Added to your calendar!</p>
               ) : (
                 <button onClick={handleBook} disabled={booking}
-                  style={{ width: '100%', backgroundColor: '#4a8000', color: '#fff', borderRadius: 9, padding: '10px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: booking ? 0.6 : 1 }}>
+                  style={{ width: '100%', backgroundColor: '#22C55E', color: '#fff', borderRadius: 9, padding: '10px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: booking ? 0.6 : 1 }}>
                   {booking ? 'Booking...' : 'Add to Calendar'}
                 </button>
               )}
@@ -478,8 +480,8 @@ function OverlapContent() {
 export default function OverlapPage() {
   return (
     <Suspense fallback={
-      <main style={{ minHeight: '100vh', backgroundColor: '#f5f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 40, height: 40, border: '2px solid rgba(74,128,0,0.3)', borderTopColor: '#4a8000', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <main style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 40, height: 40, border: '2px solid rgba(34,197,94,0.3)', borderTopColor: '#22C55E', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </main>
     }>

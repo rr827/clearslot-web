@@ -1,33 +1,33 @@
 export default function TermsPage() {
   return (
     <main style={{
-      backgroundColor: '#080808',
+      backgroundColor: '#FFFFFF',
       minHeight: '100vh',
-      color: '#e8e8e8',
-      fontFamily: "'Georgia', serif",
+      color: '#111111',
+      fontFamily: 'Inter, system-ui, sans-serif',
     }}>
       {/* Nav */}
       <nav style={{
         padding: '20px 40px',
-        borderBottom: '1px solid #1a1a1a',
+        borderBottom: '1px solid #E5E7EB',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <a href="/" style={{ color: '#c8f97a', fontFamily: 'monospace', fontSize: '18px', textDecoration: 'none', letterSpacing: '0.05em' }}>
+        <a href="/" style={{ color: '#22C55E', fontFamily: 'monospace', fontSize: '18px', textDecoration: 'none', letterSpacing: '0.05em' }}>
           ClearSlot
         </a>
-        <a href="/" style={{ color: '#666', fontSize: '14px', textDecoration: 'none' }}>← Back</a>
+        <a href="/" style={{ color: '#6B7280', fontSize: '14px', textDecoration: 'none' }}>← Back</a>
       </nav>
 
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '60px 40px 100px' }}>
-        <p style={{ color: '#666', fontSize: '13px', fontFamily: 'monospace', marginBottom: '12px' }}>
+        <p style={{ color: '#9CA3AF', fontSize: '13px', marginBottom: '12px' }}>
           Last updated: May 1, 2026
         </p>
-        <h1 style={{ fontSize: '38px', fontWeight: '400', color: '#ffffff', marginBottom: '16px', lineHeight: '1.2' }}>
+        <h1 style={{ fontSize: '38px', fontWeight: '700', color: '#111111', marginBottom: '16px', lineHeight: '1.2', letterSpacing: '-0.02em' }}>
           Terms of Service
         </h1>
-        <p style={{ color: '#c8f97a', fontSize: '16px', marginBottom: '48px', fontFamily: 'monospace' }}>
+        <p style={{ color: '#22C55E', fontSize: '16px', marginBottom: '48px', fontFamily: 'monospace' }}>
           Simple terms for a simple tool.
         </p>
 
@@ -91,7 +91,7 @@ export default function TermsPage() {
         <Section title="Contact">
           <p>
             Questions about these terms?{' '}
-            <a href="mailto:support@clearslot.net" style={{ color: '#c8f97a' }}>support@clearslot.net</a>
+            <a href="mailto:support@clearslot.net" style={{ color: '#22C55E' }}>support@clearslot.net</a>
           </p>
         </Section>
       </div>
@@ -105,14 +105,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 style={{
         fontSize: '20px',
         fontWeight: '600',
-        color: '#ffffff',
+        color: '#111111',
         marginBottom: '16px',
-        fontFamily: 'monospace',
-        letterSpacing: '0.02em',
+        letterSpacing: '-0.01em',
       }}>
         {title}
       </h2>
-      <div style={{ color: '#aaa', lineHeight: '1.8', fontSize: '16px' }}>
+      <div style={{ color: '#6B7280', lineHeight: '1.8', fontSize: '16px' }}>
         {children}
       </div>
     </section>

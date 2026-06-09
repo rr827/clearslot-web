@@ -14,9 +14,9 @@ export default class ErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a', color: 'white', fontFamily: 'system-ui, sans-serif', gap: 16 }}>
-          <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)' }}>Something went wrong.</p>
-          <a href="/" style={{ fontSize: 14, color: '#c8f97a', textDecoration: 'none' }}>Go home →</a>
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', color: '#111111', fontFamily: 'Inter, system-ui, sans-serif', gap: 16 }}>
+          <p style={{ fontSize: 18, color: '#6B7280' }}>Something went wrong.</p>
+          <a href="/" style={{ fontSize: 14, color: '#22C55E', textDecoration: 'none' }}>Go home →</a>
         </div>
       );
     }
