@@ -1,8 +1,29 @@
-// HMAC-signed room session cookie helper.
-// Cookie value format: "{participantIndex}.{hexSignature}"
+// HMAC-signed room session helper.
+// Token format: "{participantIndex}.{hexSignature}"
 // Signature = HMAC-SHA256 of "{code}:{participantIndex}" using ROOM_SESSION_SECRET.
+// Carried either as the room_session_<code> httpOnly cookie (web) or an
+// Authorization: Bearer header (mobile).
+
+import type { NextRequest } from 'next/server';
 
 const SECRET = process.env.ROOM_SESSION_SECRET ?? '';
+
+// Call from any route that signs or verifies room sessions so misconfiguration
+// (missing secret in prod) surfaces as an explicit 5xx instead of a silent
+// "no session" downgrade that would make every request look unauthenticated.
+export function requireSessionSecret(): void {
+  if (!SECRET) {
+    throw new Error('ROOM_SESSION_SECRET is not configured');
+  }
+}
+
+// Extracts a room session token from the Authorization: Bearer header (mobile)
+// or the room_session_<code> cookie (web).
+export function getRoomSessionToken(req: NextRequest, code: string): string | undefined {
+  const authHeader = req.headers.get('Authorization');
+  const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+  return bearer ?? req.cookies.get(`room_session_${code}`)?.value;
+}
 
 async function getKey(): Promise<CryptoKey> {
   return crypto.subtle.importKey(
@@ -37,14 +58,14 @@ export async function signRoomSession(code: string, participantIndex: number): P
 
 export async function verifyRoomSession(
   code: string,
-  cookieValue: string | undefined
+  token: string | undefined
 ): Promise<number | null> {
-  if (!cookieValue || !SECRET) return null;
-  const dotIdx = cookieValue.indexOf('.');
+  if (!token || !SECRET) return null;
+  const dotIdx = token.indexOf('.');
   if (dotIdx < 0) return null;
 
-  const indexStr = cookieValue.slice(0, dotIdx);
-  const hexSig = cookieValue.slice(dotIdx + 1);
+  const indexStr = token.slice(0, dotIdx);
+  const hexSig = token.slice(dotIdx + 1);
   const participantIndex = Number(indexStr);
   if (!Number.isInteger(participantIndex) || participantIndex < 0) return null;
 

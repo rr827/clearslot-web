@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { joinRoom } from '@/lib/room';
-import { signRoomSession } from '@/lib/roomSession';
+import { signRoomSession, requireSessionSecret } from '@/lib/roomSession';
 import { checkRateLimit } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    requireSessionSecret();
     const { code, payload } = await req.json();
     if (!code || !payload) {
       return NextResponse.json({ error: 'Missing code or payload' }, { status: 400 });
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
     const { room, participantIndex } = await joinRoom(code, payload);
 
     const sessionValue = await signRoomSession(code, participantIndex);
-    const response = NextResponse.json({ room, participantIndex });
+    const response = NextResponse.json({ room, participantIndex, sessionToken: sessionValue });
     response.cookies.set(`room_session_${code}`, sessionValue, {
       httpOnly: true,
       path: '/',
@@ -28,6 +29,9 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (err: any) {
     console.error('join room:', err);
+    if (err?.message === 'ROOM_SESSION_SECRET is not configured') {
+      return NextResponse.json({ error: 'Service misconfigured' }, { status: 500 });
+    }
     return NextResponse.json({ error: err.message ?? 'Failed to join room' }, { status: 500 });
   }
 }

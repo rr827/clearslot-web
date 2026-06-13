@@ -24,7 +24,7 @@ function db() {
 }
 
 const MAX_PAYLOAD_BYTES = 25_000;
-const MAX_PARTICIPANTS = 10;
+export const MAX_PARTICIPANTS = 10;
 const VALID_CODE = /^[A-Z2-9]{6}$/;
 
 function validateCode(code: string): string {
@@ -122,6 +122,9 @@ export async function proposeTime(
   const room = await getRoom(code);
   if (!room) throw new Error('Room not found');
 
+  if (proposerIndex < 0 || proposerIndex >= room.participants.length)
+    throw new Error('Invalid participant');
+
   if (room.proposals.length >= 50) throw new Error('Too many proposals in this room');
 
   // Deduplicate: don't add an identical pending proposal
@@ -148,6 +151,8 @@ export async function acceptProposal(code: string, proposalIndex: number): Promi
   const supabase = db();
   const room = await getRoom(code);
   if (!room) throw new Error('Room not found');
+  if (proposalIndex < 0 || proposalIndex >= room.proposals.length)
+    throw new Error('Invalid proposal');
   const updated = room.proposals.map((p, i) =>
     i === proposalIndex ? { ...p, status: 'accepted' as const } : p
   );

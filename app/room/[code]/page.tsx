@@ -826,6 +826,9 @@ function RoomContent() {
   const [room, setRoom] = useState<RoomRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [anonymous, setAnonymous] = useState(false);
+  const [roomParticipantCount, setRoomParticipantCount] = useState(0);
+  const [roomJoinable, setRoomJoinable] = useState(true);
 
   const [participants, setParticipants] = useState<AlignedPayload[]>([]);
   const [allBlocks, setAllBlocks] = useState<BusyBlock[][]>([]);
@@ -866,7 +869,16 @@ function RoomContent() {
       try {
         const res = await fetch(`/api/room/${code}`);
         if (!res.ok) { setError('Room not found or expired.'); setLoading(false); return; }
-        const data: RoomRow = await res.json();
+        const data: (RoomRow & { participantIndex?: number }) | { code: string; expiresAt: string; participantCount: number; joinable: boolean } = await res.json();
+
+        if (!('participants' in data)) {
+          setAnonymous(true);
+          setRoomParticipantCount(data.participantCount);
+          setRoomJoinable(data.joinable);
+          setLoading(false);
+          return;
+        }
+
         setRoom(data);
 
         const decoded = data.participants.map(p => decodePayload(p));
@@ -876,8 +888,12 @@ function RoomContent() {
           ...expandBlockedRanges(p.range, p.blocked),
         ]));
 
-        const idx = localStorage.getItem(`room_${code}`);
-        setMyIndex(idx !== null ? parseInt(idx) : null);
+        if (data.participantIndex !== undefined) {
+          setMyIndex(data.participantIndex);
+        } else {
+          const idx = localStorage.getItem(`room_${code}`);
+          setMyIndex(idx !== null ? parseInt(idx) : null);
+        }
 
         const expandedBlocks = decoded.map(p => [...p.blocks, ...expandBlockedRanges(p.range, p.blocked)]);
         const slots = rankSlots(expandedBlocks, decoded.map(p => p.preference), weekDates);
@@ -911,7 +927,7 @@ function RoomContent() {
       const res = await fetch('/api/room/propose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, startTime: selectedRange.start.toISOString(), endTime: selectedRange.end.toISOString(), participantIndex: myIndex }),
+        body: JSON.stringify({ code, startTime: selectedRange.start.toISOString(), endTime: selectedRange.end.toISOString() }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -1066,6 +1082,26 @@ function RoomContent() {
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
       <p style={{ fontSize: 22, color: '#555' }}>{error}</p>
       <button onClick={() => router.replace('/connect')} style={{ fontSize: 19, color: '#22C55E', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Start a new room</button>
+    </div>
+  );
+
+  if (anonymous) return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, fontFamily: 'system-ui, sans-serif', padding: 24, textAlign: 'center' }}>
+      <h1 style={{ fontSize: 24, color: '#111', margin: 0 }}>You're invited to a ClearSlot room</h1>
+      <p style={{ fontSize: 16, color: '#555', maxWidth: 360, margin: 0 }}>
+        {roomParticipantCount === 1
+          ? 'One person is already in this room.'
+          : `${roomParticipantCount} people are already in this room.`}
+        {' '}Connect your calendar to see overlapping availability and suggest times.
+      </p>
+      {roomJoinable ? (
+        <button onClick={handleJoin} style={{ fontSize: 18, color: '#fff', background: '#22C55E', border: 'none', borderRadius: 10, padding: '12px 28px', cursor: 'pointer', fontWeight: 600 }}>
+          Join this room
+        </button>
+      ) : (
+        <p style={{ fontSize: 15, color: '#888' }}>This room is full.</p>
+      )}
+      <button onClick={() => router.replace('/connect')} style={{ fontSize: 15, color: '#22C55E', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Start a new room instead</button>
     </div>
   );
 
