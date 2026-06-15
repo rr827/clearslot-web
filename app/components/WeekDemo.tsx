@@ -3,32 +3,46 @@
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 const DATES = [8, 9, 10, 11, 12, 13, 14];
 const TODAY = 3; // THU
+const ROOM_CODE = 'K7QPMX';
+
+// Matches PARTICIPANT_COLORS / PARTICIPANT_BG_COLORS in app/room/[code]/page.tsx
+const PARTICIPANT_COLORS = ['#3B82F6', '#EF4444', '#F59E0B', '#A855F7'];
+const PARTICIPANT_BG_COLORS = [
+  'rgba(59,130,246,0.45)',  // blue
+  'rgba(239,68,68,0.45)',   // red
+  'rgba(245,158,11,0.45)',  // amber
+  'rgba(168,85,247,0.45)',  // purple
+];
+const OVERLAP_COLOR = 'rgba(90,90,90,0.55)';
 
 const PARTICIPANTS = [
-  { name: 'Alex',   color: '#22C55E' },
-  { name: 'Sam',    color: '#4ADE80' },
-  { name: 'Taylor', color: '#86EFAC' },
-  { name: 'Jordan', color: '#D1D5DB' },
+  { name: 'Alex' },
+  { name: 'Sam' },
+  { name: 'Taylor' },
+  { name: 'Jordan' },
 ];
 
-const GRID_H = 210; // px — represents 9am–2pm (5 hours)
+const HOURS = ['9am', '10am', '11am', '12pm', '1pm', '2pm'];
+const HOUR_HEIGHT = 42; // px — 5 hours visible (9am–2pm)
+const GRID_H = HOUR_HEIGHT * (HOURS.length - 1);
 
-// d = dayIndex, t = top%, h = height%, p = participant index
+// d = dayIndex, t = top%, h = height%, p = participant index, overlap = render as gray overlap
 const BLOCKS = [
-  { d: 0, t: 10, h: 22, p: 0 }, // MON Alex
-  { d: 0, t: 42, h: 18, p: 1 }, // MON Sam
-  { d: 1, t: 20, h: 28, p: 1 }, // TUE Sam
-  { d: 1, t: 68, h: 18, p: 2 }, // TUE Taylor
-  { d: 2, t:  2, h: 22, p: 0 }, // WED Alex
-  { d: 2, t: 40, h: 20, p: 2 }, // WED Taylor
-  { d: 2, t: 72, h: 24, p: 3 }, // WED Jordan
-  { d: 3, t: 32, h: 20, p: 1 }, // THU Sam
-  { d: 4, t: 20, h: 22, p: 0 }, // FRI Alex
-  { d: 4, t: 78, h: 18, p: 2 }, // FRI Taylor
-  { d: 5, t: 10, h: 18, p: 3 }, // SAT Jordan
+  { d: 0, t: 10, h: 22, p: 0 },              // MON Alex
+  { d: 0, t: 42, h: 18, p: 1 },              // MON Sam
+  { d: 1, t: 20, h: 28, p: 1 },              // TUE Sam
+  { d: 1, t: 68, h: 18, p: 2 },              // TUE Taylor
+  { d: 2, t: 2,  h: 22, p: 0 },              // WED Alex
+  { d: 2, t: 40, h: 20, p: 2 },              // WED Taylor
+  { d: 2, t: 72, h: 24, p: 3 },              // WED Jordan
+  { d: 3, t: 32, h: 20, p: 1 },              // THU Sam
+  { d: 4, t: 20, h: 22, p: 0 },              // FRI Alex
+  { d: 4, t: 32, h: 10, p: 0, overlap: true }, // FRI Alex + Taylor overlap
+  { d: 4, t: 78, h: 18, p: 2 },              // FRI Taylor
+  { d: 5, t: 10, h: 18, p: 3 },              // SAT Jordan
 ];
 
-// Selection on THU grows from 9am (0%) to ~noon (58%)
+// Selection on THU grows from 9am (0%) to ~noon (56%)
 const SEL_TOP = 0;
 const SEL_MAX = 56;
 
@@ -50,6 +64,32 @@ const css = `
 }
 `;
 
+// Mirrors WeekGridLines in app/room/[code]/page.tsx, scaled to the demo's grid height
+function GridLines() {
+  return (
+    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: GRID_H, pointerEvents: 'none' }}>
+      {Array.from({ length: HOURS.length }, (_, i) => {
+        const y = i * HOUR_HEIGHT;
+        return (
+          <g key={i}>
+            <line x1={0} y1={y} x2="100%" y2={y} stroke="#D1FAE5" strokeWidth={1} />
+            {i < HOURS.length - 1 && (
+              <>
+                <line x1={0} y1={y + HOUR_HEIGHT / 2} x2="100%" y2={y + HOUR_HEIGHT / 2}
+                  stroke="#E5E7EB" strokeWidth={0.8} strokeDasharray="4 4" />
+                <line x1={0} y1={y + HOUR_HEIGHT / 4} x2="100%" y2={y + HOUR_HEIGHT / 4}
+                  stroke="#F3F4F6" strokeWidth={0.6} strokeDasharray="2 6" />
+                <line x1={0} y1={y + (HOUR_HEIGHT * 3) / 4} x2="100%" y2={y + (HOUR_HEIGHT * 3) / 4}
+                  stroke="#F3F4F6" strokeWidth={0.6} strokeDasharray="2 6" />
+              </>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 export default function WeekDemo() {
   return (
     <>
@@ -66,12 +106,11 @@ export default function WeekDemo() {
         overflow: 'hidden',
       }}>
 
-        {/* App header */}
+        {/* App header — mirrors the room page header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <span style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500 }}>Room</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 600, color: '#111', cursor: 'default' }}>
-            Design Sync
-            <span style={{ color: '#9CA3AF', fontSize: 9 }}>▾</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, backgroundColor: '#fff', border: '1px solid #e0e0d8', borderRadius: 8, padding: '4px 10px' }}>
+            <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>Room</span>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', color: '#111' }}>{ROOM_CODE}</span>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex' }}>
@@ -79,16 +118,22 @@ export default function WeekDemo() {
                 <div
                   key={p.name}
                   style={{
-                    width: 22, height: 22,
+                    width: 18, height: 18,
                     borderRadius: '50%',
-                    backgroundColor: p.color,
+                    backgroundColor: PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length],
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                     border: '2px solid #fff',
-                    marginLeft: i > 0 ? -7 : 0,
+                    marginLeft: i > 0 ? -6 : 0,
                   }}
-                />
+                >
+                  {i + 1}
+                </div>
               ))}
             </div>
-            <span style={{ fontSize: 11, color: '#6B7280' }}>4 people</span>
+            <span style={{ fontSize: 11, color: '#6B7280' }}>{PARTICIPANTS.length} people</span>
           </div>
         </div>
 
@@ -97,14 +142,14 @@ export default function WeekDemo() {
 
           {/* Time labels */}
           <div style={{ width: 30, flexShrink: 0 }}>
-            <div style={{ height: 38 }} />
+            <div style={{ height: 32 }} />
             <div style={{ position: 'relative', height: GRID_H }}>
-              {['9am', '10am', '11am', '12pm', '1pm', '2pm'].map((label, i) => (
+              {HOURS.map((label, i) => (
                 <div
                   key={label}
                   style={{
                     position: 'absolute',
-                    top: `${(i / 5) * 100}%`,
+                    top: `${(i / (HOURS.length - 1)) * 100}%`,
                     right: 4,
                     transform: 'translateY(-50%)',
                     fontSize: 9,
@@ -127,20 +172,12 @@ export default function WeekDemo() {
             return (
               <div key={day} style={{ flex: 1 }}>
 
-                {/* Day header */}
-                <div style={{ height: 38, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: 1, paddingTop: 2 }}>
+                {/* Day header — mirrors WeekView's day header row */}
+                <div style={{ height: 32, textAlign: 'center', paddingTop: 2 }}>
                   <div style={{ fontSize: 8, fontWeight: 600, color: isToday ? '#22C55E' : '#9CA3AF', letterSpacing: '0.06em' }}>
                     {day}
                   </div>
-                  <div style={{
-                    width: 22, height: 22,
-                    borderRadius: '50%',
-                    backgroundColor: isToday ? '#22C55E' : 'transparent',
-                    color: isToday ? '#fff' : '#374151',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: isToday ? '#22C55E' : '#374151' }}>
                     {DATES[di]}
                   </div>
                 </div>
@@ -148,32 +185,22 @@ export default function WeekDemo() {
                 {/* Column body */}
                 <div style={{
                   height: GRID_H,
-                  backgroundColor: '#F9FAFB',
-                  borderRadius: 6,
+                  backgroundColor: '#DCFCE7',
+                  borderRadius: 4,
                   position: 'relative',
                   overflow: 'hidden',
                 }}>
 
-                  {/* Hour grid lines */}
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} style={{
-                      position: 'absolute',
-                      left: 0, right: 0,
-                      top: `${(i / 5) * 100}%`,
-                      borderTop: '1px solid #F3F4F6',
-                      pointerEvents: 'none',
-                    }} />
-                  ))}
+                  <GridLines />
 
-                  {/* Availability blocks */}
+                  {/* Availability blocks — colored like the real overlap rendering */}
                   {dayBlocks.map((b, j) => (
                     <div key={j} style={{
                       position: 'absolute',
                       top: `${b.t}%`,
                       height: `${b.h}%`,
-                      left: 2, right: 2,
-                      backgroundColor: PARTICIPANTS[b.p].color,
-                      borderRadius: 4,
+                      left: 0, right: 0,
+                      backgroundColor: b.overlap ? OVERLAP_COLOR : PARTICIPANT_BG_COLORS[b.p % PARTICIPANT_BG_COLORS.length],
                     }} />
                   ))}
 
@@ -183,10 +210,10 @@ export default function WeekDemo() {
                       <div style={{
                         position: 'absolute',
                         top: `${SEL_TOP}%`,
-                        left: 2, right: 2,
-                        backgroundColor: 'rgba(74,222,128,0.2)',
-                        border: '1.5px solid #22C55E',
-                        borderRadius: 4,
+                        left: 0, right: 0,
+                        backgroundColor: 'rgba(74,222,128,0.6)',
+                        border: '2px solid #22C55E',
+                        borderRadius: 3,
                         pointerEvents: 'none',
                         animation: 'cs-sel 5s ease-in-out infinite',
                       }} />
@@ -213,9 +240,9 @@ export default function WeekDemo() {
         {/* Legend */}
         <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 10 }}>
-            {PARTICIPANTS.map(p => (
+            {PARTICIPANTS.map((p, i) => (
               <span key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#6B7280' }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: p.color, display: 'inline-block', flexShrink: 0 }} />
+                <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length], display: 'inline-block', flexShrink: 0 }} />
                 {p.name}
               </span>
             ))}
