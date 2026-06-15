@@ -72,7 +72,6 @@ function ConnectContent() {
       redirect_uri: `${window.location.origin}/api/auth/google/callback`,
       response_type: 'code',
       scope: SCOPES,
-      access_type: 'offline',
       prompt: 'select_account consent',
       state,
     });

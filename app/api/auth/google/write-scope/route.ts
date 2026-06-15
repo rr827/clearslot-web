@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     scope: 'https://www.googleapis.com/auth/calendar.events',
     access_type: 'online',
     include_granted_scopes: 'true',
+    prompt: 'consent',
     state: JSON.stringify({ nonce, returnTo }),
   });
 
