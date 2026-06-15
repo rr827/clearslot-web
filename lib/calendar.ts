@@ -35,27 +35,3 @@ export function isHourBusy(hour: Date, blocks: BusyBlock[]): boolean {
     return start < hourEnd && end > hour;
   });
 }
-
-export async function createCalendarEvent(
-  accessToken: string,
-  title: string,
-  start: Date,
-  end: Date
-): Promise<string> {
-  const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      summary: title,
-      start: { dateTime: start.toISOString() },
-      end: { dateTime: end.toISOString() },
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Failed to create event: ${res.status}`);
-  const event = await res.json();
-  return event.id;
-}

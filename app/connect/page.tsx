@@ -3,6 +3,7 @@
 import { useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { format, addDays } from 'date-fns';
+import Logo from '../components/Logo';
 
 type Preference = 'morning' | 'afternoon' | 'evening' | 'none';
 
@@ -168,13 +169,7 @@ function ConnectContent() {
 
       {/* Header */}
       <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, backgroundColor: '#FFFFFF', zIndex: 10, borderBottom: '1px solid #F3F4F6' }}>
-        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-            <rect width="28" height="28" rx="8" fill="#22C55E"/>
-            <path d="M9 10.5C9 9.12 10.12 8 11.5 8h2C15.43 8 17 9.57 17 11.5c0 1.38-1.12 2.5-2.5 2.5H13c-2.21 0-4 1.79-4 4s1.79 4 4 4h2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#111111', letterSpacing: '-0.02em' }}>ClearSlot</span>
-        </a>
+        <Logo iconSize={28} textSize={16} />
         <button onClick={skipAll} style={{ fontSize: 13, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer' }}>
           Skip all →
         </button>

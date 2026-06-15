@@ -1,3 +1,5 @@
+import Logo from '../components/Logo';
+
 export default function PrivacyPage() {
   return (
     <main style={{
@@ -14,9 +16,7 @@ export default function PrivacyPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <a href="/" style={{ color: '#22C55E', fontFamily: 'monospace', fontSize: '18px', textDecoration: 'none', letterSpacing: '0.05em' }}>
-          ClearSlot
-        </a>
+        <Logo iconSize={28} textSize={18} />
         <a href="/" style={{ color: '#6B7280', fontSize: '14px', textDecoration: 'none' }}>← Back</a>
       </nav>
 

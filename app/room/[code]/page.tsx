@@ -6,8 +6,9 @@ import {
   format, addDays, startOfWeek, isSameDay, parseISO, addMinutes,
 } from 'date-fns';
 import { isConnected } from '@/lib/auth';
+import Logo from '../../components/Logo';
 import { useIsMobile } from '@/lib/useIsMobile';
-import { BusyBlock, createCalendarEvent } from '@/lib/calendar';
+import { BusyBlock } from '@/lib/calendar';
 import { decodePayload, AlignedPayload, buildRoomLink } from '@/lib/payload';
 import { RoomRow } from '@/lib/room';
 
@@ -98,12 +99,19 @@ function rankSlots(
     }
   }
 
-  return slots.sort((a, b) => b.score - a.score).slice(0, 12);
+  return slots.sort((a, b) => b.score - a.score).slice(0, 3);
 }
 
 type SelectedRange = { start: Date; end: Date } | null;
 
-const PARTICIPANT_COLORS = ['#22C55E', '#1c3461', '#7a3800', '#5a0a5a', '#0a4a5a'];
+const PARTICIPANT_COLORS = ['#3B82F6', '#EF4444', '#F59E0B', '#A855F7', '#6366F1'];
+const PARTICIPANT_BG_COLORS = [
+  'rgba(59,130,246,0.45)',   // blue
+  'rgba(239,68,68,0.45)',    // red
+  'rgba(245,158,11,0.45)',   // amber
+  'rgba(168,85,247,0.45)',   // purple
+  'rgba(99,102,241,0.45)',   // indigo
+];
 
 // ── WeekView grid constants ─────────────────────────────────────────────────
 const HOUR_HEIGHT = 56; // px per hour
@@ -111,6 +119,10 @@ const GRID_DAY_START = 6;
 const GRID_DAY_END = 22;
 const GRID_TOTAL_HOURS = GRID_DAY_END - GRID_DAY_START; // 16
 const GRID_H = GRID_TOTAL_HOURS * HOUR_HEIGHT; // 896px
+
+const DAY_START = 6 * 60;
+const DAY_END = 22 * 60;
+const DURATION = DAY_END - DAY_START;
 
 function snapTo5(min: number): number {
   return Math.round(min / 5) * 5;
@@ -279,27 +291,61 @@ function WeekView({
             >
               <WeekGridLines />
 
-              {/* Busy blocks — each participant stacks a translucent dark layer, darkening with more overlap */}
-              {busyForDay.map((segs, pIdx) =>
-                segs.map((seg, j) => {
-                  const startClamped = Math.max(seg.startMin, GRID_DAY_START * 60);
-                  const endClamped = Math.min(seg.endMin, GRID_DAY_END * 60);
-                  if (endClamped <= startClamped) return null;
-                  const top = toTopPct(startClamped);
-                  const height = toTopPct(endClamped) - top;
+              {/* Busy blocks — sweep-line: one flat div per interval, color by overlap */}
+              {(() => {
+                type Ev = { time: number; type: 'start' | 'end'; pIdx: number };
+                const events: Ev[] = [];
+                busyForDay.forEach((segs, pIdx) => {
+                  segs.forEach(seg => {
+                    const s = Math.max(seg.startMin, GRID_DAY_START * 60);
+                    const e = Math.min(seg.endMin, GRID_DAY_END * 60);
+                    if (e > s) {
+                      events.push({ time: s, type: 'start', pIdx });
+                      events.push({ time: e, type: 'end', pIdx });
+                    }
+                  });
+                });
+                events.sort((a, b) => a.time !== b.time ? a.time - b.time : (a.type === 'end' ? -1 : 1));
+
+                const active = new Set<number>();
+                const intervals: { start: number; end: number; count: number; firstPIdx: number }[] = [];
+                let prevTime = GRID_DAY_START * 60;
+
+                for (const ev of events) {
+                  if (ev.time > prevTime && active.size > 0) {
+                    intervals.push({ start: prevTime, end: ev.time, count: active.size, firstPIdx: [...active][0] });
+                  }
+                  if (ev.type === 'start') active.add(ev.pIdx);
+                  else active.delete(ev.pIdx);
+                  prevTime = ev.time;
+                }
+
+                return intervals.map((iv, k) => {
+                  const top = toTopPct(iv.start);
+                  const height = toTopPct(iv.end) - top;
+                  let color: string;
+                  if (iv.count === 1) {
+                    color = PARTICIPANT_BG_COLORS[iv.firstPIdx % PARTICIPANT_BG_COLORS.length];
+                  } else {
+                    // Progressive darkening: more participants = darker gray
+                    const fraction = iv.count / Math.max(numParticipants, 2);
+                    const base = Math.round(115 - fraction * 70); // 45–115
+                    const alpha = (0.50 + fraction * 0.30).toFixed(2);
+                    color = `rgba(${base},${base},${base},${alpha})`;
+                  }
                   return (
-                    <div key={`${pIdx}-${j}`} style={{
+                    <div key={k} style={{
                       position: 'absolute',
                       top: `${top}%`,
                       height: `${height}%`,
                       left: 0,
                       width: '100%',
-                      backgroundColor: 'rgba(0,0,0,0.18)',
+                      backgroundColor: color,
                       pointerEvents: 'none',
                     }} />
                   );
-                })
-              )}
+                });
+              })()}
 
               {/* Selection overlay */}
               {selOnThisDay && selEndPct > selStartPct && (
@@ -345,7 +391,6 @@ function SwimLaneView({
   onRangeChange: (range: SelectedRange) => void;
   selectedRange: SelectedRange;
 }) {
-  const DAY_START = 6 * 60, DAY_END = 22 * 60, DURATION = DAY_END - DAY_START;
   const toPercent = (min: number) => ((min - DAY_START) / DURATION) * 100;
 
   const [drag, setDrag] = useState<{ startMin: number; endMin: number } | null>(null);
@@ -637,24 +682,56 @@ function GridDayView({
         >
           <WeekGridLines />
 
-          {busyForDay.map((segs, pIdx) =>
-            segs.map((seg, j) => {
-              const startClamped = Math.max(seg.startMin, GRID_DAY_START * 60);
-              const endClamped = Math.min(seg.endMin, GRID_DAY_END * 60);
-              if (endClamped <= startClamped) return null;
-              const top = toTopPct(startClamped);
-              const height = toTopPct(endClamped) - top;
-              const colWidth = numParticipants > 0 ? 100 / numParticipants : 100;
+          {/* Busy blocks — same sweep-line logic as WeekView */}
+          {(() => {
+            type Ev = { time: number; type: 'start' | 'end'; pIdx: number };
+            const events: Ev[] = [];
+            busyForDay.forEach((segs, pIdx) => {
+              segs.forEach(seg => {
+                const s = Math.max(seg.startMin, GRID_DAY_START * 60);
+                const e = Math.min(seg.endMin, GRID_DAY_END * 60);
+                if (e > s) {
+                  events.push({ time: s, type: 'start', pIdx });
+                  events.push({ time: e, type: 'end', pIdx });
+                }
+              });
+            });
+            events.sort((a, b) => a.time !== b.time ? a.time - b.time : (a.type === 'end' ? -1 : 1));
+
+            const active = new Set<number>();
+            const intervals: { start: number; end: number; count: number; firstPIdx: number }[] = [];
+            let prevTime = GRID_DAY_START * 60;
+
+            for (const ev of events) {
+              if (ev.time > prevTime && active.size > 0) {
+                intervals.push({ start: prevTime, end: ev.time, count: active.size, firstPIdx: [...active][0] });
+              }
+              if (ev.type === 'start') active.add(ev.pIdx);
+              else active.delete(ev.pIdx);
+              prevTime = ev.time;
+            }
+
+            return intervals.map((iv, k) => {
+              const top = toTopPct(iv.start);
+              const height = toTopPct(iv.end) - top;
+              let color: string;
+              if (iv.count === 1) {
+                color = PARTICIPANT_BG_COLORS[iv.firstPIdx % PARTICIPANT_BG_COLORS.length];
+              } else {
+                const fraction = iv.count / Math.max(numParticipants, 2);
+                const base = Math.round(115 - fraction * 70);
+                const alpha = (0.50 + fraction * 0.30).toFixed(2);
+                color = `rgba(${base},${base},${base},${alpha})`;
+              }
               return (
-                <div key={`${pIdx}-${j}`} style={{
+                <div key={k} style={{
                   position: 'absolute', top: `${top}%`, height: `${height}%`,
-                  left: `${pIdx * colWidth}%`, width: `${colWidth}%`,
-                  backgroundColor: PARTICIPANT_COLORS[pIdx % PARTICIPANT_COLORS.length],
-                  opacity: 0.5, pointerEvents: 'none',
+                  left: 0, width: '100%',
+                  backgroundColor: color, pointerEvents: 'none',
                 }} />
               );
-            })
-          )}
+            });
+          })()}
 
           {selOnThisDay && selEndPct > selStartPct && (
             <div style={{
@@ -672,130 +749,6 @@ function GridDayView({
             }} />
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ArcClockView({
-  date, participants, allBlocks,
-}: {
-  date: Date;
-  participants: AlignedPayload[];
-  allBlocks: BusyBlock[][];
-}) {
-  const svgSize = 300;
-  const cx = svgSize / 2, cy = svgSize / 2;
-  const ringGap = 10;
-  const outerR = 130;
-  const innerR = outerR - participants.length * ringGap - ringGap;
-  const overlapR = innerR - 4;
-
-  const hourToAngle = (hour: number) => ((hour - 6) / 24) * 360 - 90; // 6am at top
-
-  function arcPath(r: number, startAngle: number, endAngle: number): string {
-    const toRad = (deg: number) => (deg * Math.PI) / 180;
-    const x1 = cx + r * Math.cos(toRad(startAngle));
-    const y1 = cy + r * Math.sin(toRad(startAngle));
-    const x2 = cx + r * Math.cos(toRad(endAngle));
-    const y2 = cy + r * Math.sin(toRad(endAngle));
-    const large = endAngle - startAngle > 180 ? 1 : 0;
-    return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <svg width={svgSize} height={svgSize} style={{ cursor: 'default' }}>
-        {/* Background circle */}
-        <circle cx={cx} cy={cy} r={outerR + 6} fill="#F0FDF4" />
-
-        {/* Hour ticks */}
-        {[6, 9, 12, 15, 18, 21].map(h => {
-          const ang = (hourToAngle(h) * Math.PI) / 180;
-          const tx = cx + (outerR + 16) * Math.cos(ang);
-          const ty = cy + (outerR + 16) * Math.sin(ang);
-          return (
-            <text key={h} x={tx} y={ty} textAnchor="middle" dominantBaseline="middle" fontSize={12} fill="#aaa">
-              {h === 12 ? '12p' : h > 12 ? `${h - 12}p` : `${h}a`}
-            </text>
-          );
-        })}
-
-        {/* Participant rings (outermost = participant 0) */}
-        {participants.map((p, i) => {
-          const r = outerR - i * ringGap;
-          const busySegs = getDayBusy(date, p.blocks);
-          const sleepFrom = p.sleep ? parseInt(p.sleep.from) : null;
-          const sleepTo = p.sleep ? parseInt(p.sleep.to) : null;
-
-          return (
-            <g key={i}>
-              {/* Base arc (free) */}
-              <path d={arcPath(r, hourToAngle(6), hourToAngle(22))} fill="none"
-                stroke="#F0FDF4" strokeWidth={ringGap - 2} strokeLinecap="butt" />
-              {/* Busy segments */}
-              {busySegs.map((seg, j) => {
-                const startH = seg.startMin / 60;
-                const endH = seg.endMin / 60;
-                if (endH < 6 || startH > 22) return null;
-                return (
-                  <path key={j}
-                    d={arcPath(r, hourToAngle(Math.max(startH, 6)), hourToAngle(Math.min(endH, 22)))}
-                    fill="none"
-                    stroke={PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length]}
-                    strokeWidth={ringGap - 2}
-                    strokeLinecap="butt"
-                    opacity={0.6}
-                  />
-                );
-              })}
-              {/* Sleep dim overlay */}
-              {sleepFrom !== null && sleepTo !== null && (
-                <path
-                  d={arcPath(r, hourToAngle(Math.max(sleepFrom - 24 < 6 ? sleepFrom : sleepFrom, 6)), hourToAngle(Math.min(sleepTo, 22)))}
-                  fill="none" stroke="#aaa" strokeWidth={ringGap - 2} strokeLinecap="butt" opacity={0.4}
-                />
-              )}
-            </g>
-          );
-        })}
-
-        {/* Overlap wedges from center */}
-        {Array.from({ length: 16 * 4 }).map((_, qi) => {
-          const startH = 6 + qi * 0.25;
-          const endH = startH + 0.25;
-          const slotStart = new Date(date); slotStart.setHours(Math.floor(startH), (startH % 1) * 60, 0, 0);
-          const slotEnd = addMinutes(slotStart, 15);
-          const count = overlapCount(slotStart, slotEnd, allBlocks);
-          if (count === 0) return null;
-          const frac = count / Math.max(participants.length, 1);
-          const r = overlapR * frac * 0.7 + 10;
-          const alpha = 0.2 + frac * 0.6;
-          return (
-            <path key={qi}
-              d={arcPath(r / 2, hourToAngle(startH), hourToAngle(endH))}
-              fill="none"
-              stroke={`rgba(0,160,140,${alpha.toFixed(2)})`}
-              strokeWidth={r}
-              strokeLinecap="butt"
-            />
-          );
-        })}
-
-        {/* Center label */}
-        <text x={cx} y={cy - 6} textAnchor="middle" fontSize={15} fill="#22C55E" fontWeight={600}>
-          {participants.length > 0 ? 'Group overview' : ''}
-        </text>
-        <text x={cx} y={cy + 12} textAnchor="middle" fontSize={13} fill="#888">
-          {format(date, 'EEE, MMM d')}
-        </text>
-      </svg>
-
-      {/* Legend */}
-      <div style={{ display: 'flex', gap: 16, fontSize: 16, color: '#888', flexWrap: 'wrap', justifyContent: 'center' }}>
-        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, backgroundColor: '#F0FDF4', marginRight: 4 }} />Free</span>
-        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, backgroundColor: 'rgba(0,160,140,0.6)', marginRight: 4 }} />Overlap</span>
-        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, backgroundColor: '#aaa', marginRight: 4 }} />Busy/Sleep</span>
       </div>
     </div>
   );
@@ -846,10 +799,9 @@ function RoomContent() {
   const [copied, setCopied] = useState(false);
   const [acceptingIdx, setAcceptingIdx] = useState<number | null>(null);
   const [addedToCalIdx, setAddedToCalIdx] = useState<number | null>(null);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteSentIdx, setInviteSentIdx] = useState<number | null>(null);
-  const [sendingInviteIdx, setSendingInviteIdx] = useState<number | null>(null);
+  const [eventTitle, setEventTitle] = useState('');
   const [showAppBanner, setShowAppBanner] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent;
@@ -941,7 +893,7 @@ function RoomContent() {
     }
   };
 
-  const handleAccept = async (proposalIndex: number, startTime: string, endTime: string) => {
+  const handleAccept = async (proposalIndex: number) => {
     setAcceptingIdx(proposalIndex);
     // Optimistic update
     setRoom(prev => {
@@ -970,33 +922,6 @@ function RoomContent() {
       alert('Could not accept proposal. Try again.');
     } finally {
       setAcceptingIdx(null);
-    }
-  };
-
-  const handleSendInvite = async (idx: number, startTime: string, endTime: string) => {
-    if (!inviteEmail.trim()) return;
-    setSendingInviteIdx(idx);
-    try {
-      const res = await fetch('/api/calendar/create-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'Meeting', start: startTime, end: endTime, attendeeEmail: inviteEmail.trim() }),
-      });
-      const data = await res.json();
-      if (data.needsWriteScope) {
-        window.location.href = `/api/auth/google/write-scope?returnTo=${encodeURIComponent(window.location.pathname)}`;
-        return;
-      }
-      if (!res.ok) throw new Error('Failed');
-      setInviteSentIdx(idx);
-    } catch {
-      // Fall back to mailto
-      const subject = `Meeting - ${format(parseISO(startTime), 'EEE MMM d, h:mm a')}`;
-      const body = `Meeting confirmed!\n\nDate: ${format(parseISO(startTime), 'EEEE, MMMM d, yyyy')}\nTime: ${format(parseISO(startTime), 'h:mm a')} \u2013 ${format(parseISO(endTime), 'h:mm a')}\n\nRoom link: ${window.location.href}`;
-      window.open(`mailto:${encodeURIComponent(inviteEmail.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-      setInviteSentIdx(idx);
-    } finally {
-      setSendingInviteIdx(null);
     }
   };
 
@@ -1087,7 +1012,7 @@ function RoomContent() {
 
   if (anonymous) return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, fontFamily: 'system-ui, sans-serif', padding: 24, textAlign: 'center' }}>
-      <h1 style={{ fontSize: 24, color: '#111', margin: 0 }}>You're invited to a ClearSlot room</h1>
+      <h1 style={{ fontSize: 24, color: '#111', margin: 0 }}>You&apos;re invited to a ClearSlot room</h1>
       <p style={{ fontSize: 16, color: '#555', maxWidth: 360, margin: 0 }}>
         {roomParticipantCount === 1
           ? 'One person is already in this room.'
@@ -1141,7 +1066,7 @@ function RoomContent() {
 
       {/* Header */}
       <div style={{ borderBottom: '1px solid #e2e2dc', padding: isMobile ? '0 16px' : '0 28px', height: 54, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-        <span style={{ fontSize: 26, fontWeight: 300, letterSpacing: '-0.06em', color: '#1a1a18' }}>clearslot</span>
+        <Logo iconSize={26} textSize={20} />
 
         {/* Room code badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#fff', border: '1px solid #e0e0d8', borderRadius: 10, padding: '5px 12px' }}>
@@ -1181,7 +1106,60 @@ function RoomContent() {
             ))}
           </div>
         )}
+
+        {/* Help button */}
+        <button
+          onClick={() => setShowHelp(h => !h)}
+          title="How to use ClearSlot"
+          style={{ width: 30, height: 30, borderRadius: '50%', border: '1.5px solid #E5E7EB', background: showHelp ? '#F0FDF4' : '#fff', color: showHelp ? '#22C55E' : '#888', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          ?
+        </button>
       </div>
+
+      {/* Help overlay panel */}
+      {showHelp && (
+        <div style={{ position: 'fixed', top: 54, right: 0, bottom: 0, width: isMobile ? '100%' : 320, backgroundColor: '#fff', borderLeft: '1px solid #e2e2dc', zIndex: 200, overflowY: 'auto', padding: '24px 20px', boxShadow: '-4px 0 24px rgba(0,0,0,0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>How to use ClearSlot</span>
+            <button onClick={() => setShowHelp(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#aaa', cursor: 'pointer', lineHeight: 1 }}>×</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {[
+              { n: '1', title: 'Drag on the calendar', body: 'Click and drag on the grid to highlight the time slot you want to meet.' },
+              { n: '2', title: 'Suggest the time', body: 'After dragging, click "Suggest this time" in the side panel to share your pick.' },
+              { n: '3', title: 'Others accept', body: 'Everyone in the room sees your proposal and can accept it. Once accepted, add it to your calendar.' },
+            ].map(s => (
+              <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: '#22C55E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.n}</div>
+                <div>
+                  <p style={{ fontWeight: 600, fontSize: 14, color: '#111', margin: '0 0 3px' }}>{s.title}</p>
+                  <p style={{ fontSize: 13, color: '#666', margin: 0, lineHeight: 1.5 }}>{s.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #f0f0ea' }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#aaa', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 12px' }}>Color guide</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {PARTICIPANT_COLORS.slice(0, 3).map((c, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: PARTICIPANT_BG_COLORS[i] }} />
+                  <span style={{ fontSize: 13, color: '#555' }}>Person {i + 1}</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: 'rgba(90,90,90,0.65)' }} />
+                <span style={{ fontSize: 13, color: '#555' }}>Everyone busy</span>
+              </div>
+            </div>
+          </div>
+
+          <a href="/guide" target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 24, textAlign: 'center', fontSize: 13, color: '#22C55E', fontWeight: 500 }}>
+            Full guide →
+          </a>
+        </div>
+      )}
 
       {/* Date nav */}
       <div style={{ borderBottom: '1px solid #e2e2dc', padding: isMobile ? '10px 16px' : '10px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
@@ -1212,7 +1190,26 @@ function RoomContent() {
               <p style={{ marginBottom: 8 }}>No one has connected yet.</p>
               {myIndex === null && <button onClick={handleJoin} style={{ fontSize: 19, color: '#22C55E', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Be the first to join →</button>}
             </div>
-          ) : viewMode === 'week' ? (
+          ) : (
+            <>
+              {/* Solo nudge */}
+              {participants.length === 1 && myIndex === 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 16px', marginBottom: 14, gap: 12 }}>
+                  <span style={{ fontSize: 14, color: '#166534' }}>You&apos;re the only one here — share the link to invite others</span>
+                  <button onClick={handleCopyLink} style={{ fontSize: 13, fontWeight: 600, color: '#22C55E', background: 'none', border: '1px solid #22C55E', borderRadius: 7, padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    {copied ? '✓ Copied!' : 'Copy link'}
+                  </button>
+                </div>
+              )}
+              {/* Drag hint */}
+              {myIndex !== null && !selectedRange && (
+                <p style={{ textAlign: 'center', color: '#C4C4BC', fontSize: 13, fontStyle: 'italic', marginBottom: 10, pointerEvents: 'none' }}>
+                  Drag on the calendar to select a time
+                </p>
+              )}
+            </>
+          )}
+          {participants.length > 0 && viewMode === 'week' ? (
             <WeekView weekDates={weekDates} allBlocks={allBlocks} selectedRange={selectedRange} onRangeChange={handleRangeChange} />
           ) : dailyView === 'swimlane' ? (
             <SwimLaneView date={selectedDate} participants={participants} allBlocks={allBlocks} onRangeChange={handleRangeChange} selectedRange={selectedRange} />
@@ -1249,15 +1246,26 @@ function RoomContent() {
                   const hasToken = isConnected();
                   return (
                     <div key={i} style={{ padding: '10px 12px', borderRadius: 9, backgroundColor: isAccepted ? 'rgba(34,197,94,0.06)' : '#fff', border: `1px solid ${isAccepted ? 'rgba(34,197,94,0.2)' : '#e0e0d8'}` }}>
-                      <p style={{ fontSize: 14, color: '#888', marginBottom: 2 }}>Person {prop.proposer_index + 1} suggests</p>
-                      <p style={{ fontSize: 16, fontWeight: 600, color: '#111111', marginBottom: 6 }}>
-                        {format(parseISO(prop.start_time), 'EEE MMM d, h:mm a')} – {format(parseISO(prop.end_time), 'h:mm a')}
+                      <p style={{ fontSize: 14, color: '#888', marginBottom: 4 }}>Person {prop.proposer_index + 1} suggests</p>
+                      <p style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 2 }}>
+                        {format(parseISO(prop.start_time), 'EEE MMM d')}
+                      </p>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: '#111', background: 'rgba(34,197,94,0.10)', borderRadius: 6, padding: '3px 7px', display: 'inline-block', marginBottom: 8 }}>
+                        {format(parseISO(prop.start_time), 'h:mm a')} – {format(parseISO(prop.end_time), 'h:mm a')}
                       </p>
                       {isAccepted ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 600 }}>✓ Accepted</span>
+                          <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 700 }}>Accepted</span>
+                          {/* Event title input */}
+                          <input
+                            type="text"
+                            placeholder="Event title (optional, default: Meeting)"
+                            value={eventTitle}
+                            onChange={e => setEventTitle(e.target.value)}
+                            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #e2e2dc', fontSize: 13, color: '#333' }}
+                          />
                           {addedToCalIdx === i ? (
-                            <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 500 }}>✓ Added to Google Calendar</span>
+                            <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 700 }}>Added to Google Calendar</span>
                           ) : hasToken ? (
                             <button
                               onClick={async () => {
@@ -1265,7 +1273,7 @@ function RoomContent() {
                                   const res = await fetch('/api/calendar/create-event', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ title: 'Meeting', start: prop.start_time, end: prop.end_time }),
+                                    body: JSON.stringify({ title: eventTitle.trim() || 'Meeting', start: prop.start_time, end: prop.end_time }),
                                   });
                                   const data = await res.json();
                                   if (data.needsWriteScope) {
@@ -1282,35 +1290,14 @@ function RoomContent() {
                               Add to Google Calendar
                             </button>
                           ) : (
-                            <a href={`/connect?room=${code}`} style={{ fontSize: 14, color: '#22C55E', fontWeight: 500, textDecoration: 'underline' }}>
-                              Connect Google Calendar to add this event
+                            <a href={`/api/auth/google/write-scope?returnTo=${encodeURIComponent(window.location.pathname)}`} style={{ fontSize: 14, color: '#22C55E', fontWeight: 500, textDecoration: 'underline' }}>
+                              Connect Google to add this event
                             </a>
-                          )}
-                          {/* Email invite */}
-                          {inviteSentIdx === i ? (
-                            <span style={{ fontSize: 13, color: '#22C55E', fontWeight: 500 }}>✓ Invite sent to {inviteEmail}</span>
-                          ) : (
-                            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-                              <input
-                                type="email"
-                                placeholder="Email me the details"
-                                value={inviteEmail}
-                                onChange={e => setInviteEmail(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter') handleSendInvite(i, prop.start_time, prop.end_time); }}
-                                style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid #e2e2dc', fontSize: 13, color: '#333', minWidth: 0 }}
-                              />
-                              <button
-                                onClick={() => handleSendInvite(i, prop.start_time, prop.end_time)}
-                                disabled={sendingInviteIdx === i}
-                                style={{ padding: '5px 10px', backgroundColor: '#22C55E', color: '#fff', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: sendingInviteIdx === i ? 0.6 : 1, whiteSpace: 'nowrap' }}>
-                                {sendingInviteIdx === i ? '…' : 'Send'}
-                              </button>
-                            </div>
                           )}
                         </div>
                       ) : canAccept ? (
                         <button
-                          onClick={() => handleAccept(i, prop.start_time, prop.end_time)}
+                          onClick={() => handleAccept(i)}
                           disabled={acceptingIdx === i}
                           style={{ width: '100%', backgroundColor: '#22C55E', color: '#fff', borderRadius: 7, padding: '7px', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: acceptingIdx === i ? 0.6 : 1 }}>
                           {acceptingIdx === i ? 'Accepting…' : 'Accept'}
