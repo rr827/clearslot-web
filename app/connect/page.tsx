@@ -15,12 +15,7 @@ interface Questionnaire {
 }
 
 // Read-only scope only — calendar.events prompted separately when adding a meeting
-const SCOPES = [
-  'openid',
-  'email',
-  'profile',
-  'https://www.googleapis.com/auth/calendar.readonly',
-].join(' ');
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 
 function Check() {
   return (

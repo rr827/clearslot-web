@@ -45,7 +45,7 @@ export default function PrivacyPage() {
 
         <Section title="The short version">
           <p>
-            ClearSlot shows you and a friend when you are both free, without either of you ever sharing what you are actually doing. Your calendar events are never sent to our servers. We never see event titles, attendees, locations, or descriptions. We receive nothing except a temporary token that lets your device read your own calendar, and that token stays on your device.
+            ClearSlot shows you and a friend when you are both free, without either of you ever sharing what you are actually doing. We never see event titles, attendees, locations, or descriptions — those never leave your device. Only anonymized busy/free time blocks are sent to our servers, and only to enable scheduling within a room. Those blocks are automatically deleted after 48 hours.
           </p>
         </Section>
 
