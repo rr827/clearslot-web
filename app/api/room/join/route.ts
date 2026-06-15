@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { joinRoom } from '@/lib/room';
 import { signRoomSession, requireSessionSecret } from '@/lib/roomSession';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { getClientIp } from '@/lib/clientIp';
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  const ip = getClientIp(req);
   if (!(await checkRateLimit(`room_join:${ip}`, 10, 60_000))) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '60' } });
   }

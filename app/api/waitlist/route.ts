@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { getClientIp } from '@/lib/clientIp';
 
 function db() {
   return createClient(
@@ -10,7 +11,7 @@ function db() {
 }
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  const ip = getClientIp(req);
   if (!(await checkRateLimit(`waitlist:${ip}`, 5, 60_000))) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
