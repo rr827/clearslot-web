@@ -6,24 +6,30 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const stateParam = searchParams.get('state');
 
-  if (error || !code) {
-    return NextResponse.redirect(new URL('/?error=oauth_denied', request.url));
-  }
-
-  const expectedNonce = request.cookies.get('oauth_write_state')?.value;
   let parsedState: { nonce?: string; returnTo?: string } = {};
   try {
     parsedState = stateParam ? JSON.parse(stateParam) : {};
   } catch {
-    return NextResponse.redirect(new URL('/?error=invalid_state', request.url));
-  }
-
-  if (parsedState.nonce !== expectedNonce) {
-    return NextResponse.redirect(new URL('/?error=invalid_state', request.url));
+    parsedState = {};
   }
 
   const rawReturnTo = parsedState.returnTo ?? '/room/new';
   const returnTo = rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : '/room/new';
+
+  const redirectWithError = (errorKey: string) => {
+    const url = new URL(returnTo, request.url);
+    url.searchParams.set('calendarError', errorKey);
+    return NextResponse.redirect(url);
+  };
+
+  if (error || !code) {
+    return redirectWithError('oauth_denied');
+  }
+
+  const expectedNonce = request.cookies.get('oauth_write_state')?.value;
+  if (!stateParam || parsedState.nonce !== expectedNonce) {
+    return redirectWithError('invalid_state');
+  }
 
   try {
     const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -40,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     if (!res.ok) {
       console.error('Write token exchange failed:', await res.text());
-      return NextResponse.redirect(new URL('/?error=token_exchange', request.url));
+      return redirectWithError('token_exchange');
     }
 
     const { access_token, expires_in } = await res.json();
@@ -59,6 +65,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (err) {
     console.error('Write OAuth callback error:', err);
-    return NextResponse.redirect(new URL('/?error=server', request.url));
+    return redirectWithError('server');
   }
 }
