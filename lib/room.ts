@@ -65,6 +65,17 @@ export async function createRoom(encodedPayload: string): Promise<string> {
   throw new Error('Could not generate a unique room code');
 }
 
+// Deletes all rooms past their expires_at. Returns the number of rows deleted.
+export async function deleteExpiredRooms(): Promise<number> {
+  const { data, error } = await db()
+    .from('rooms')
+    .delete()
+    .lt('expires_at', new Date().toISOString())
+    .select('code');
+  if (error) throw new Error(error.message);
+  return data?.length ?? 0;
+}
+
 export async function getRoom(code: string): Promise<RoomRow | null> {
   const { data, error } = await db()
     .from('rooms')
