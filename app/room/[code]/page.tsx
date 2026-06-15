@@ -954,7 +954,7 @@ function RoomContent() {
       <style>{`@keyframes skshimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
 
       {/* Header skeleton */}
-      <div style={{ borderBottom: '1px solid #e2e2dc', padding: '0 28px', height: 54, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+      <div style={{ borderBottom: '1px solid #e2e2dc', padding: '0 28px', height: 86, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
         <Sk w={96} h={22} />
         <Sk w={130} h={34} r={10} />
         <div style={{ display: 'flex' }}>
@@ -1065,8 +1065,8 @@ function RoomContent() {
       )}
 
       {/* Header */}
-      <div style={{ borderBottom: '1px solid #e2e2dc', padding: isMobile ? '0 16px' : '0 28px', height: 54, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-        <Logo iconSize={26} textSize={20} />
+      <div style={{ borderBottom: '1px solid #e2e2dc', padding: isMobile ? '0 16px' : '0 28px', height: 86, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+        <Logo iconSize={52} textSize={40} />
 
         {/* Room code badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#fff', border: '1px solid #e0e0d8', borderRadius: 10, padding: '5px 12px' }}>
@@ -1118,7 +1118,7 @@ function RoomContent() {
 
       {/* Help overlay panel */}
       {showHelp && (
-        <div style={{ position: 'fixed', top: 54, right: 0, bottom: 0, width: isMobile ? '100%' : 320, backgroundColor: '#fff', borderLeft: '1px solid #e2e2dc', zIndex: 200, overflowY: 'auto', padding: '24px 20px', boxShadow: '-4px 0 24px rgba(0,0,0,0.08)' }}>
+        <div style={{ position: 'fixed', top: 86, right: 0, bottom: 0, width: isMobile ? '100%' : 320, backgroundColor: '#fff', borderLeft: '1px solid #e2e2dc', zIndex: 200, overflowY: 'auto', padding: '24px 20px', boxShadow: '-4px 0 24px rgba(0,0,0,0.08)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>How to use ClearSlot</span>
             <button onClick={() => setShowHelp(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#aaa', cursor: 'pointer', lineHeight: 1 }}>×</button>

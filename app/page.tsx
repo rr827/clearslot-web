@@ -39,7 +39,7 @@ export default function Home() {
 
       {/* Nav */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, borderBottom: '1px solid #E5E7EB', backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)' }}>
-        <div className="cs-nav-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="cs-nav-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px', height: 96, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
             <Logo />
             <div className="cs-nav-links" style={{ display: 'flex', gap: 28 }}>

@@ -44,8 +44,8 @@ export default function GuidePage() {
     <main style={{ minHeight: '100vh', backgroundColor: '#fff', fontFamily: 'system-ui, sans-serif', color: '#111' }}>
 
       {/* Nav */}
-      <nav style={{ borderBottom: '1px solid #E5E7EB', padding: '0 32px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Logo iconSize={26} textSize={18} />
+      <nav style={{ borderBottom: '1px solid #E5E7EB', padding: '0 32px', height: 88, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Logo iconSize={52} textSize={36} />
         <a href="/connect" style={{ fontSize: 14, backgroundColor: '#22C55E', color: '#fff', fontWeight: 600, padding: '8px 18px', borderRadius: 999, textDecoration: 'none' }}>
           Get started free
         </a>

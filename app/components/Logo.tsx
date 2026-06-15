@@ -6,7 +6,7 @@ interface LogoProps {
   href?: string;
 }
 
-export default function Logo({ iconSize = 36, textSize = 20, href = '/' }: LogoProps) {
+export default function Logo({ iconSize = 72, textSize = 40, href = '/' }: LogoProps) {
   return (
     <Link href={href} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
       <svg width={iconSize} height={iconSize} viewBox="0 0 1254 1254" style={{ borderRadius: 8, display: 'block' }}>

@@ -169,7 +169,7 @@ function ConnectContent() {
 
       {/* Header */}
       <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, backgroundColor: '#FFFFFF', zIndex: 10, borderBottom: '1px solid #F3F4F6' }}>
-        <Logo iconSize={28} textSize={16} />
+        <Logo iconSize={56} textSize={32} />
         <button onClick={skipAll} style={{ fontSize: 13, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer' }}>
           Skip all →
         </button>

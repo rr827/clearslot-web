@@ -16,7 +16,7 @@ export default function TermsPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <Logo iconSize={28} textSize={18} />
+        <Logo iconSize={56} textSize={36} />
         <a href="/" style={{ color: '#6B7280', fontSize: '14px', textDecoration: 'none' }}>← Back</a>
       </nav>
 
