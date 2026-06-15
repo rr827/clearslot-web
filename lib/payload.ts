@@ -12,32 +12,6 @@ export interface AlignedPayload {
   displayName?: string;  // user-chosen display name (optional, privacy-controlled)
 }
 
-// ── V1 helpers (backwards compat — used by /overlap) ──────────────────────
-
-export function encodeAvailability(blocks: BusyBlock[]): string {
-  const compressed = blocks.map((b) => [
-    Math.floor(new Date(b.start).getTime() / 1000),
-    Math.floor(new Date(b.end).getTime() / 1000),
-  ]);
-  return b64encode(JSON.stringify(compressed));
-}
-
-export function decodeAvailability(encoded: string): BusyBlock[] {
-  try {
-    const raw = JSON.parse(b64decode(encoded));
-    // V1: raw is number[][]
-    if (Array.isArray(raw) && Array.isArray(raw[0])) {
-      return (raw as number[][]).map(([s, e]) => ({
-        start: new Date(s * 1000).toISOString(),
-        end: new Date(e * 1000).toISOString(),
-      }));
-    }
-    return [];
-  } catch {
-    return [];
-  }
-}
-
 // ── V2 helpers ─────────────────────────────────────────────────────────────
 
 function b64encode(str: string): string {
@@ -122,23 +96,7 @@ export function decodePayload(encoded: string): AlignedPayload {
 
 // ── Link builders ──────────────────────────────────────────────────────────
 
-export function buildShareLink(blocks: BusyBlock[]): string {
-  const payload = encodeAvailability(blocks);
-  const base = typeof window !== 'undefined' ? window.location.origin : 'https://getaligned.app';
-  return `${base}/overlap?data=${payload}`;
-}
-
 export function buildRoomLink(code: string): string {
   const base = typeof window !== 'undefined' ? window.location.origin : 'https://getaligned.app';
   return `${base}/room/${code}`;
-}
-
-export function parseShareLink(url: string): BusyBlock[] | null {
-  try {
-    const data = new URL(url).searchParams.get('data');
-    if (!data) return null;
-    return decodeAvailability(data);
-  } catch {
-    return null;
-  }
 }
