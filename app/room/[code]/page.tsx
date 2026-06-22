@@ -16,6 +16,18 @@ import { generateIcsEvent } from '@/lib/ics';
 
 type DailyView = 'swimlane' | 'grid';
 
+const ROOM_BG = '#F8F9FC';
+const ROOM_SURFACE = '#FFFFFF';
+const ROOM_BORDER = '#E8EBF0';
+const ROOM_MUTED = '#667085';
+const ROOM_MUTED_SOFT = '#98A2B3';
+const ROOM_TEXT = '#111827';
+const ROOM_ACCENT = '#3D9A5C';
+const ROOM_ACCENT_DARK = '#2F7B49';
+const ROOM_ACCENT_SOFT = 'rgba(61,154,92,0.10)';
+const ROOM_ACCENT_BORDER = 'rgba(61,154,92,0.22)';
+const ROOM_SHADOW = '0 16px 34px rgba(15, 23, 42, 0.06), 0 2px 10px rgba(15, 23, 42, 0.04)';
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function getWeekDates(base: Date): Date[] {
@@ -125,12 +137,22 @@ type SelectedRange = { start: Date; end: Date } | null;
 
 const PARTICIPANT_COLORS = ['#3B82F6', '#EF4444', '#F59E0B', '#A855F7', '#6366F1'];
 const PARTICIPANT_BG_COLORS = [
-  'rgba(59,130,246,0.45)',   // blue
-  'rgba(239,68,68,0.45)',    // red
-  'rgba(245,158,11,0.45)',   // amber
-  'rgba(168,85,247,0.45)',   // purple
-  'rgba(99,102,241,0.45)',   // indigo
+  'rgba(59,130,246,0.56)',   // blue
+  'rgba(239,68,68,0.56)',    // red
+  'rgba(245,158,11,0.56)',   // amber
+  'rgba(168,85,247,0.56)',   // purple
+  'rgba(99,102,241,0.56)',   // indigo
 ];
+
+function participantLabel(participant: AlignedPayload | undefined, index: number): string {
+  const name = participant?.displayName?.trim();
+  if (name) {
+    const pieces = name.split(/\s+/).filter(Boolean).slice(0, 2);
+    const initials = pieces.map((piece) => piece[0]?.toUpperCase() ?? '').join('');
+    if (initials) return initials;
+  }
+  return String(index + 1);
+}
 
 // ── WeekView grid constants ─────────────────────────────────────────────────
 const HOUR_HEIGHT = 56; // px per hour
@@ -160,17 +182,17 @@ function WeekGridLines() {
         return (
           <g key={i}>
             {/* Hour — solid */}
-            <line x1={0} y1={y} x2="100%" y2={y} stroke="#D1FAE5" strokeWidth={1} />
+            <line x1={0} y1={y} x2="100%" y2={y} stroke={ROOM_BORDER} strokeWidth={1} />
             {i < GRID_TOTAL_HOURS && (
               <>
                 {/* 30-min — dashed */}
                 <line x1={0} y1={y + HOUR_HEIGHT / 2} x2="100%" y2={y + HOUR_HEIGHT / 2}
-                  stroke="#E5E7EB" strokeWidth={0.8} strokeDasharray="4 4" />
+                  stroke="#D9DEE7" strokeWidth={0.8} strokeDasharray="4 4" />
                 {/* 15-min — light dashed */}
                 <line x1={0} y1={y + HOUR_HEIGHT / 4} x2="100%" y2={y + HOUR_HEIGHT / 4}
-                  stroke="#F3F4F6" strokeWidth={0.6} strokeDasharray="2 6" />
+                  stroke="#EDF1F5" strokeWidth={0.6} strokeDasharray="2 6" />
                 <line x1={0} y1={y + (HOUR_HEIGHT * 3) / 4} x2="100%" y2={y + (HOUR_HEIGHT * 3) / 4}
-                  stroke="#F3F4F6" strokeWidth={0.6} strokeDasharray="2 6" />
+                  stroke="#EDF1F5" strokeWidth={0.6} strokeDasharray="2 6" />
               </>
             )}
           </g>
@@ -1081,29 +1103,29 @@ function RoomContent() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', color: '#111' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: ROOM_BG, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, system-ui, sans-serif', color: ROOM_TEXT }}>
 
       {/* Mobile app download banner */}
       {showAppBanner && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, backgroundColor: '#fff', padding: '16px 20px 32px', boxShadow: '0 -4px 24px rgba(0,0,0,0.18)' }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, backgroundColor: ROOM_SURFACE, padding: '16px 20px 32px', boxShadow: '0 -8px 30px rgba(15,23,42,0.16)' }}>
           <button
             onClick={() => setShowAppBanner(false)}
-            style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', color: 'rgba(34,197,94,0.5)', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: 4 }}
+            style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', color: 'rgba(61,154,92,0.55)', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: 4 }}
             aria-label="Dismiss"
           >×</button>
-          <p style={{ color: '#22C55E', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px' }}>Get the app</p>
+          <p style={{ color: ROOM_ACCENT_DARK, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px' }}>Get the app</p>
           <p style={{ color: '#374151', fontSize: 15, margin: '0 0 14px', lineHeight: 1.4 }}>
             Open this room in the ClearSlot app for a better experience.
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <a
               href={`clearslot://room?code=${code}`}
-              style={{ flex: 1, backgroundColor: '#22C55E', color: '#fff', fontSize: 15, fontWeight: 700, textAlign: 'center', padding: '11px 0', borderRadius: 10, textDecoration: 'none' }}
+              style={{ flex: 1, backgroundColor: ROOM_ACCENT, color: '#fff', fontSize: 15, fontWeight: 700, textAlign: 'center', padding: '11px 0', borderRadius: 10, textDecoration: 'none' }}
             >
               Open in App
             </a>
             <span
-              style={{ flex: 1, backgroundColor: 'rgba(34,197,94,0.12)', color: '#22C55E', fontSize: 15, fontWeight: 600, textAlign: 'center', padding: '11px 0', borderRadius: 10, textDecoration: 'none', border: '1px solid rgba(34,197,94,0.25)' }}
+              style={{ flex: 1, backgroundColor: ROOM_ACCENT_SOFT, color: ROOM_ACCENT_DARK, fontSize: 15, fontWeight: 600, textAlign: 'center', padding: '11px 0', borderRadius: 10, textDecoration: 'none', border: `1px solid ${ROOM_ACCENT_BORDER}` }}
             >
               App Store soon
             </span>
@@ -1112,42 +1134,42 @@ function RoomContent() {
       )}
 
       {/* Header */}
-      <div style={{ borderBottom: '1px solid #e2e2dc', padding: isMobile ? '0 16px' : '0 28px', height: 86, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+      <div style={{ borderBottom: `1px solid ${ROOM_BORDER}`, backgroundColor: 'rgba(248,249,252,0.9)', backdropFilter: 'blur(10px)', padding: isMobile ? '0 16px' : '0 28px', height: 88, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
         <Logo iconSize={52} textSize={40} />
 
         {/* Room code badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#fff', border: '1px solid #e0e0d8', borderRadius: 10, padding: '5px 12px' }}>
-          <span style={{ fontSize: 16, color: '#888' }}>Room</span>
-          <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '0.12em', color: '#111111' }}>{code}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 14, padding: '7px 12px', boxShadow: '0 6px 18px rgba(15,23,42,0.04)' }}>
+          <span style={{ fontSize: 13, color: ROOM_MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Room</span>
+          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: '0.16em', color: ROOM_TEXT, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{code}</span>
         </div>
 
         {/* Participant count */}
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {participants.map((_, i) => (
-            <div key={i} style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: '#fff', fontWeight: 700, border: '2px solid #FFFFFF', marginLeft: i > 0 ? -8 : 0 }}>
-              {i + 1}
+          {participants.map((participant, i) => (
+            <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 700, border: `2px solid ${ROOM_SURFACE}`, marginLeft: i > 0 ? -8 : 0, boxShadow: '0 3px 10px rgba(15,23,42,0.12)' }}>
+              {participantLabel(participant, i)}
             </div>
           ))}
-          <span style={{ fontSize: 17, color: '#888', marginLeft: 8 }}>{participants.length} {participants.length === 1 ? 'person' : 'people'}</span>
+          <span style={{ fontSize: 15, color: ROOM_MUTED, marginLeft: 8 }}>{participants.length} {participants.length === 1 ? 'person' : 'people'}</span>
         </div>
 
         <div style={{ flex: 1 }} />
 
         {/* View toggle */}
-        <div style={{ display: 'flex', gap: 2, backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: 9, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 2, backgroundColor: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 11, padding: 3, boxShadow: '0 4px 14px rgba(15,23,42,0.03)' }}>
           {(['week', 'day'] as const).map(m => (
             <button key={m} onClick={() => setViewMode(m)}
-              style={{ padding: '5px 14px', borderRadius: 6, fontSize: 17, fontWeight: 500, border: 'none', cursor: 'pointer', backgroundColor: viewMode === m ? '#d8d8d2' : 'transparent', color: viewMode === m ? '#0a0a0a' : '#555' }}>
+              style={{ padding: '6px 14px', borderRadius: 8, fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: viewMode === m ? ROOM_ACCENT_SOFT : 'transparent', color: viewMode === m ? ROOM_ACCENT_DARK : ROOM_MUTED }}>
               {m === 'week' ? 'Week' : 'Day'}
             </button>
           ))}
         </div>
 
         {viewMode === 'day' && (
-          <div style={{ display: 'flex', gap: 2, backgroundColor: '#fff', border: '1px solid #e0e0d8', borderRadius: 9, padding: 3 }}>
+          <div style={{ display: 'flex', gap: 2, backgroundColor: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 11, padding: 3 }}>
             {(['swimlane', 'grid'] as DailyView[]).map(v => (
               <button key={v} onClick={() => setDailyView(v)}
-                style={{ padding: '5px 10px', borderRadius: 6, fontSize: 16, fontWeight: 500, border: 'none', cursor: 'pointer', backgroundColor: dailyView === v ? '#d8d8d2' : 'transparent', color: dailyView === v ? '#0a0a0a' : '#555', textTransform: 'capitalize' }}>
+                  style={{ padding: '5px 10px', borderRadius: 8, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: dailyView === v ? ROOM_ACCENT_SOFT : 'transparent', color: dailyView === v ? ROOM_ACCENT_DARK : ROOM_MUTED, textTransform: 'capitalize' }}>
                 {v}
               </button>
             ))}
@@ -1158,14 +1180,14 @@ function RoomContent() {
         <button
           onClick={() => setShowHelp(h => !h)}
           title="How to use ClearSlot"
-          style={{ width: 30, height: 30, borderRadius: '50%', border: '1.5px solid #E5E7EB', background: showHelp ? '#F0FDF4' : '#fff', color: showHelp ? '#22C55E' : '#888', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${ROOM_BORDER}`, background: showHelp ? ROOM_ACCENT_SOFT : ROOM_SURFACE, color: showHelp ? ROOM_ACCENT_DARK : ROOM_MUTED, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           ?
         </button>
       </div>
 
       {/* Help overlay panel */}
       {showHelp && (
-        <div style={{ position: 'fixed', top: 86, right: 0, bottom: 0, width: isMobile ? '100%' : 320, backgroundColor: '#fff', borderLeft: '1px solid #e2e2dc', zIndex: 200, overflowY: 'auto', padding: '24px 20px', boxShadow: '-4px 0 24px rgba(0,0,0,0.08)' }}>
+        <div style={{ position: 'fixed', top: 88, right: 0, bottom: 0, width: isMobile ? '100%' : 320, backgroundColor: ROOM_SURFACE, borderLeft: `1px solid ${ROOM_BORDER}`, zIndex: 200, overflowY: 'auto', padding: '24px 20px', boxShadow: '-8px 0 28px rgba(15,23,42,0.08)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>How to use ClearSlot</span>
             <button onClick={() => setShowHelp(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#aaa', cursor: 'pointer', lineHeight: 1 }}>×</button>
@@ -1177,7 +1199,7 @@ function RoomContent() {
               { n: '3', title: 'Others accept', body: 'Everyone in the room sees your proposal and can accept it. Once accepted, download an .ics file to add it to any calendar.' },
             ].map(s => (
               <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: '#22C55E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.n}</div>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: ROOM_ACCENT, color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.n}</div>
                 <div>
                   <p style={{ fontWeight: 600, fontSize: 14, color: '#111', margin: '0 0 3px' }}>{s.title}</p>
                   <p style={{ fontSize: 13, color: '#666', margin: 0, lineHeight: 1.5 }}>{s.body}</p>
@@ -1202,27 +1224,27 @@ function RoomContent() {
             </div>
           </div>
 
-          <a href="/guide" target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 24, textAlign: 'center', fontSize: 13, color: '#22C55E', fontWeight: 500 }}>
+          <a href="/guide" target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 24, textAlign: 'center', fontSize: 13, color: ROOM_ACCENT_DARK, fontWeight: 600 }}>
             Full guide →
           </a>
         </div>
       )}
 
       {/* Date nav */}
-      <div style={{ borderBottom: '1px solid #e2e2dc', padding: isMobile ? '10px 16px' : '10px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+      <div style={{ borderBottom: `1px solid ${ROOM_BORDER}`, padding: isMobile ? '12px 16px' : '12px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.75)' }}>
         {viewMode === 'week' ? (
           <>
-            <button onClick={() => setWeekBase(d => addDays(d, -7))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', fontSize: 18 }}>←</button>
-            <span style={{ fontSize: 18, color: '#555', minWidth: 180 }}>{format(weekDates[0], 'MMM d')} – {format(weekDates[6], 'MMM d, yyyy')}</span>
-            <button onClick={() => setWeekBase(d => addDays(d, 7))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', fontSize: 18 }}>→</button>
-            <button onClick={() => setWeekBase(new Date())} style={{ fontSize: 17, color: '#555', background: 'none', border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>Today</button>
+            <button onClick={() => setWeekBase(d => addDays(d, -7))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${ROOM_BORDER}`, background: ROOM_SURFACE, cursor: 'pointer', fontSize: 18, color: ROOM_MUTED }}>←</button>
+            <span style={{ fontSize: 16, color: ROOM_MUTED, minWidth: 180, fontWeight: 600 }}>{format(weekDates[0], 'MMM d')} – {format(weekDates[6], 'MMM d, yyyy')}</span>
+            <button onClick={() => setWeekBase(d => addDays(d, 7))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${ROOM_BORDER}`, background: ROOM_SURFACE, cursor: 'pointer', fontSize: 18, color: ROOM_MUTED }}>→</button>
+            <button onClick={() => setWeekBase(new Date())} style={{ fontSize: 14, color: ROOM_MUTED, background: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}>Today</button>
           </>
         ) : (
           <>
-            <button onClick={() => setSelectedDate(d => addDays(d, -1))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', fontSize: 18 }}>←</button>
-            <span style={{ fontSize: 18, color: '#555', minWidth: 160 }}>{format(selectedDate, 'EEEE, MMMM d')}</span>
-            <button onClick={() => setSelectedDate(d => addDays(d, 1))} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', fontSize: 18 }}>→</button>
-            <button onClick={() => setSelectedDate(new Date())} style={{ fontSize: 17, color: '#555', background: 'none', border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>Today</button>
+            <button onClick={() => setSelectedDate(d => addDays(d, -1))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${ROOM_BORDER}`, background: ROOM_SURFACE, cursor: 'pointer', fontSize: 18, color: ROOM_MUTED }}>←</button>
+            <span style={{ fontSize: 16, color: ROOM_MUTED, minWidth: 160, fontWeight: 600 }}>{format(selectedDate, 'EEEE, MMMM d')}</span>
+            <button onClick={() => setSelectedDate(d => addDays(d, 1))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${ROOM_BORDER}`, background: ROOM_SURFACE, cursor: 'pointer', fontSize: 18, color: ROOM_MUTED }}>→</button>
+            <button onClick={() => setSelectedDate(new Date())} style={{ fontSize: 14, color: ROOM_MUTED, background: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}>Today</button>
           </>
         )}
       </div>
@@ -1231,7 +1253,7 @@ function RoomContent() {
       <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflow: isMobile ? 'auto' : 'hidden' }}>
 
         {/* Main view area */}
-        <div style={{ flex: 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', padding: isMobile ? '12px 12px 24px' : '28px 32px 48px' }}>
+        <div style={{ flex: 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', padding: isMobile ? '16px 14px 24px' : '32px 36px 52px' }}>
           {participants.length === 0 ? (
             <div style={{ textAlign: 'center', marginTop: 80, color: '#888', fontSize: 19 }}>
               <p style={{ marginBottom: 8 }}>No one has connected yet.</p>
@@ -1241,16 +1263,16 @@ function RoomContent() {
             <>
               {/* Solo nudge */}
               {participants.length === 1 && myIndex === 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 16px', marginBottom: 14, gap: 12 }}>
-                  <span style={{ fontSize: 14, color: '#166534' }}>You&apos;re the only one here — share the link to invite others</span>
-                  <button onClick={handleCopyLink} style={{ fontSize: 13, fontWeight: 600, color: '#22C55E', background: 'none', border: '1px solid #22C55E', borderRadius: 7, padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: ROOM_ACCENT_SOFT, border: `1px solid ${ROOM_ACCENT_BORDER}`, borderRadius: 14, padding: '12px 16px', marginBottom: 18, gap: 12, boxShadow: ROOM_SHADOW }}>
+                  <span style={{ fontSize: 14, color: ROOM_ACCENT_DARK }}>You&apos;re the only one here — share the link to invite others</span>
+                  <button onClick={handleCopyLink} style={{ fontSize: 13, fontWeight: 600, color: ROOM_ACCENT_DARK, background: ROOM_SURFACE, border: `1px solid ${ROOM_ACCENT_BORDER}`, borderRadius: 9, padding: '7px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                     {copied ? '✓ Copied!' : 'Copy link'}
                   </button>
                 </div>
               )}
               {/* Drag hint */}
               {myIndex !== null && !selectedRange && (
-                <p style={{ textAlign: 'center', color: '#C4C4BC', fontSize: 13, fontStyle: 'italic', marginBottom: 10, pointerEvents: 'none' }}>
+                <p style={{ textAlign: 'center', color: ROOM_MUTED_SOFT, fontSize: 13, fontStyle: 'italic', marginBottom: 14, pointerEvents: 'none' }}>
                   Drag on the calendar to select a time
                 </p>
               )}
@@ -1266,17 +1288,17 @@ function RoomContent() {
         </div>
 
         {/* Side panel */}
-        <div style={{ width: isMobile ? '100%' : 288, borderLeft: isMobile ? 'none' : '1px solid #e2e2dc', borderTop: isMobile ? '1px solid #e2e2dc' : 'none', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
+        <div style={{ width: isMobile ? '100%' : 316, borderLeft: isMobile ? 'none' : `1px solid ${ROOM_BORDER}`, borderTop: isMobile ? `1px solid ${ROOM_BORDER}` : 'none', backgroundColor: ROOM_SURFACE, display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0, boxShadow: isMobile ? 'none' : '-8px 0 24px rgba(15,23,42,0.04)' }}>
 
           {/* Share / Join */}
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ padding: '18px 20px', borderBottom: `1px solid ${ROOM_BORDER}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={handleCopyLink}
-              style={{ width: '100%', backgroundColor: '#22C55E', color: '#fff', borderRadius: 11, padding: '12px', fontSize: 18, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+              style={{ width: '100%', backgroundColor: ROOM_ACCENT, color: '#fff', borderRadius: 14, padding: '13px', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 12px 24px rgba(61,154,92,0.16)' }}>
               {copied ? '✓ Link copied!' : 'Copy invite link'}
             </button>
             {myIndex === null && (
               <button onClick={handleJoin}
-                style={{ width: '100%', backgroundColor: '#fff', color: '#22C55E', borderRadius: 11, padding: '12px', fontSize: 18, fontWeight: 600, border: '1.5px solid #22C55E', cursor: 'pointer' }}>
+                style={{ width: '100%', backgroundColor: ROOM_SURFACE, color: ROOM_ACCENT_DARK, borderRadius: 14, padding: '13px', fontSize: 16, fontWeight: 700, border: `1px solid ${ROOM_ACCENT_BORDER}`, cursor: 'pointer' }}>
                 Join this room
               </button>
             )}
@@ -1284,19 +1306,19 @@ function RoomContent() {
 
           {/* Proposals list */}
           {room?.proposals && room.proposals.length > 0 && (
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e2dc' }}>
-              <p style={{ fontSize: 15, color: '#555', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Proposals</p>
+            <div style={{ padding: '18px 20px', borderBottom: `1px solid ${ROOM_BORDER}` }}>
+              <p style={{ fontSize: 13, color: ROOM_MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 12, fontWeight: 700 }}>Proposals</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {room.proposals.map((prop, i) => {
                   const isAccepted = prop.status === 'accepted';
                   const canAccept = prop.status === 'pending' && (myIndex === null || prop.proposer_index !== myIndex);
                   return (
-                    <div key={i} style={{ padding: '10px 12px', borderRadius: 9, backgroundColor: isAccepted ? 'rgba(34,197,94,0.06)' : '#fff', border: `1px solid ${isAccepted ? 'rgba(34,197,94,0.2)' : '#e0e0d8'}` }}>
-                      <p style={{ fontSize: 14, color: '#888', marginBottom: 4 }}>Person {prop.proposer_index + 1} suggests</p>
+                    <div key={i} style={{ padding: '12px 13px', borderRadius: 14, backgroundColor: isAccepted ? ROOM_ACCENT_SOFT : '#FBFCFE', border: `1px solid ${isAccepted ? ROOM_ACCENT_BORDER : ROOM_BORDER}` }}>
+                      <p style={{ fontSize: 13, color: ROOM_MUTED, marginBottom: 6 }}>Person {prop.proposer_index + 1} suggests</p>
                       <p style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 2 }}>
                         {format(parseISO(prop.start_time), 'EEE MMM d')}
                       </p>
-                      <p style={{ fontSize: 16, fontWeight: 700, color: '#111', background: 'rgba(34,197,94,0.10)', borderRadius: 6, padding: '3px 7px', display: 'inline-block', marginBottom: 8 }}>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: ROOM_TEXT, background: ROOM_ACCENT_SOFT, borderRadius: 8, padding: '4px 8px', display: 'inline-block', marginBottom: 10 }}>
                         {format(parseISO(prop.start_time), 'h:mm a')} – {format(parseISO(prop.end_time), 'h:mm a')}
                       </p>
                       {isAccepted ? (
@@ -1308,14 +1330,14 @@ function RoomContent() {
                             placeholder="Event title (optional, default: ClearSlot Meeting)"
                             value={eventTitles[i] ?? ''}
                             onChange={e => setEventTitles(prev => ({ ...prev, [i]: e.target.value }))}
-                            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #e2e2dc', fontSize: 13, color: '#333' }}
+                            style={{ padding: '8px 10px', borderRadius: 10, border: `1px solid ${ROOM_BORDER}`, fontSize: 13, color: '#333', backgroundColor: ROOM_SURFACE }}
                           />
                           {downloadedIcsIdx === i ? (
-                            <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 700 }}>.ics downloaded</span>
+                            <span style={{ fontSize: 14, color: ROOM_ACCENT_DARK, fontWeight: 700 }}>.ics downloaded</span>
                           ) : (
                             <button
                               onClick={() => handleDownloadIcs(i, prop)}
-                              style={{ fontSize: 14, color: '#22C55E', background: 'none', border: '1px solid #22C55E', borderRadius: 7, padding: '5px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                              style={{ fontSize: 14, color: ROOM_ACCENT_DARK, background: ROOM_SURFACE, border: `1px solid ${ROOM_ACCENT_BORDER}`, borderRadius: 10, padding: '8px 10px', cursor: 'pointer', fontWeight: 600 }}>
                               Download .ics
                             </button>
                           )}
@@ -1327,7 +1349,7 @@ function RoomContent() {
                         <button
                           onClick={() => handleAccept(i)}
                           disabled={acceptingIdx === i}
-                          style={{ width: '100%', backgroundColor: '#22C55E', color: '#fff', borderRadius: 7, padding: '7px', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: acceptingIdx === i ? 0.6 : 1 }}>
+                          style={{ width: '100%', backgroundColor: ROOM_ACCENT, color: '#fff', borderRadius: 10, padding: '10px', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', opacity: acceptingIdx === i ? 0.6 : 1 }}>
                           {acceptingIdx === i ? 'Accepting…' : 'Accept'}
                         </button>
                       ) : (
@@ -1341,8 +1363,8 @@ function RoomContent() {
           )}
 
           {/* Best slots */}
-          <div style={{ padding: '16px 20px' }}>
-            <p style={{ fontSize: 15, color: '#555', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>
+          <div style={{ padding: '18px 20px' }}>
+            <p style={{ fontSize: 13, color: ROOM_MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 12, fontWeight: 700 }}>
               Best times · {rankedSlots.length} found
             </p>
             {participants.length < 2 ? (
@@ -1357,10 +1379,10 @@ function RoomContent() {
                     : false;
                   return (
                     <button key={i} onClick={() => handleSlotClick(slot)}
-                      style={{ padding: '9px 12px', backgroundColor: isSelected ? 'rgba(34,197,94,0.08)' : '#fff', border: `1px solid ${isSelected ? '#22C55E' : '#e2e2dc'}`, borderRadius: 9, display: 'flex', flexDirection: 'column', gap: 2, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
-                      <span style={{ fontSize: 16, color: '#888' }}>{format(slot.start, 'EEE, MMM d')}</span>
-                      <span style={{ fontSize: 18, fontWeight: 600, color: '#111111' }}>{format(slot.start, 'h:mm a')} – {format(slot.end, 'h:mm a')}</span>
-                      <span style={{ fontSize: 15, color: '#22C55E' }}>{slot.count}/{participants.length} free</span>
+                      style={{ padding: '12px 13px', backgroundColor: isSelected ? ROOM_ACCENT_SOFT : '#FBFCFE', border: `1px solid ${isSelected ? ROOM_ACCENT_BORDER : ROOM_BORDER}`, borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                      <span style={{ fontSize: 14, color: ROOM_MUTED }}>{format(slot.start, 'EEE, MMM d')}</span>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: ROOM_TEXT }}>{format(slot.start, 'h:mm a')} – {format(slot.end, 'h:mm a')}</span>
+                      <span style={{ fontSize: 14, color: ROOM_ACCENT_DARK, fontWeight: 600 }}>{slot.count}/{participants.length} free</span>
                     </button>
                   );
                 })}
@@ -1369,17 +1391,17 @@ function RoomContent() {
           </div>
 
           {/* Manual time entry */}
-          <div style={{ padding: '14px 20px', borderTop: '1px solid #e2e2dc' }}>
-            <p style={{ fontSize: 13, color: '#888', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>Set time manually</p>
+          <div style={{ padding: '16px 20px', borderTop: `1px solid ${ROOM_BORDER}` }}>
+            <p style={{ fontSize: 12, color: ROOM_MUTED, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 12, fontWeight: 700 }}>Set time manually</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <input type="date" title="Date" value={manualDate} onChange={e => setManualDate(e.target.value)}
-                style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid #d8d8d0', fontSize: 15, color: '#333', backgroundColor: '#fff', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '9px 10px', borderRadius: 10, border: `1px solid ${ROOM_BORDER}`, fontSize: 14, color: '#333', backgroundColor: ROOM_SURFACE, boxSizing: 'border-box' }} />
               <div style={{ display: 'flex', gap: 6 }}>
                 <input type="time" title="Start time" value={manualStart} onChange={e => setManualStart(e.target.value)}
-                  style={{ flex: 1, padding: '7px 8px', borderRadius: 8, border: '1px solid #d8d8d0', fontSize: 15, color: '#333', backgroundColor: '#fff' }} />
+                  style={{ flex: 1, padding: '9px 8px', borderRadius: 10, border: `1px solid ${ROOM_BORDER}`, fontSize: 14, color: '#333', backgroundColor: ROOM_SURFACE }} />
                 <span style={{ color: '#aaa', lineHeight: '34px' }}>–</span>
                 <input type="time" title="End time" value={manualEnd} onChange={e => setManualEnd(e.target.value)}
-                  style={{ flex: 1, padding: '7px 8px', borderRadius: 8, border: '1px solid #d8d8d0', fontSize: 15, color: '#333', backgroundColor: '#fff' }} />
+                  style={{ flex: 1, padding: '9px 8px', borderRadius: 10, border: `1px solid ${ROOM_BORDER}`, fontSize: 14, color: '#333', backgroundColor: ROOM_SURFACE }} />
               </div>
               <button
                 onClick={() => {
@@ -1391,7 +1413,7 @@ function RoomContent() {
                   const end = new Date(y, mo - 1, d, eh, em, 0, 0);
                   if (end > start) handleRangeChange({ start, end });
                 }}
-                style={{ width: '100%', padding: '8px', borderRadius: 8, border: '1.5px solid #22C55E', backgroundColor: 'transparent', color: '#22C55E', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ width: '100%', padding: '10px', borderRadius: 10, border: `1px solid ${ROOM_ACCENT_BORDER}`, backgroundColor: ROOM_SURFACE, color: ROOM_ACCENT_DARK, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 Apply
               </button>
             </div>
@@ -1399,8 +1421,8 @@ function RoomContent() {
 
           {/* Propose selected slot */}
           {selectedRange && myIndex !== null && (
-            <div style={{ margin: '0 20px 20px', padding: '12px', backgroundColor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 11 }}>
-              <p style={{ fontSize: 14, color: '#888', marginBottom: 6 }}>{format(selectedRange.start, 'EEE, MMM d')}</p>
+            <div style={{ margin: '0 20px 20px', padding: '14px', backgroundColor: ROOM_ACCENT_SOFT, border: `1px solid ${ROOM_ACCENT_BORDER}`, borderRadius: 16, boxShadow: ROOM_SHADOW }}>
+              <p style={{ fontSize: 13, color: ROOM_MUTED, marginBottom: 8, fontWeight: 600 }}>{format(selectedRange.start, 'EEE, MMM d')}</p>
               {/* Editable start/end times */}
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
                 <input type="time" title="Start time"
@@ -1410,8 +1432,8 @@ function RoomContent() {
                     const next = new Date(selectedRange.start); next.setHours(h, m, 0, 0);
                     if (next < selectedRange.end) handleRangeChange({ start: next, end: selectedRange.end });
                   }}
-                  style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: '1.5px solid #22C55E', fontSize: 15, color: '#111111', fontWeight: 600, backgroundColor: '#fff', boxSizing: 'border-box' }} />
-                <span style={{ color: '#22C55E', fontWeight: 600, flexShrink: 0 }}>–</span>
+                  style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 10, border: `1px solid ${ROOM_ACCENT_BORDER}`, fontSize: 14, color: ROOM_TEXT, fontWeight: 700, backgroundColor: ROOM_SURFACE, boxSizing: 'border-box' }} />
+                <span style={{ color: ROOM_ACCENT_DARK, fontWeight: 700, flexShrink: 0 }}>–</span>
                 <input type="time" title="End time"
                   value={`${String(selectedRange.end.getHours()).padStart(2,'0')}:${String(selectedRange.end.getMinutes()).padStart(2,'0')}`}
                   onChange={e => {
@@ -1419,13 +1441,13 @@ function RoomContent() {
                     const next = new Date(selectedRange.end); next.setHours(h, m, 0, 0);
                     if (next > selectedRange.start) handleRangeChange({ start: selectedRange.start, end: next });
                   }}
-                  style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: '1.5px solid #22C55E', fontSize: 15, color: '#111111', fontWeight: 600, backgroundColor: '#fff', boxSizing: 'border-box' }} />
+                  style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 10, border: `1px solid ${ROOM_ACCENT_BORDER}`, fontSize: 14, color: ROOM_TEXT, fontWeight: 700, backgroundColor: ROOM_SURFACE, boxSizing: 'border-box' }} />
               </div>
               {proposed ? (
-                <p style={{ fontSize: 18, color: '#22C55E', fontWeight: 600 }}>✓ Proposal shared!</p>
+                <p style={{ fontSize: 17, color: ROOM_ACCENT_DARK, fontWeight: 700 }}>✓ Proposal shared!</p>
               ) : (
                 <button onClick={handlePropose} disabled={proposing}
-                  style={{ width: '100%', backgroundColor: '#22C55E', color: '#fff', borderRadius: 9, padding: '10px', fontSize: 18, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: proposing ? 0.6 : 1 }}>
+                  style={{ width: '100%', backgroundColor: ROOM_ACCENT, color: '#fff', borderRadius: 12, padding: '12px', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer', opacity: proposing ? 0.6 : 1, boxShadow: '0 12px 24px rgba(61,154,92,0.16)' }}>
                   {proposing ? 'Proposing...' : 'Suggest this time'}
                 </button>
               )}

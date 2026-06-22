@@ -4,6 +4,10 @@ const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 const DATES = [8, 9, 10, 11, 12, 13, 14];
 const TODAY = 3; // THU
 const ROOM_CODE = 'K7QPMX';
+const ACCENT = '#3D9A5C';
+const ACCENT_SOFT = '#EEF7F0';
+const BORDER = '#E8EBF0';
+const TEXT_MUTED = '#667085';
 
 // Matches PARTICIPANT_COLORS / PARTICIPANT_BG_COLORS in app/room/[code]/page.tsx
 const PARTICIPANT_COLORS = ['#3B82F6', '#EF4444', '#F59E0B', '#A855F7'];
@@ -72,15 +76,15 @@ function GridLines() {
         const y = i * HOUR_HEIGHT;
         return (
           <g key={i}>
-            <line x1={0} y1={y} x2="100%" y2={y} stroke="#D1FAE5" strokeWidth={1} />
+            <line x1={0} y1={y} x2="100%" y2={y} stroke={BORDER} strokeWidth={1} />
             {i < HOURS.length - 1 && (
               <>
                 <line x1={0} y1={y + HOUR_HEIGHT / 2} x2="100%" y2={y + HOUR_HEIGHT / 2}
-                  stroke="#E5E7EB" strokeWidth={0.8} strokeDasharray="4 4" />
+                  stroke="#D9DEE7" strokeWidth={0.8} strokeDasharray="4 4" />
                 <line x1={0} y1={y + HOUR_HEIGHT / 4} x2="100%" y2={y + HOUR_HEIGHT / 4}
-                  stroke="#F3F4F6" strokeWidth={0.6} strokeDasharray="2 6" />
+                  stroke="#EDF1F5" strokeWidth={0.6} strokeDasharray="2 6" />
                 <line x1={0} y1={y + (HOUR_HEIGHT * 3) / 4} x2="100%" y2={y + (HOUR_HEIGHT * 3) / 4}
-                  stroke="#F3F4F6" strokeWidth={0.6} strokeDasharray="2 6" />
+                  stroke="#EDF1F5" strokeWidth={0.6} strokeDasharray="2 6" />
               </>
             )}
           </g>
@@ -96,10 +100,10 @@ export default function WeekDemo() {
       <style>{css}</style>
       <div style={{
         backgroundColor: '#fff',
-        border: '1px solid #E5E7EB',
-        borderRadius: 16,
-        padding: '18px 16px 14px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+        border: `1px solid ${BORDER}`,
+        borderRadius: 22,
+        padding: '22px 20px 18px',
+        boxShadow: '0 18px 46px rgba(15, 23, 42, 0.07), 0 3px 12px rgba(15, 23, 42, 0.04)',
         fontFamily: 'Inter, system-ui, sans-serif',
         userSelect: 'none',
         position: 'relative',
@@ -108,9 +112,9 @@ export default function WeekDemo() {
 
         {/* App header — mirrors the room page header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, backgroundColor: '#fff', border: '1px solid #e0e0d8', borderRadius: 8, padding: '4px 10px' }}>
-            <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>Room</span>
-            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', color: '#111' }}>{ROOM_CODE}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, backgroundColor: '#fff', border: `1px solid ${BORDER}`, borderRadius: 12, padding: '6px 11px' }}>
+            <span style={{ fontSize: 10, color: TEXT_MUTED, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Room</span>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', color: '#111', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{ROOM_CODE}</span>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ display: 'flex' }}>
@@ -133,7 +137,7 @@ export default function WeekDemo() {
                 </div>
               ))}
             </div>
-            <span style={{ fontSize: 11, color: '#6B7280' }}>{PARTICIPANTS.length} people</span>
+            <span style={{ fontSize: 11, color: TEXT_MUTED }}>{PARTICIPANTS.length} people</span>
           </div>
         </div>
 
@@ -174,10 +178,10 @@ export default function WeekDemo() {
 
                 {/* Day header — mirrors WeekView's day header row */}
                 <div style={{ height: 32, textAlign: 'center', paddingTop: 2 }}>
-                  <div style={{ fontSize: 8, fontWeight: 600, color: isToday ? '#22C55E' : '#9CA3AF', letterSpacing: '0.06em' }}>
+                    <div style={{ fontSize: 8, fontWeight: 600, color: isToday ? ACCENT : '#9CA3AF', letterSpacing: '0.06em' }}>
                     {day}
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: isToday ? '#22C55E' : '#374151' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: isToday ? ACCENT : '#374151' }}>
                     {DATES[di]}
                   </div>
                 </div>
@@ -185,8 +189,9 @@ export default function WeekDemo() {
                 {/* Column body */}
                 <div style={{
                   height: GRID_H,
-                  backgroundColor: '#DCFCE7',
-                  borderRadius: 4,
+                  backgroundColor: '#F7FBF8',
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 8,
                   position: 'relative',
                   overflow: 'hidden',
                 }}>
@@ -211,8 +216,8 @@ export default function WeekDemo() {
                         position: 'absolute',
                         top: `${SEL_TOP}%`,
                         left: 0, right: 0,
-                        backgroundColor: 'rgba(74,222,128,0.6)',
-                        border: '2px solid #22C55E',
+                        backgroundColor: 'rgba(61,154,92,0.18)',
+                        border: `2px solid ${ACCENT}`,
                         borderRadius: 3,
                         pointerEvents: 'none',
                         animation: 'cs-sel 5s ease-in-out infinite',
@@ -223,8 +228,8 @@ export default function WeekDemo() {
                         transform: 'translateX(-50%)',
                         width: 8, height: 8,
                         borderRadius: '50%',
-                        backgroundColor: '#22C55E',
-                        boxShadow: '0 0 0 3px rgba(34,197,94,0.2)',
+                        backgroundColor: ACCENT,
+                        boxShadow: '0 0 0 3px rgba(61,154,92,0.18)',
                         pointerEvents: 'none',
                         animation: 'cs-dot 5s ease-in-out infinite',
                       }} />
@@ -241,13 +246,13 @@ export default function WeekDemo() {
         <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 10 }}>
             {PARTICIPANTS.map((p, i) => (
-              <span key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#6B7280' }}>
+              <span key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: TEXT_MUTED }}>
                 <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length], display: 'inline-block', flexShrink: 0 }} />
                 {p.name}
               </span>
             ))}
           </div>
-          <span style={{ fontSize: 11, color: '#22C55E', fontWeight: 500 }}>Drag to propose →</span>
+          <span style={{ fontSize: 11, color: ACCENT, fontWeight: 600 }}>Drag to propose →</span>
         </div>
 
       </div>

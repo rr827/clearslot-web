@@ -1,6 +1,18 @@
 import WeekDemo from './components/WeekDemo';
 import Logo from './components/Logo';
 
+const BG = '#F8F9FC';
+const SURFACE = '#FFFFFF';
+const BORDER = '#E8EBF0';
+const TEXT = '#111827';
+const MUTED = '#667085';
+const MUTED_SOFT = '#98A2B3';
+const ACCENT = '#3D9A5C';
+const ACCENT_DARK = '#2F7B49';
+const ACCENT_SOFT = '#EEF7F0';
+const ACCENT_BORDER = '#CFE3D5';
+const SHADOW = '0 18px 46px rgba(15, 23, 42, 0.07), 0 3px 12px rgba(15, 23, 42, 0.04)';
+
 function IconCalendar() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -33,193 +45,179 @@ function IconLock() {
   );
 }
 
-export default function Home() {
+function IconCheck() {
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', color: '#111111', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
 
-      {/* Nav */}
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, borderBottom: '1px solid #E5E7EB', backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)' }}>
-        <div className="cs-nav-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px', height: 96, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
-            <Logo />
-            <div className="cs-nav-links" style={{ display: 'flex', gap: 28 }}>
-              <a href="#how" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none' }}>How it works</a>
-              <a href="#features" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none' }}>Features</a>
-              <a href="#privacy" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none' }}>Privacy</a>
-              <a href="/guide" style={{ fontSize: 14, color: '#6B7280', textDecoration: 'none' }}>Guide</a>
-            </div>
+export default function Home() {
+  const features = [
+    { icon: <IconCalendar />, title: 'Smart scheduling', body: 'Find the best overlap across everyone\'s calendar automatically.' },
+    { icon: <IconPeople />, title: 'Room-based coordination', body: 'Everyone joins the same room, compares availability, and sees the same proposals.' },
+    { icon: <IconBolt />, title: 'Fast to start', body: 'Share a code and begin in seconds. No sign-up required for invited guests.' },
+    { icon: <IconLock />, title: 'Private by design', body: 'Event details are not stored on ClearSlot servers. Shared rooms use derived timing only.' },
+  ];
+
+  const steps = [
+    { num: '1', title: 'Open a room', body: 'Create a shared room in one tap and send the code to the people you need to coordinate with.' },
+    { num: '2', title: 'Compare availability', body: 'Everyone connects a calendar or uploads an .ics file, then ClearSlot finds overlapping time.' },
+    { num: '3', title: 'Confirm a time', body: 'Propose a slot, get agreement in the room, and export the confirmed meeting to any calendar app.' },
+  ];
+
+  const privacyRows = [
+    { label: 'Event title', shared: false },
+    { label: 'Event description', shared: false },
+    { label: 'Attendees', shared: false },
+    { label: 'Location', shared: false },
+    { label: 'Start time', shared: true },
+    { label: 'End time', shared: true },
+  ];
+
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: BG, color: TEXT, fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, borderBottom: `1px solid ${BORDER}`, backgroundColor: 'rgba(248,249,252,0.94)', backdropFilter: 'blur(12px)', boxShadow: '0 1px 0 rgba(17,24,39,0.02)' }}>
+        <div className="cs-shell cs-nav" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px', minHeight: 88, display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 24 }}>
+          <Logo />
+          <div className="cs-nav-links" style={{ display: 'flex', justifyContent: 'center', gap: 28 }}>
+            <a href="#how" style={{ fontSize: 14, color: MUTED, textDecoration: 'none', fontWeight: 500 }}>How it works</a>
+            <a href="#features" style={{ fontSize: 14, color: MUTED, textDecoration: 'none', fontWeight: 500 }}>Features</a>
+            <a href="#privacy" style={{ fontSize: 14, color: MUTED, textDecoration: 'none', fontWeight: 500 }}>Privacy</a>
+            <a href="/guide" style={{ fontSize: 14, color: MUTED, textDecoration: 'none', fontWeight: 500 }}>Guide</a>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <a href="/connect" style={{ fontSize: 14, color: '#374151', textDecoration: 'none', fontWeight: 500 }}>Log in</a>
-            <a href="/connect" style={{ fontSize: 14, backgroundColor: '#22C55E', color: '#fff', fontWeight: 600, padding: '9px 20px', borderRadius: 999, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-              Get started — it&apos;s free
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <a href="/connect" style={{ fontSize: 14, color: MUTED, textDecoration: 'none', fontWeight: 500, padding: '10px 12px', borderRadius: 10 }}>
+              Log in
+            </a>
+            <a href="/connect" style={{ fontSize: 14, backgroundColor: ACCENT, color: '#fff', fontWeight: 600, padding: '12px 18px', borderRadius: 12, textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 10px 24px rgba(61,154,92,0.16)' }}>
+              Get started
             </a>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="cs-hero" style={{ maxWidth: 1200, margin: '0 auto', padding: '148px 48px 96px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 72, alignItems: 'center' }}>
-        <div>
-          {/* Badge */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 999, padding: '6px 16px', fontSize: 13, color: '#16A34A', marginBottom: 28, fontWeight: 500 }}>
+      <section className="cs-shell" style={{ maxWidth: 1240, margin: '0 auto', padding: '64px 40px 112px' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, backgroundColor: ACCENT_SOFT, border: `1px solid ${ACCENT_BORDER}`, borderRadius: 999, padding: '7px 16px', fontSize: 13, color: ACCENT_DARK, marginBottom: 28, fontWeight: 600 }}>
             Flexible scheduling for modern teams
           </div>
-
-          {/* H1 */}
-          <h1 style={{ fontSize: 60, fontWeight: 700, lineHeight: 1.06, letterSpacing: '-0.03em', marginBottom: 20, color: '#111111' }}>
-            Find the time.<br />
-            <span style={{ color: '#22C55E' }}>Stay accountable.</span>
+          <h1 style={{ fontSize: 72, fontWeight: 700, lineHeight: 1.02, letterSpacing: '-0.05em', margin: '0 0 24px', color: TEXT }}>
+            Find the right time together, without the follow-up chaos.
           </h1>
-
-          {/* Subtext */}
-          <p style={{ fontSize: 18, color: '#6B7280', lineHeight: 1.65, marginBottom: 36, maxWidth: 400 }}>
-            Open a shared room. Propose a time. Confirm it together.<br />
-            Everyone&apos;s on the same page.
+          <p style={{ fontSize: 19, color: MUTED, lineHeight: 1.7, margin: '0 auto 30px', maxWidth: 680 }}>
+            Open a shared room, compare availability, propose a slot, and confirm it with everyone looking at the same scheduling truth.
           </p>
 
-          {/* CTAs */}
-          <div className="cs-hero-ctas" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 36 }}>
-            <a href="/connect" style={{ backgroundColor: '#22C55E', color: '#fff', fontWeight: 600, padding: '14px 28px', borderRadius: 999, fontSize: 15, textDecoration: 'none', display: 'inline-block', whiteSpace: 'nowrap' }}>
+          <div className="cs-hero-actions" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
+            <a href="/connect" style={{ backgroundColor: ACCENT, color: '#fff', fontWeight: 600, padding: '16px 28px', borderRadius: 14, fontSize: 16, textDecoration: 'none', display: 'inline-block', boxShadow: '0 14px 28px rgba(61,154,92,0.18)' }}>
               Get started — it&apos;s free
             </a>
-            <a href="#how" style={{ fontSize: 15, color: '#374151', textDecoration: 'none', border: '1.5px solid #E5E7EB', borderRadius: 999, padding: '13px 22px', fontWeight: 500, display: 'inline-block', whiteSpace: 'nowrap' }}>
-              See how it works →
+            <a href="#how" style={{ fontSize: 16, color: TEXT, textDecoration: 'none', fontWeight: 600 }}>
+              See how it works
             </a>
           </div>
 
-          {/* Room code input */}
-          <form action="/connect" method="get" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 32 }}>
+          <form action="/connect" method="get" style={{ maxWidth: 540, margin: '0 auto 26px', padding: 10, borderRadius: 18, border: `1px solid ${BORDER}`, backgroundColor: SURFACE, boxShadow: SHADOW, display: 'flex', gap: 10, alignItems: 'center' }}>
             <input
               name="room"
               type="text"
-              placeholder="Have a room code? Enter it"
+              placeholder="Have a room code? Enter it to join"
               maxLength={6}
-              style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 999, padding: '11px 20px', fontSize: 14, color: '#111111', outline: 'none', width: 240 }}
+              style={{ flex: 1, backgroundColor: 'transparent', border: 'none', padding: '12px 14px', fontSize: 15, color: TEXT, outline: 'none', minWidth: 0 }}
             />
-            <button type="submit" style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 999, padding: '11px 20px', fontSize: 14, color: '#374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              Join →
+            <button type="submit" style={{ backgroundColor: ACCENT_SOFT, border: `1px solid ${ACCENT_BORDER}`, color: ACCENT_DARK, borderRadius: 12, padding: '12px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              Join room
             </button>
           </form>
 
-          {/* Feature bullets */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {[
-              { label: 'Save time', desc: 'Eliminate back-and-forth and find times faster.' },
-              { label: 'Coordinate easily', desc: 'See everyone\'s availability in one shared view.' },
-              { label: 'Private by design', desc: 'Event details are not stored on ClearSlot servers.' },
-            ].map((item, i) => (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#16A34A' }}>
-                  {i === 0 && (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                  )}
-                  {i === 1 && (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
-                  )}
-                  {i === 2 && (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
-                  )}
-                </div>
-                <div style={{ fontSize: 14, color: '#374151' }}>
-                  <strong style={{ fontWeight: 600 }}>{item.label}</strong>
-                  {' '}
-                  <span style={{ color: '#6B7280' }}>{item.desc}</span>
-                </div>
-              </div>
-            ))}
+          <div className="cs-benefits" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14, color: MUTED, fontSize: 14, fontWeight: 500, marginBottom: 42 }}>
+            <span>Save time</span>
+            <span style={{ color: MUTED_SOFT }}>·</span>
+            <span>Coordinate easily</span>
+            <span style={{ color: MUTED_SOFT }}>·</span>
+            <span>Private by design</span>
           </div>
         </div>
 
-        {/* Live demo */}
-        <WeekDemo />
+        <div style={{ maxWidth: 1080, margin: '0 auto', backgroundColor: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 28, padding: 24, boxShadow: SHADOW }}>
+          <WeekDemo />
+        </div>
       </section>
 
-      {/* Features */}
-      <section id="features" style={{ borderTop: '1px solid #E5E7EB', padding: '96px 0' }}>
-        <div className="cs-section-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px' }}>
-          <p style={{ fontSize: 11, color: '#22C55E', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 12, fontWeight: 600 }}>BUILT FOR BUSY TEAMS</p>
-          <h2 style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 56, color: '#111111', maxWidth: 520 }}>Everything you need to find the right time</h2>
-          <div className="cs-features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-            {[
-              { icon: <IconCalendar />, title: 'Smart scheduling', body: 'Find the best overlap across everyone\'s calendar automatically.' },
-              { icon: <IconPeople />, title: 'Team coordination', body: 'Everyone joins the room, shares availability, and stays aligned.' },
-              { icon: <IconBolt />, title: 'No account needed', body: 'Share a room code and start in seconds. No sign-up required for guests.' },
-              { icon: <IconLock />, title: 'Private by design', body: 'Event details are not stored on ClearSlot servers. Only availability timing is shared for rooms.' },
-            ].map(f => (
-              <div key={f.title} style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 16, padding: '24px 20px' }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A', marginBottom: 16 }}>
-                  {f.icon}
+      <section id="features" style={{ padding: '0 0 112px' }}>
+        <div className="cs-shell" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px' }}>
+          <p style={{ fontSize: 12, color: ACCENT_DARK, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 14, fontWeight: 700 }}>Built for busy teams</p>
+          <div className="cs-section-head" style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'end', marginBottom: 42 }}>
+            <h2 style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', margin: 0, color: TEXT, maxWidth: 620 }}>Everything you need to reach a real scheduling decision</h2>
+            <p style={{ maxWidth: 360, color: MUTED, fontSize: 16, lineHeight: 1.7, margin: 0 }}>
+              ClearSlot is designed to reduce back-and-forth without sacrificing clarity, accountability, or privacy.
+            </p>
+          </div>
+
+          <div className="cs-features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 22 }}>
+            {features.map((feature) => (
+              <div key={feature.title} style={{ backgroundColor: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 22, padding: 28, boxShadow: SHADOW }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: ACCENT_SOFT, border: `1px solid ${ACCENT_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ACCENT_DARK, marginBottom: 18 }}>
+                  {feature.icon}
                 </div>
-                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 8 }}>{f.title}</h3>
-                <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.65 }}>{f.body}</p>
+                <h3 style={{ fontSize: 20, fontWeight: 650, color: TEXT, margin: '0 0 10px' }}>{feature.title}</h3>
+                <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.75, margin: 0 }}>{feature.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how" style={{ borderTop: '1px solid #E5E7EB', padding: '96px 0' }}>
-        <div className="cs-section-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px' }}>
-          <p style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16 }}>How it works</p>
-          <h2 style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 64, color: '#111111' }}>Three steps, zero friction.</h2>
-          <div className="cs-how-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
-            {[
-              { num: '01', title: 'Open a room', body: 'Create a shared room in one tap. Share the code — no accounts needed for anyone.' },
-              { num: '02', title: 'Drag to propose a time', body: "Drag on a live calendar grid to mark when you want to meet. See everyone's availability at a glance." },
-              { num: '03', title: 'Confirm a time', body: 'When you agree on a time, propose it from the room and share the confirmed slot back with everyone.' },
-            ].map((step) => (
-              <div key={step.num} style={{ borderTop: '1px solid #E5E7EB', paddingTop: 24 }}>
-                <span style={{ fontSize: 13, color: '#22C55E', fontWeight: 700, letterSpacing: '0.15em', display: 'block', marginBottom: 16 }}>{step.num}</span>
-                <h3 style={{ fontSize: 22, fontWeight: 600, marginBottom: 12, color: '#111111' }}>{step.title}</h3>
-                <p style={{ fontSize: 16, color: '#6B7280', lineHeight: 1.7 }}>{step.body}</p>
+      <section id="how" style={{ padding: '0 0 112px' }}>
+        <div className="cs-shell" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px' }}>
+          <p style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 14, fontWeight: 700 }}>How it works</p>
+          <h2 style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 42px', color: TEXT }}>Three steps, no awkward scheduling loop.</h2>
+          <div className="cs-how-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 22, position: 'relative' }}>
+            <div className="cs-how-line" style={{ position: 'absolute', top: 32, left: '16.66%', right: '16.66%', borderTop: `1px dashed ${ACCENT_BORDER}`, zIndex: 0 }} />
+            {steps.map((step) => (
+              <div key={step.num} style={{ position: 'relative', zIndex: 1, backgroundColor: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 22, padding: 26, boxShadow: SHADOW }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: ACCENT, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, marginBottom: 18 }}>
+                  {step.num}
+                </div>
+                <h3 style={{ fontSize: 21, fontWeight: 650, margin: '0 0 10px', color: TEXT }}>{step.title}</h3>
+                <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.75, margin: 0 }}>{step.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Privacy */}
-      <section id="privacy" style={{ borderTop: '1px solid #E5E7EB', padding: '96px 0' }}>
-        <div className="cs-privacy-grid" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 96, alignItems: 'center' }}>
+      <section id="privacy" style={{ padding: '0 0 112px' }}>
+        <div className="cs-shell cs-privacy-grid" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px', display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 48, alignItems: 'start' }}>
           <div>
-            <p style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16 }}>Privacy first</p>
-            <h2 style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 24, color: '#111111' }}>What you share is what you choose.</h2>
-            <p style={{ fontSize: 17, color: '#6B7280', lineHeight: 1.8, marginBottom: 32 }}>
-              ClearSlot reads calendar timing to compute availability. Event titles, descriptions, attendees, and locations are not stored on ClearSlot servers.
+            <p style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 14, fontWeight: 700 }}>Privacy first</p>
+            <h2 style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 20px', color: TEXT }}>What gets shared is limited by design.</h2>
+            <p style={{ fontSize: 17, color: MUTED, lineHeight: 1.8, marginBottom: 28 }}>
+              ClearSlot reads calendar timing to compute availability. Event titles, descriptions, attendees, and locations are not stored on ClearSlot servers as part of the room scheduling flow.
             </p>
             {[
-              'No account or sign-up required',
-              'Event details are not stored on ClearSlot servers',
+              'No account or sign-up required for invited guests',
+              'Event details are not stored in room payloads',
               'Temporary availability blocks may be stored for shared rooms',
               'Usage analytics measure product behavior, not calendar content',
             ].map((item) => (
               <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, color: '#374151', marginBottom: 16 }}>
-                <span style={{ color: '#22C55E', fontSize: 16, fontWeight: 700 }}>✓</span>
+                <span style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: ACCENT, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <IconCheck />
+                </span>
                 {item}
               </div>
             ))}
           </div>
-          <div style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 20, padding: 32 }}>
-            <p style={{ fontSize: 11, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 24 }}>What gets shared</p>
-            {[
-              { label: 'Event title', shared: false },
-              { label: 'Event description', shared: false },
-              { label: 'Attendees', shared: false },
-              { label: 'Location', shared: false },
-              { label: 'Start time', shared: true },
-              { label: 'End time', shared: true },
-            ].map((item) => (
-              <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #F3F4F6' }}>
-                <span style={{ fontSize: 14, color: '#6B7280' }}>{item.label}</span>
-                <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 999, backgroundColor: item.shared ? 'rgba(34,197,94,0.1)' : '#F3F4F6', color: item.shared ? '#16A34A' : '#9CA3AF' }}>
+
+          <div style={{ backgroundColor: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 28, boxShadow: SHADOW }}>
+            <p style={{ fontSize: 12, color: MUTED_SOFT, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 20, fontWeight: 700 }}>What gets shared</p>
+            {privacyRows.map((item) => (
+              <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `1px solid ${BORDER}` }}>
+                <span style={{ fontSize: 15, color: MUTED }}>{item.label}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: item.shared ? ACCENT_DARK : '#C2413D' }}>
                   {item.shared ? 'Shared' : 'Never shared'}
                 </span>
               </div>
@@ -228,30 +226,76 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section style={{ borderTop: '1px solid #E5E7EB', padding: '96px 0', textAlign: 'center' }}>
-        <div className="cs-section-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px' }}>
-          <h2 style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 20, color: '#111111' }}>Ready to find your overlap?</h2>
-          <p style={{ color: '#6B7280', marginBottom: 40, fontSize: 18 }}>No account. Open a room in seconds.</p>
-          <a href="/connect" style={{ display: 'inline-block', backgroundColor: '#22C55E', color: '#fff', fontWeight: 600, padding: '18px 44px', borderRadius: 999, fontSize: 17, textDecoration: 'none' }}>
-            Get started — it&apos;s free
-          </a>
+      <section style={{ padding: '0 0 88px' }}>
+        <div className="cs-shell" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px' }}>
+          <div style={{ backgroundColor: '#1E2E27', borderRadius: 28, padding: '56px 36px', textAlign: 'center', boxShadow: '0 24px 52px rgba(17,24,39,0.14)' }}>
+            <h2 style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 18px', color: '#FFFFFF' }}>Ready to find your overlap?</h2>
+            <p style={{ color: 'rgba(255,255,255,0.72)', margin: '0 0 30px', fontSize: 18, lineHeight: 1.7 }}>
+              Open a room in seconds and give everyone one place to land on the same answer.
+            </p>
+            <a href="/connect" style={{ display: 'inline-block', backgroundColor: '#FFFFFF', color: '#1E2E27', fontWeight: 700, padding: '16px 32px', borderRadius: 14, fontSize: 16, textDecoration: 'none' }}>
+              Get started — it&apos;s free
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer style={{ borderTop: '1px solid #E5E7EB', padding: '32px 0' }}>
-        <div className="cs-section-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', color: '#9CA3AF' }}>ClearSlot</span>
-          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            <p style={{ fontSize: 12, color: '#9CA3AF' }}>Usage analytics only. No calendar content is sent to analytics.</p>
-            <a href="/privacy" style={{ fontSize: 12, color: '#6B7280', textDecoration: 'none' }}>Privacy Policy</a>
-            <a href="/terms" style={{ fontSize: 12, color: '#6B7280', textDecoration: 'none' }}>Terms</a>
-            <a href="mailto:support@clearslot.net" style={{ fontSize: 12, color: '#6B7280', textDecoration: 'none' }}>Contact</a>
+      <footer style={{ borderTop: `1px solid ${BORDER}`, padding: '28px 0 40px' }}>
+        <div className="cs-shell cs-footer" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 18 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', color: MUTED_SOFT }}>ClearSlot</span>
+          <div className="cs-footer-links" style={{ display: 'flex', gap: 22, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <p style={{ fontSize: 12, color: MUTED_SOFT, margin: 0 }}>Usage analytics only. No calendar content is intentionally sent to analytics.</p>
+            <a href="/privacy" style={{ fontSize: 12, color: MUTED, textDecoration: 'none' }}>Privacy Policy</a>
+            <a href="/terms" style={{ fontSize: 12, color: MUTED, textDecoration: 'none' }}>Terms</a>
+            <a href="mailto:support@clearslot.net" style={{ fontSize: 12, color: MUTED, textDecoration: 'none' }}>Contact</a>
           </div>
         </div>
       </footer>
 
+      <style>{`
+        @media (max-width: 980px) {
+          .cs-nav {
+            grid-template-columns: 1fr;
+            padding-top: 18px;
+            padding-bottom: 18px;
+          }
+          .cs-nav-links {
+            justify-content: flex-start;
+            overflow-x: auto;
+            padding-bottom: 4px;
+          }
+          .cs-section-head,
+          .cs-privacy-grid,
+          .cs-how-grid,
+          .cs-features-grid,
+          .cs-footer {
+            display: block !important;
+          }
+          .cs-features-grid > div,
+          .cs-how-grid > div {
+            margin-bottom: 18px;
+          }
+          .cs-how-line {
+            display: none;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .cs-shell {
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+          .cs-hero-actions {
+            flex-direction: column;
+          }
+          .cs-benefits {
+            gap: 10px;
+          }
+          h1 {
+            font-size: 52px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }
