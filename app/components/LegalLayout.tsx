@@ -28,18 +28,18 @@ function LegalNav({
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-3xl border border-[#e3e8ef] bg-white/90 p-6 shadow-[0_8px_28px_rgba(15,23,42,0.04)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2f8a57]">
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
           On this page
         </p>
-        <nav className="mt-4">
+        <nav className="mt-3">
           <ul className="space-y-3">
             {sections.map((section) => (
               <li key={section.id}>
                 <a
                   href={`#${section.id}`}
-                  className="block rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-[#f2f7f3] hover:text-slate-900"
+                  className="block py-1 text-sm text-slate-400 transition hover:text-slate-800"
                 >
                   {section.title}
                 </a>
@@ -49,21 +49,21 @@ function LegalNav({
         </nav>
       </div>
 
-      <div className="rounded-3xl border border-[#e3e8ef] bg-white/90 p-6 shadow-[0_8px_28px_rgba(15,23,42,0.04)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+      <div className="border-t border-slate-100 pt-4">
+        <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
           Related legal pages
         </p>
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 space-y-1">
           {relatedLinks.map((link) => {
             const active = currentPage === link.key;
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`block rounded-xl px-3 py-2 text-sm font-medium transition ${
+                className={`block py-1 text-sm transition ${
                   active
-                    ? 'bg-[#eff8f1] text-[#236a43]'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'font-medium text-slate-900'
+                    : 'text-slate-400 hover:text-slate-800'
                 }`}
               >
                 {link.label}
@@ -84,52 +84,51 @@ export default function LegalLayout({
   currentPage,
 }: LegalLayoutProps) {
   return (
-    <div className="min-h-screen bg-[#f8f9fc] text-slate-900">
-      <div className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-10 lg:py-20">
-        <div className="grid gap-10 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-14">
+    <div className="min-h-screen bg-white text-slate-900">
+      <div className="mx-auto max-w-5xl px-6 pt-16 pb-20">
+        <div className="grid gap-14 lg:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
-            <div className="sticky top-28">
+            <div className="sticky top-20 pt-20">
               <LegalNav sections={sections} currentPage={currentPage} />
             </div>
           </aside>
 
           <main className="min-w-0">
-            <div className="rounded-[2rem] border border-[#e3e8ef] bg-white/92 px-6 py-8 shadow-[0_14px_40px_rgba(15,23,42,0.05)] sm:px-8 sm:py-10 lg:px-12 lg:py-12">
-              <header className="border-b border-[#e8edf2] pb-8">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2f8a57]">
+            <div className="max-w-2xl">
+              <header>
+                <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium uppercase tracking-[0.22em] text-slate-500">
                   ClearSlot Legal
-                </p>
-                <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+                </div>
+                <h1 className="mt-5 text-[42px] font-bold tracking-tight text-slate-950 sm:text-[42px]">
                   {title}
                 </h1>
-                <p className="mt-4 text-sm font-medium text-slate-500">
+                <p className="mt-3 text-sm italic text-slate-400">
                   Last updated: {updated}
                 </p>
                 {intro ? (
-                  <div className="mt-6 max-w-3xl text-[1.03rem] leading-8 text-slate-600">
+                  <div className="mt-5 text-[1rem] leading-relaxed text-slate-500">
                     {intro}
                   </div>
                 ) : null}
               </header>
 
-              <div className="mt-8 lg:hidden">
+              <div className="mt-10 lg:hidden">
                 <LegalNav sections={sections} currentPage={currentPage} />
               </div>
 
-              <div className="mt-10 space-y-12">
-                {sections.map((section) => (
-                  <section
-                    key={section.id}
-                    id={section.id}
-                    className="scroll-mt-28 border-t border-[#edf1f5] pt-10 first:border-t-0 first:pt-0"
-                  >
-                    <h2 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
+              <div className="mt-12">
+                {sections.map((section, index) => (
+                  <div key={section.id}>
+                    {index > 0 ? <hr className="my-8 border-slate-100" /> : null}
+                    <section id={section.id} className="scroll-mt-24">
+                    <h2 className="mb-4 mt-12 text-xl font-semibold text-slate-900 first:mt-0">
                       {section.title}
                     </h2>
-                    <div className="mt-5 max-w-3xl space-y-5 text-[1.03rem] leading-8 text-slate-700">
+                    <div className="max-w-2xl text-[1rem] leading-relaxed text-slate-600 [&_a]:font-medium [&_a]:text-slate-700 [&_a]:underline [&_a]:decoration-slate-200 [&_a]:underline-offset-4 [&_code]:rounded-full [&_code]:bg-slate-100 [&_code]:px-2 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono [&_code]:text-slate-700 [&_li]:text-slate-600 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
                       {section.content}
                     </div>
                   </section>
+                  </div>
                 ))}
               </div>
             </div>
