@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:ics": "node --test lib/ics.test.mjs"
+    "typecheck": "tsc --noEmit",
+    "test:ics": "node --test lib/ics.test.mjs",
+    "verify:quick": "npm run test:ics && npm run typecheck && git diff --check",
+    "verify:full": "npm run verify:quick && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",

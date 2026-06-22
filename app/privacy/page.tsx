@@ -248,13 +248,15 @@ export default function PrivacyPage() {
             file so you can add it to Google Calendar, Apple Calendar, Outlook, or another calendar application.
           </p>
           <p>
-            This export feature does not call the Google Calendar API and does not create, modify, or write anything
-            to your Google Calendar directly. Instead, ClearSlot generates a calendar file containing only the
-            confirmed meeting time, which you then choose to open or import using your own device and calendar app.
+            This export feature is generated client-side in your browser. It does not call the Google Calendar API
+            and does not create, modify, or write anything to your Google Calendar directly. Instead, ClearSlot
+            generates a calendar file containing only the confirmed meeting time, which you then choose to open or
+            import using your own device and calendar app.
           </p>
           <p>
             Because this export does not use the Google Calendar API, it does not require any additional Google OAuth
-            scope beyond the read-only access described above.
+            scope beyond the read-only access described above, and it works even if you later use the file with a
+            non-Google calendar application.
           </p>
         </Section>
 
