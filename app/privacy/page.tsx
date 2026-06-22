@@ -2,144 +2,211 @@ import Logo from '../components/Logo';
 
 export default function PrivacyPage() {
   return (
-    <main style={{
-      backgroundColor: '#FFFFFF',
-      minHeight: '100vh',
-      color: '#111111',
-      fontFamily: 'Inter, system-ui, sans-serif',
-    }}>
-      {/* Nav */}
-      <nav style={{
-        padding: '20px 40px',
-        borderBottom: '1px solid #E5E7EB',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
+    <main
+      style={{
+        backgroundColor: '#FFFFFF',
+        minHeight: '100vh',
+        color: '#111111',
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      <nav
+        style={{
+          padding: '20px 40px',
+          borderBottom: '1px solid #E5E7EB',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <Logo iconSize={56} textSize={36} />
-        <a href="/" style={{ color: '#6B7280', fontSize: '14px', textDecoration: 'none' }}>← Back</a>
+        <a href="/" style={{ color: '#6B7280', fontSize: '14px', textDecoration: 'none' }}>
+          ← Back
+        </a>
       </nav>
 
-      {/* Content */}
-      <div style={{
-        maxWidth: '720px',
-        margin: '0 auto',
-        padding: '60px 40px 100px',
-      }}>
+      <div
+        style={{
+          maxWidth: '720px',
+          margin: '0 auto',
+          padding: '60px 40px 100px',
+        }}
+      >
         <p style={{ color: '#9CA3AF', fontSize: '13px', marginBottom: '12px' }}>
-          Last updated: May 1, 2026
+          Last updated: June 22, 2026
         </p>
-        <h1 style={{
-          fontSize: '38px',
-          fontWeight: '700',
-          color: '#111111',
-          marginBottom: '16px',
-          lineHeight: '1.2',
-          letterSpacing: '-0.02em',
-        }}>
+        <h1
+          style={{
+            fontSize: '38px',
+            fontWeight: '700',
+            color: '#111111',
+            marginBottom: '16px',
+            lineHeight: '1.2',
+            letterSpacing: '-0.02em',
+          }}
+        >
           Privacy Policy
         </h1>
         <p style={{ color: '#22C55E', fontSize: '16px', marginBottom: '48px', fontFamily: 'monospace' }}>
-          We built ClearSlot to give you scheduling without surveillance. Your calendar event details never leave your device.
+          This policy describes exactly what ClearSlot accesses, uses, stores, shares, and deletes.
         </p>
 
         <Section title="The short version">
           <p>
-            ClearSlot shows you and a friend when you are both free, without either of you ever sharing what you are actually doing. We never see event titles, attendees, locations, or descriptions — those never leave your device. Only anonymized busy/free time blocks are sent to our servers, and only to enable scheduling within a room. Those blocks are automatically deleted after 48 hours.
+            ClearSlot uses Google Calendar timing information to compute availability and help people coordinate shared meeting times.
+            ClearSlot does not store calendar event titles, descriptions, attendees, organizers, or locations on its servers.
+            ClearSlot may temporarily store derived availability blocks for shared room functionality.
+            ClearSlot also uses product analytics and performance telemetry, but those analytics are not intended to include calendar content or room payload contents.
           </p>
         </Section>
 
-        <Section title="What we collect">
-          <p>We collect essentially nothing. Here is the complete list:</p>
+        <Section title="Google User Data We Access">
+          <p>
+            In the initial Google Calendar connection flow, ClearSlot requests read-only Google Calendar access only.
+            ClearSlot does not request Google profile, Gmail, Drive, contacts, or Google account email scopes as part of that initial flow.
+          </p>
           <ul>
             <li>
-              <strong style={{ color: '#22C55E' }}>Google OAuth token:</strong> A temporary access token that allows ClearSlot to read your Google Calendar on your behalf. It is stored as a secure, encrypted cookie and used only to fetch your busy/free availability — never logged, never stored persistently, and never shared with any third party.
+              <strong style={{ color: '#22C55E' }}>Calendar timing information:</strong> start and end times needed to determine when you are busy or free.
             </li>
             <li>
-              <strong style={{ color: '#22C55E' }}>Availability payload:</strong> When you share your availability, your device computes a busy/free block summary (no event details, no titles, no metadata) and encodes it. This encoded data is shared with room participants only. ClearSlot servers store it temporarily (up to 48 hours) solely to enable the room feature, then it expires automatically.
+              <strong style={{ color: '#22C55E' }}>Derived availability blocks:</strong> busy/free time ranges created from calendar timing information for scheduling features.
+            </li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>OAuth/session state:</strong> temporary browser session data and short-lived cookies used to complete sign-in and maintain your connected state.
             </li>
           </ul>
-          <p>We collect no names, no email addresses, no device identifiers, and no location data. We use Vercel Analytics to understand product usage (page views and load performance) — no calendar content is ever sent to analytics.</p>
+          <p>
+            ClearSlot does not store calendar event titles, descriptions, attendees, organizers, locations, or notes on ClearSlot servers as part of its scheduling flow.
+          </p>
         </Section>
 
-        <Section title="What we do not collect">
-          <p>To be explicit, ClearSlot never collects or processes:</p>
+        <Section title="How We Use Google User Data">
+          <p>ClearSlot uses Google user data only for user-facing scheduling functionality visible in the product.</p>
           <ul>
-            <li>Calendar event titles or descriptions</li>
-            <li>Event attendees or organizers</li>
-            <li>Event locations</li>
-            <li>Recurring event patterns</li>
-            <li>Any personally identifiable information from your calendar</li>
-            <li>Your name or email address</li>
-            <li>Device identifiers or advertising IDs</li>
-            <li>Location or IP address logs</li>
+            <li>To read calendar timing and compute availability.</li>
+            <li>To show overlap views and room-based coordination features.</li>
+            <li>To let invited participants compare availability in a shared room.</li>
+            <li>To support user-requested scheduling actions shown in the product.</li>
+          </ul>
+          <p>ClearSlot does not use Google user data for advertising, sale, brokerage, or data enrichment.</p>
+          <p>ClearSlot does not use Google user data to train generalized AI or ML models.</p>
+          <p>ClearSlot does not use Google user data to train personalized AI or ML models on behalf of users.</p>
+        </Section>
+
+        <Section title="How We Share Google User Data">
+          <p>
+            ClearSlot does not sell Google user data. ClearSlot does not share raw Google Calendar content with advertisers,
+            data brokers, or analytics vendors.
+          </p>
+          <ul>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Shared rooms:</strong> derived availability blocks may be shared with invited room participants only to make room scheduling work.
+            </li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Infrastructure providers:</strong> temporary room payloads and site traffic may pass through infrastructure providers we use to operate the product.
+            </li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Analytics providers:</strong> Vercel Analytics and Vercel Speed Insights receive product-usage and performance telemetry only, not calendar content, event details, room codes, share links, or raw room payloads.
+            </li>
           </ul>
         </Section>
 
-        <Section title="How the availability payload works">
-          <p>
-            When you share your availability, the following happens entirely on your device:
-          </p>
-          <ol>
-            <li>Your device reads your Google Calendar using the OAuth token stored locally.</li>
-            <li>Event details are immediately discarded. Only busy/free blocks (time ranges with no other information) are retained.</li>
-            <li>These blocks are encoded into a Base64 string.</li>
-            <li>You create or join a room. The encoded blocks are stored temporarily in our database (up to 48 hours) so your co-participants can see mutual availability.</li>
-            <li>The overlap computation happens in the browser or app — never on our servers.</li>
-            <li>Room data expires automatically after 48 hours and is deleted.</li>
-          </ol>
-        </Section>
-
-        <Section title="Google OAuth and third parties">
-          <p>
-            ClearSlot uses Google OAuth to access your Google Calendar. This means Google is the only third party involved. When you connect your calendar, you are authorizing ClearSlot to read your calendar on your behalf, under Google&apos;s standard OAuth scopes. We request read-only access.
-          </p>
-          <p>
-            ClearSlot&apos;s use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" style={{ color: '#22C55E' }}>Google API Services User Data Policy</a>, including the Limited Use requirements. Calendar data obtained through Google APIs is used solely to compute your busy/free availability and is not used for any other purpose, not transferred to third parties, and not used for advertising.
-          </p>
-          <p>
-            Google&apos;s privacy policy governs their handling of the OAuth authorization process. You can review it at <a href="https://policies.google.com/privacy" style={{ color: '#22C55E' }}>policies.google.com/privacy</a>.
-          </p>
-          <p>
-            We do not sell, share, rent, or otherwise transmit any data to any third party beyond the Google OAuth process described above.
-          </p>
-        </Section>
-
-        <Section title="Revoking access">
-          <p>
-            You can disconnect ClearSlot from your Google Calendar at any time in two ways:
-          </p>
+        <Section title="How We Store and Protect Data">
+          <p>ClearSlot handles different categories of data differently.</p>
           <ul>
-            <li>In the ClearSlot app: Settings → Disconnect Google Calendar</li>
-            <li>Directly in your Google account: <a href="https://myaccount.google.com/permissions" style={{ color: '#22C55E' }}>myaccount.google.com/permissions</a></li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Browser/session data:</strong> OAuth state and browser session data are stored in your browser to complete authentication and keep your session active.
+            </li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Authentication cookies:</strong> ClearSlot uses cookies during the OAuth callback flow, including an httpOnly access-token cookie on the server-managed Google OAuth path.
+            </li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Room availability payloads:</strong> derived availability blocks used for shared rooms may be stored server-side temporarily so participants in the room can interact with the same scheduling state.
+            </li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Analytics data:</strong> usage and performance telemetry may be stored by Vercel if analytics remain enabled.
+            </li>
           </ul>
           <p>
-            Revoking access removes the OAuth token from your device. Any room data in our database expires automatically within 48 hours.
+            Access to backend data is intended to be limited to operating, debugging, securing, or supporting ClearSlot.
+            Calendar event details are not intended to be stored in backend room payloads.
           </p>
         </Section>
 
-        <Section title="Data retention">
+        <Section title="How Long We Retain Data">
+          <ul>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Room availability payloads:</strong> up to 48 hours, then deleted by expiration.
+            </li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Browser session data:</strong> retained until your browser session is cleared, you disconnect, or the session expires.
+            </li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Authentication cookies:</strong> retained until their configured expiration time or until you disconnect access.
+            </li>
+            <li>
+              <strong style={{ color: '#22C55E' }}>Analytics and performance telemetry:</strong> retained according to our Vercel account settings and operational needs.
+            </li>
+          </ul>
+        </Section>
+
+        <Section title="How Users Can Revoke Access and Request Deletion">
+          <p>You can revoke Google Calendar access at any time through your Google account permissions page.</p>
           <p>
-            Room availability payloads are stored for up to 48 hours, then automatically deleted. OAuth tokens are stored only on your device and deleted when you disconnect your calendar or uninstall the app. We retain no other user data.
+            You can also request deletion by contacting{' '}
+            <a href="mailto:privacy@clearslot.net" style={{ color: '#22C55E' }}>
+              privacy@clearslot.net
+            </a>.
           </p>
+          <p>
+            Because ClearSlot supports anonymous room participation in the free product, deletion requests should include any room code,
+            approximate room creation time, and any other details that will help us identify the temporary room data you want removed.
+          </p>
+          <p>
+            Revoking Google access does not retroactively remove temporary room payloads that were already created, but those payloads
+            remain subject to the 48-hour expiration window unless you request earlier deletion.
+          </p>
+        </Section>
+
+        <Section title="Analytics and Product Usage Data">
+          <p>
+            ClearSlot collects product-usage and performance analytics to understand how people move through the product and where
+            the product needs improvement.
+          </p>
+          <ul>
+            <li>Examples include page views, room creation, room join, proposal, acceptance, and performance telemetry.</li>
+            <li>ClearSlot does not intend to send raw calendar events, event titles, event descriptions, room payloads, share links, or room codes to analytics.</li>
+            <li>Analytics are used to understand product behavior, not calendar content.</li>
+          </ul>
+        </Section>
+
+        <Section title="AI / Model Training Disclosure">
+          <p>Google user data is not used to train ClearSlot AI or ML models.</p>
+          <p>ClearSlot does not transfer Google user data to third parties for AI or ML model training.</p>
         </Section>
 
         <Section title="Children">
           <p>
-            ClearSlot is not directed at children under 13. We do not knowingly collect any information from children under 13. If you believe a child has used ClearSlot and you have concerns, contact us at the address below.
+            ClearSlot is not directed to children under 13. If you believe a child used ClearSlot and you have concerns, contact us
+            at the address below.
           </p>
         </Section>
 
         <Section title="Changes to this policy">
           <p>
-            If we make material changes to this privacy policy, we will update the date at the top of this page. We encourage you to review this page periodically. Continued use of ClearSlot after changes constitutes acceptance of the updated policy.
+            If we make material changes to this privacy policy, we will update the date at the top of this page. Continued use of
+            ClearSlot after changes means you accept the updated policy.
           </p>
         </Section>
 
         <Section title="Contact">
           <p>
-            Questions about this privacy policy? Reach us at:{' '}
-            <a href="mailto:privacy@clearslot.net" style={{ color: '#22C55E' }}>privacy@clearslot.net</a>
+            Questions about this privacy policy? Reach us at{' '}
+            <a href="mailto:privacy@clearslot.net" style={{ color: '#22C55E' }}>
+              privacy@clearslot.net
+            </a>
+            .
           </p>
         </Section>
       </div>
@@ -150,20 +217,24 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: '48px' }}>
-      <h2 style={{
-        fontSize: '20px',
-        fontWeight: '600',
-        color: '#111111',
-        marginBottom: '16px',
-        letterSpacing: '-0.01em',
-      }}>
+      <h2
+        style={{
+          fontSize: '20px',
+          fontWeight: '600',
+          color: '#111111',
+          marginBottom: '16px',
+          letterSpacing: '-0.01em',
+        }}
+      >
         {title}
       </h2>
-      <div style={{
-        color: '#6B7280',
-        lineHeight: '1.8',
-        fontSize: '16px',
-      }}>
+      <div
+        style={{
+          color: '#6B7280',
+          lineHeight: '1.8',
+          fontSize: '16px',
+        }}
+      >
         {children}
       </div>
     </section>

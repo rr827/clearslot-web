@@ -14,7 +14,7 @@ interface Questionnaire {
   blocked?: { from: string; to: string }[] | null;
 }
 
-// Read-only scope only — calendar.events prompted separately when adding a meeting
+// Minimum scope for the initial verification flow.
 const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 
 function Check() {
@@ -377,7 +377,9 @@ function ConnectContent() {
             </div>
           )}
 
-          <p style={{ textAlign: 'center', fontSize: 12, color: '#9CA3AF' }}>Read-only access · No event details stored · Free</p>
+          <p style={{ textAlign: 'center', fontSize: 12, color: '#9CA3AF', lineHeight: 1.6 }}>
+            Read-only calendar timing access only. ClearSlot does not store event details on its servers. Temporary availability blocks may be stored for shared rooms. Any future calendar write permission would be requested separately.
+          </p>
         </div>
 
       </div>

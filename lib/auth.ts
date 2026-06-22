@@ -1,8 +1,5 @@
-// Read-only scope — calendar.events prompted separately when adding a meeting
+// Minimum scope for the initial verification flow.
 const SCOPES = [
-  'openid',
-  'profile',
-  'email',
   'https://www.googleapis.com/auth/calendar.readonly',
 ].join(' ');
 

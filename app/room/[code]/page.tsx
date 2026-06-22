@@ -892,6 +892,21 @@ function RoomContent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyProposalTime = async (proposalIndex: number, startTime: string, endTime: string) => {
+    try {
+      const text = [
+        `ClearSlot room ${code}`,
+        format(parseISO(startTime), 'EEEE, MMMM d, yyyy'),
+        `${format(parseISO(startTime), 'h:mm a')} - ${format(parseISO(endTime), 'h:mm a')}`,
+      ].join('\n');
+      await navigator.clipboard.writeText(text);
+      setCopiedProposalIdx(proposalIndex);
+      setTimeout(() => setCopiedProposalIdx(null), 2000);
+    } catch {
+      alert('Could not copy the time details. Try again.');
+    }
+  };
+
   const handlePropose = async () => {
     if (!selectedRange || myIndex === null) return;
     setProposing(true);
@@ -1126,14 +1141,11 @@ function RoomContent() {
             >
               Open in App
             </a>
-            <a
-              href="https://apps.apple.com/app/idYOUR_APP_ID"
-              target="_blank"
-              rel="noopener noreferrer"
+            <span
               style={{ flex: 1, backgroundColor: 'rgba(34,197,94,0.12)', color: '#22C55E', fontSize: 15, fontWeight: 600, textAlign: 'center', padding: '11px 0', borderRadius: 10, textDecoration: 'none', border: '1px solid rgba(34,197,94,0.25)' }}
             >
-              Download ↗
-            </a>
+              App Store soon
+            </span>
           </div>
         </div>
       )}

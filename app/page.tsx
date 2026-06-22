@@ -74,7 +74,7 @@ export default function Home() {
 
           {/* Subtext */}
           <p style={{ fontSize: 18, color: '#6B7280', lineHeight: 1.65, marginBottom: 36, maxWidth: 400 }}>
-            Open a shared room. Propose a time. Vote.<br />
+            Open a shared room. Propose a time. Confirm it together.<br />
             Everyone&apos;s on the same page.
           </p>
 
@@ -107,7 +107,7 @@ export default function Home() {
             {[
               { label: 'Save time', desc: 'Eliminate back-and-forth and find times faster.' },
               { label: 'Coordinate easily', desc: 'See everyone\'s availability in one shared view.' },
-              { label: 'Private by design', desc: 'Event details never leave your device.' },
+              { label: 'Private by design', desc: 'Event details are not stored on ClearSlot servers.' },
             ].map((item, i) => (
               <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 34, height: 34, borderRadius: '50%', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#16A34A' }}>
@@ -151,7 +151,7 @@ export default function Home() {
               { icon: <IconCalendar />, title: 'Smart scheduling', body: 'Find the best overlap across everyone\'s calendar automatically.' },
               { icon: <IconPeople />, title: 'Team coordination', body: 'Everyone joins the room, shares availability, and stays aligned.' },
               { icon: <IconBolt />, title: 'No account needed', body: 'Share a room code and start in seconds. No sign-up required for guests.' },
-              { icon: <IconLock />, title: 'Private by design', body: 'Your event details never leave your device. Only time blocks are shared.' },
+              { icon: <IconLock />, title: 'Private by design', body: 'Event details are not stored on ClearSlot servers. Only availability timing is shared for rooms.' },
             ].map(f => (
               <div key={f.title} style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 16, padding: '24px 20px' }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A', marginBottom: 16 }}>
@@ -174,7 +174,7 @@ export default function Home() {
             {[
               { num: '01', title: 'Open a room', body: 'Create a shared room in one tap. Share the code — no accounts needed for anyone.' },
               { num: '02', title: 'Drag to propose a time', body: "Drag on a live calendar grid to mark when you want to meet. See everyone's availability at a glance." },
-              { num: '03', title: 'Confirm and book', body: 'When you agree on a time, propose it from the room. It lands straight on your calendar.' },
+              { num: '03', title: 'Confirm a time', body: 'When you agree on a time, propose it from the room and share the confirmed slot back with everyone.' },
             ].map((step) => (
               <div key={step.num} style={{ borderTop: '1px solid #E5E7EB', paddingTop: 24 }}>
                 <span style={{ fontSize: 13, color: '#22C55E', fontWeight: 700, letterSpacing: '0.15em', display: 'block', marginBottom: 16 }}>{step.num}</span>
@@ -193,9 +193,14 @@ export default function Home() {
             <p style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16 }}>Privacy first</p>
             <h2 style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 24, color: '#111111' }}>What you share is what you choose.</h2>
             <p style={{ fontSize: 17, color: '#6B7280', lineHeight: 1.8, marginBottom: 32 }}>
-              Every event gets stripped to a start time and end time. Nothing else. No names, no meetings, no context. Just blocks of time.
+              ClearSlot reads calendar timing to compute availability. Event titles, descriptions, attendees, and locations are not stored on ClearSlot servers.
             </p>
-            {['No account or sign-up required', 'Event titles and details never transmitted', 'Room availability stored 48 hours, then deleted', 'Event details stay on your device'].map((item) => (
+            {[
+              'No account or sign-up required',
+              'Event details are not stored on ClearSlot servers',
+              'Temporary availability blocks may be stored for shared rooms',
+              'Usage analytics measure product behavior, not calendar content',
+            ].map((item) => (
               <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, color: '#374151', marginBottom: 16 }}>
                 <span style={{ color: '#22C55E', fontSize: 16, fontWeight: 700 }}>✓</span>
                 {item}
@@ -239,7 +244,7 @@ export default function Home() {
         <div className="cs-section-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', color: '#9CA3AF' }}>ClearSlot</span>
           <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            <p style={{ fontSize: 12, color: '#9CA3AF' }}>No event details stored. No accounts. Just time.</p>
+            <p style={{ fontSize: 12, color: '#9CA3AF' }}>Usage analytics only. No calendar content is sent to analytics.</p>
             <a href="/privacy" style={{ fontSize: 12, color: '#6B7280', textDecoration: 'none' }}>Privacy Policy</a>
             <a href="/terms" style={{ fontSize: 12, color: '#6B7280', textDecoration: 'none' }}>Terms</a>
             <a href="mailto:support@clearslot.net" style={{ fontSize: 12, color: '#6B7280', textDecoration: 'none' }}>Contact</a>
