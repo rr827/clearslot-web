@@ -59,9 +59,9 @@ export default function TermsPage() {
 
         <Section title="Google Calendar access">
           <p>
-            In the initial Google connection flow, ClearSlot requests read-only Google Calendar access only. That access is used to
-            compute availability. If ClearSlot later offers a feature that creates calendar events or performs other write actions,
-            ClearSlot may request separate permissions at that time rather than during the initial read-only flow.
+            In the initial Google connection flow, ClearSlot requests read-only Google Calendar access only. That
+            access is used to compute availability. ClearSlot does not require a Google Calendar write scope for the
+            downloadable <code>.ics</code> export used to save confirmed meeting times.
           </p>
         </Section>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadToken, isConnected } from '@/lib/auth';
+import { isConnected } from '@/lib/auth';
 import { fetchBusyBlocks, fetchBusyBlocksMicrosoft, BusyBlock } from '@/lib/calendar';
 import { encodePayload, AlignedPayload } from '@/lib/payload';
 import { format, addDays, differenceInDays } from 'date-fns';
@@ -21,11 +21,7 @@ export default function RoomNewPage() {
     ran.current = true;
 
     (async () => {
-      // isConnected checks sessionStorage (PKCE) OR aligned_auth presence cookie (server OAuth)
       if (!isConnected()) { router.replace('/connect'); return; }
-      // loadToken returns the PKCE token (sessionStorage); null for server-side OAuth path
-      // (that token is httpOnly — the calendar proxy reads it via cookie automatically)
-      const token = loadToken();
 
       const qRaw = sessionStorage.getItem('aligned_questionnaire');
       const action = sessionStorage.getItem('aligned_room_action') ?? 'create';
@@ -53,9 +49,9 @@ export default function RoomNewPage() {
           sessionStorage.removeItem('aligned_ics_blocks');
           blocks = raw ? JSON.parse(raw) : [];
         } else if (provider === 'microsoft') {
-          blocks = await fetchBusyBlocksMicrosoft(token, daysAhead);
+          blocks = await fetchBusyBlocksMicrosoft(daysAhead);
         } else {
-          blocks = await fetchBusyBlocks(token, daysAhead);
+          blocks = await fetchBusyBlocks(daysAhead);
         }
       } catch {
         blocks = [];

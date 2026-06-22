@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, Suspense } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   format, addDays, startOfWeek, isSameDay, parseISO, addMinutes,
 } from 'date-fns';
@@ -10,6 +10,7 @@ import { useIsMobile } from '@/lib/useIsMobile';
 import { BusyBlock } from '@/lib/calendar';
 import { decodePayload, AlignedPayload, buildRoomLink } from '@/lib/payload';
 import { RoomRow, Proposal } from '@/lib/room';
+import { generateIcsEvent } from '@/lib/ics';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -791,7 +792,6 @@ function Sk({ w, h, r = 6, style }: { w?: string | number; h: number; r?: number
 function RoomContent() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const code = (params.code as string).toUpperCase();
   const isMobile = useIsMobile();
 
@@ -817,9 +817,8 @@ function RoomContent() {
   const [proposed, setProposed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [acceptingIdx, setAcceptingIdx] = useState<number | null>(null);
-  const [addedToCalIdx, setAddedToCalIdx] = useState<number | null>(null);
-  const [calendarErrorIdx, setCalendarErrorIdx] = useState<number | null>(null);
-  const [eventTitle, setEventTitle] = useState('');
+  const [downloadedIcsIdx, setDownloadedIcsIdx] = useState<number | null>(null);
+  const [eventTitles, setEventTitles] = useState<Record<number, string>>({});
   const [showAppBanner, setShowAppBanner] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
@@ -945,59 +944,36 @@ function RoomContent() {
     }
   };
 
-  const handleAddToCalendar = async (proposalIndex: number, prop: Proposal, title: string, afterGrant = false) => {
-    // afterGrant = true only when returning from Google's permission screen —
-    // that's the one case allowed to create the event without asking again.
-    if (!afterGrant) {
-      const granted = window.confirm(
-        'ClearSlot needs permission to add this event to your Google Calendar. Continue to Google to grant access?'
-      );
-      if (!granted) return;
-      const returnTo = `${window.location.pathname}?addProposal=${proposalIndex}&addTitle=${encodeURIComponent(title.trim() || 'Meeting')}`;
-      window.location.href = `/api/auth/google/write-scope?returnTo=${encodeURIComponent(returnTo)}`;
-      return;
-    }
-
+  const handleDownloadIcs = (proposalIndex: number, prop: Proposal) => {
     try {
-      const res = await fetch('/api/calendar/create-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim() || 'Meeting', start: prop.start_time, end: prop.end_time }),
+      const title = eventTitles[proposalIndex]?.trim() || 'ClearSlot Meeting';
+      const ics = generateIcsEvent({
+        start: prop.start_time,
+        end: prop.end_time,
+        title,
       });
-      const data = await res.json();
-      if (data.needsWriteScope) {
-        // Returned from Google but still no usable token — let the user retry.
-        setCalendarErrorIdx(proposalIndex);
-        return;
-      }
-      if (!res.ok) { alert('Could not add to calendar. Try again.'); return; }
-      setAddedToCalIdx(proposalIndex);
-      setCalendarErrorIdx(prev => (prev === proposalIndex ? null : prev));
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      const startDate = parseISO(prop.start_time);
+      const fileStamp = [
+        format(startDate, 'yyyy-MM-dd'),
+        format(startDate, 'HHmm'),
+      ].join('-');
+      anchor.href = url;
+      anchor.download = `clearslot-meeting-${fileStamp}.ics`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      setDownloadedIcsIdx(proposalIndex);
+      window.setTimeout(() => {
+        setDownloadedIcsIdx((prev) => (prev === proposalIndex ? null : prev));
+      }, 2000);
     } catch {
-      alert('Could not add to calendar. Try again.');
+      alert('Could not generate the calendar file. Try again.');
     }
   };
-
-  // After returning from the Google permission grant, finish adding the event
-  // for the proposal that triggered it so the user does not need to press again.
-  useEffect(() => {
-    if (!room) return;
-    const addProposalParam = searchParams.get('addProposal');
-    if (addProposalParam === null) return;
-    const proposalIndex = parseInt(addProposalParam, 10);
-    const prop = room.proposals[proposalIndex];
-    if (!prop) return;
-    const title = searchParams.get('addTitle') ?? 'Meeting';
-    setEventTitle(title === 'Meeting' ? '' : title);
-    const calendarError = searchParams.get('calendarError');
-    if (calendarError) {
-      setCalendarErrorIdx(proposalIndex);
-    } else {
-      handleAddToCalendar(proposalIndex, prop, title, true);
-    }
-    router.replace(window.location.pathname);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room]);
 
   const handleSlotClick = (slot: { start: Date; end: Date }) => {
     setSelectedRange(prev => {
@@ -1198,7 +1174,7 @@ function RoomContent() {
             {[
               { n: '1', title: 'Drag on the calendar', body: 'Click and drag on the grid to highlight the time slot you want to meet.' },
               { n: '2', title: 'Suggest the time', body: 'After dragging, click "Suggest this time" in the side panel to share your pick.' },
-              { n: '3', title: 'Others accept', body: 'Everyone in the room sees your proposal and can accept it. Once accepted, add it to your calendar.' },
+              { n: '3', title: 'Others accept', body: 'Everyone in the room sees your proposal and can accept it. Once accepted, download an .ics file to add it to any calendar.' },
             ].map(s => (
               <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: '#22C55E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.n}</div>
@@ -1329,26 +1305,23 @@ function RoomContent() {
                           {/* Event title input */}
                           <input
                             type="text"
-                            placeholder="Event title (optional, default: Meeting)"
-                            value={eventTitle}
-                            onChange={e => setEventTitle(e.target.value)}
+                            placeholder="Event title (optional, default: ClearSlot Meeting)"
+                            value={eventTitles[i] ?? ''}
+                            onChange={e => setEventTitles(prev => ({ ...prev, [i]: e.target.value }))}
                             style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #e2e2dc', fontSize: 13, color: '#333' }}
                           />
-                          {addedToCalIdx === i ? (
-                            <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 700 }}>Added to Google Calendar</span>
-                          ) : calendarErrorIdx === i ? (
-                            <button
-                              onClick={() => handleAddToCalendar(i, prop, eventTitle)}
-                              style={{ fontSize: 14, color: '#fff', background: '#166534', border: '1px solid #166534', borderRadius: 7, padding: '5px 10px', cursor: 'pointer', fontWeight: 500 }}>
-                              Need additional access to add to calendar
-                            </button>
+                          {downloadedIcsIdx === i ? (
+                            <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 700 }}>.ics downloaded</span>
                           ) : (
                             <button
-                              onClick={() => handleAddToCalendar(i, prop, eventTitle)}
+                              onClick={() => handleDownloadIcs(i, prop)}
                               style={{ fontSize: 14, color: '#22C55E', background: 'none', border: '1px solid #22C55E', borderRadius: 7, padding: '5px 10px', cursor: 'pointer', fontWeight: 500 }}>
-                              Add to Google Calendar
+                              Download .ics
                             </button>
                           )}
+                          <span style={{ fontSize: 12, color: '#888' }}>
+                            Import into Google Calendar, Apple Calendar, Outlook, or any calendar app that supports .ics files.
+                          </span>
                         </div>
                       ) : canAccept ? (
                         <button

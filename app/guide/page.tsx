@@ -188,7 +188,8 @@ export default function GuidePage() {
               <p style={{ fontSize: 16, color: '#555', lineHeight: 1.6, margin: 0 }}>
                 Click and drag on the grid to highlight a free slot. Hit <strong>Suggest this time</strong>
                 in the side panel — everyone in the room sees the proposal and can accept it.
-                Once accepted, tap <strong>Add to Google Calendar</strong> and you&apos;re done.
+                Once accepted, tap <strong>Download .ics</strong> to add it to Google Calendar, Apple Calendar,
+                Outlook, or any other calendar app.
               </p>
             </div>
           </div>

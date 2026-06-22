@@ -6,25 +6,16 @@ export interface BusyBlock {
 }
 
 // All calendar fetching goes through the server-side proxy at /api/calendar/busy.
-// This keeps the token (httpOnly cookie) server-side only.
-// Pass accessToken for the PKCE path (Authorization header); null for server OAuth path.
-export async function fetchBusyBlocks(
-  accessToken: string | null = null,
-  daysAhead: number = 14
-): Promise<BusyBlock[]> {
-  const headers: Record<string, string> = {};
-  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-  const res = await fetch(`/api/calendar/busy?daysAhead=${daysAhead}`, { headers });
+// The web app uses server-managed httpOnly cookies for calendar access.
+export async function fetchBusyBlocks(daysAhead: number = 14): Promise<BusyBlock[]> {
+  const res = await fetch(`/api/calendar/busy?daysAhead=${daysAhead}`);
   if (!res.ok) throw new Error(`Calendar API error: ${res.status}`);
   return res.json();
 }
 
-// Microsoft path also goes through the same proxy (provider determined by cookie)
-export async function fetchBusyBlocksMicrosoft(
-  accessToken: string | null = null,
-  daysAhead: number = 14
-): Promise<BusyBlock[]> {
-  return fetchBusyBlocks(accessToken, daysAhead);
+// Microsoft path also goes through the same proxy (provider determined by cookie).
+export async function fetchBusyBlocksMicrosoft(daysAhead: number = 14): Promise<BusyBlock[]> {
+  return fetchBusyBlocks(daysAhead);
 }
 
 export function isHourBusy(hour: Date, blocks: BusyBlock[]): boolean {
