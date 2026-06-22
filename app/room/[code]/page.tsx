@@ -892,21 +892,6 @@ function RoomContent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleCopyProposalTime = async (proposalIndex: number, startTime: string, endTime: string) => {
-    try {
-      const text = [
-        `ClearSlot room ${code}`,
-        format(parseISO(startTime), 'EEEE, MMMM d, yyyy'),
-        `${format(parseISO(startTime), 'h:mm a')} - ${format(parseISO(endTime), 'h:mm a')}`,
-      ].join('\n');
-      await navigator.clipboard.writeText(text);
-      setCopiedProposalIdx(proposalIndex);
-      setTimeout(() => setCopiedProposalIdx(null), 2000);
-    } catch {
-      alert('Could not copy the time details. Try again.');
-    }
-  };
-
   const handlePropose = async () => {
     if (!selectedRange || myIndex === null) return;
     setProposing(true);
