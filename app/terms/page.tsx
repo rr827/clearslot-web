@@ -1,150 +1,272 @@
-import Logo from '../components/Logo';
+import Link from 'next/link';
+
+import LegalLayout, { LegalSection } from '../components/LegalLayout';
 
 export default function TermsPage() {
-  return (
-    <main
-      style={{
-        backgroundColor: '#FFFFFF',
-        minHeight: '100vh',
-        color: '#111111',
-        fontFamily: 'Inter, system-ui, sans-serif',
-      }}
-    >
-      <nav
-        style={{
-          padding: '20px 40px',
-          borderBottom: '1px solid #E5E7EB',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Logo iconSize={56} textSize={36} />
-        <a href="/" style={{ color: '#6B7280', fontSize: '14px', textDecoration: 'none' }}>
-          ← Back
-        </a>
-      </nav>
-
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '60px 40px 100px' }}>
-        <p style={{ color: '#9CA3AF', fontSize: '13px', marginBottom: '12px' }}>
-          Last updated: June 22, 2026
-        </p>
-        <h1
-          style={{
-            fontSize: '38px',
-            fontWeight: '700',
-            color: '#111111',
-            marginBottom: '16px',
-            lineHeight: '1.2',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Terms of Service
-        </h1>
-        <p style={{ color: '#22C55E', fontSize: '16px', marginBottom: '48px', fontFamily: 'monospace' }}>
-          Terms that match how ClearSlot actually works today.
-        </p>
-
-        <Section title="Acceptance">
-          <p>By using ClearSlot, you agree to these terms. If you do not agree, do not use ClearSlot.</p>
-        </Section>
-
-        <Section title="What ClearSlot does">
+  const sections: LegalSection[] = [
+    {
+      id: 'acceptance-of-these-terms',
+      title: 'Acceptance of These Terms',
+      content: (
+        <>
           <p>
-            ClearSlot is a scheduling and availability coordination product. With your permission, it reads calendar timing
-            information to determine when you are busy or free, derives availability blocks from that timing, and lets you compare
-            and coordinate availability in shared rooms.
+            These Terms of Use govern your access to and use of ClearSlot. By
+            using ClearSlot, you agree to these Terms of Use and to the{' '}
+            <Link
+              href="/privacy"
+              className="font-medium text-[#236a43] underline decoration-[#b7ddc2] underline-offset-4"
+            >
+              Privacy Policy
+            </Link>
+            .
           </p>
-        </Section>
-
-        <Section title="Google Calendar access">
           <p>
-            In the initial Google connection flow, ClearSlot requests read-only Google Calendar access only. That
-            access is used to compute availability. ClearSlot does not require a Google Calendar write scope for the
-            downloadable <code>.ics</code> export used to save confirmed meeting times.
+            If you do not agree to these Terms of Use or the Privacy Policy, do
+            not use ClearSlot.
           </p>
-        </Section>
-
-        <Section title="Room data">
+        </>
+      ),
+    },
+    {
+      id: 'what-clearslot-does',
+      title: 'What ClearSlot Does',
+      content: (
+        <>
           <p>
-            When you create or join a room, ClearSlot may store derived availability blocks on its servers for up to 48 hours so room
-            participants can interact with the same shared scheduling state. These room payloads are intended to contain availability
-            timing only, not calendar event titles, descriptions, attendees, or locations.
+            ClearSlot is a scheduling product that helps people compare
+            availability, coordinate shared scheduling rooms, and confirm a
+            meeting time together.
           </p>
-        </Section>
-
-        <Section title="Analytics">
           <p>
-            ClearSlot may collect product-usage analytics and performance telemetry to understand how the product is used and where it
-            should improve. These analytics are not intended to include raw calendar content or room payload contents.
+            ClearSlot can determine availability from a connected Google
+            Calendar or from an uploaded .ics calendar file. Once a time is
+            confirmed, ClearSlot can also generate a downloadable .ics file so
+            you can add that confirmed time to your own calendar application.
           </p>
-        </Section>
-
-        <Section title="Your responsibilities">
-          <ul>
-            <li>Use ClearSlot only for lawful purposes.</li>
-            <li>Do not attempt to reverse-engineer, scrape, or abuse the service.</li>
-            <li>Do not use ClearSlot to harass or harm others.</li>
-            <li>Keep room codes private. Anyone with the room code may be able to access the room.</li>
+        </>
+      ),
+    },
+    {
+      id: 'google-calendar-access-and-ics-features',
+      title: 'Google Calendar Access and .ics Features',
+      content: (
+        <>
+          <p>
+            If you connect Google Calendar, ClearSlot requests only the{' '}
+            <code>https://www.googleapis.com/auth/calendar.readonly</code>{' '}
+            scope. ClearSlot reads calendar timing information so it can
+            determine when you are busy or free.
+          </p>
+          <p>
+            ClearSlot does not request Google Calendar write access and does
+            not create, edit, or delete Google Calendar events through the
+            Google API.
+          </p>
+          <p>
+            ClearSlot also supports optional .ics file import. This lets you
+            provide availability from another calendar application without
+            connecting Google Calendar.
+          </p>
+          <p>
+            ClearSlot&apos;s .ics export feature creates a downloadable calendar
+            file from a confirmed meeting time only. The file is imported by
+            your own device or calendar app, not written directly by ClearSlot
+            into Google Calendar or any other calendar service.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'rooms-and-anonymous-participation',
+      title: 'Rooms and Anonymous Participation',
+      content: (
+        <>
+          <p>
+            ClearSlot&apos;s free product supports anonymous room participation.
+            A room allows invited participants to compare availability and
+            coordinate around the same scheduling state.
+          </p>
+          <p>
+            Access to a room depends primarily on possession of the room code.
+            Anyone with the room code may be able to access that room, so you
+            should keep room codes private and share them only with people you
+            intend to invite.
+          </p>
+          <p>
+            You are responsible for deciding who receives a room code and for
+            the information you choose to share through the product.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'storage-retention-and-analytics',
+      title: 'Storage, Retention, and Analytics',
+      content: (
+        <>
+          <p>
+            Temporary room availability payloads may be stored for up to 48
+            hours so participants in a room can interact with the same
+            scheduling state.
+          </p>
+          <p>
+            ClearSlot may also collect product usage and performance telemetry
+            to operate and improve the service.
+          </p>
+          <p>
+            ClearSlot does not intentionally send calendar content or room
+            payload contents to analytics tools.
+          </p>
+          <p>
+            Detailed information about data handling, storage, retention,
+            deletion, and Google user data disclosures is provided in the{' '}
+            <Link
+              href="/privacy"
+              className="font-medium text-[#236a43] underline decoration-[#b7ddc2] underline-offset-4"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'your-responsibilities',
+      title: 'Your Responsibilities',
+      content: (
+        <>
+          <p>
+            You agree to use ClearSlot lawfully and in a way that does not
+            interfere with the service or with other users.
+          </p>
+          <p>You may not:</p>
+          <ul className="list-disc space-y-3 pl-6">
+            <li>
+              attempt to gain unauthorized access to ClearSlot, its
+              infrastructure, or another person&apos;s room;
+            </li>
+            <li>
+              upload malicious files or use the service to distribute harmful
+              code;
+            </li>
+            <li>
+              misuse room codes, impersonate another participant, or otherwise
+              abuse the coordination flow.
+            </li>
           </ul>
-        </Section>
-
-        <Section title="Service availability">
+        </>
+      ),
+    },
+    {
+      id: 'service-availability',
+      title: 'Service Availability',
+      content: (
+        <>
           <p>
-            ClearSlot is provided as-is. We do not guarantee uninterrupted availability, complete accuracy, or fitness for a
-            particular purpose. We may change, suspend, or discontinue the service at any time.
+            ClearSlot may change, suspend, or discontinue any part of the
+            service at any time.
           </p>
-        </Section>
-
-        <Section title="Limitation of liability">
           <p>
-            To the fullest extent permitted by law, ClearSlot and its creators are not liable for indirect, incidental, special, or
-            consequential damages arising from your use of the service, including missed meetings, scheduling errors, or data loss.
+            ClearSlot depends in part on third party services and user-provided
+            calendar data, so uninterrupted availability and perfect scheduling
+            accuracy cannot be guaranteed.
           </p>
-        </Section>
-
-        <Section title="Intellectual property">
+        </>
+      ),
+    },
+    {
+      id: 'disclaimer-of-warranties',
+      title: 'Disclaimer of Warranties',
+      content: (
+        <>
           <p>
-            ClearSlot and its original content, features, and functionality are owned by the ClearSlot team. You may not reproduce or
-            redistribute the service without written permission.
+            ClearSlot is provided on an &ldquo;as is&rdquo; and
+            &ldquo;as available&rdquo; basis to the fullest extent permitted by
+            law.
           </p>
-        </Section>
-
-        <Section title="Changes to these terms">
           <p>
-            We may update these terms from time to time. We will update the date at the top of this page. Continued use of ClearSlot
-            after changes means you accept the updated terms.
+            ClearSlot does not guarantee that the service will always be
+            available, error free, secure, or suitable for every scheduling
+            situation.
           </p>
-        </Section>
-
-        <Section title="Contact">
+        </>
+      ),
+    },
+    {
+      id: 'limitation-of-liability',
+      title: 'Limitation of Liability',
+      content: (
+        <>
           <p>
-            Questions about these terms?{' '}
-            <a href="mailto:support@clearslot.net" style={{ color: '#22C55E' }}>
+            To the fullest extent permitted by law, ClearSlot will not be
+            liable for any indirect, incidental, special, consequential, or
+            punitive damages arising out of or related to your use of the
+            service.
+          </p>
+          <p>
+            To the fullest extent permitted by law, ClearSlot&apos;s total
+            liability for claims arising out of or related to the service will
+            not exceed the amount you paid to use ClearSlot, if any, during the
+            twelve months before the claim arose.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'changes-to-these-terms',
+      title: 'Changes to These Terms',
+      content: (
+        <p>
+          ClearSlot may update these Terms of Use from time to time. If we make
+          material changes, we will update the date at the top of this page.
+          Your continued use of ClearSlot after those changes means you accept
+          the updated Terms of Use.
+        </p>
+      ),
+    },
+    {
+      id: 'contact',
+      title: 'Contact',
+      content: (
+        <>
+          <p>
+            Questions about these Terms of Use can be sent to{' '}
+            <a
+              href="mailto:support@clearslot.net"
+              className="font-medium text-[#236a43] underline decoration-[#b7ddc2] underline-offset-4"
+            >
               support@clearslot.net
             </a>
+            .
           </p>
-        </Section>
-      </div>
-    </main>
-  );
-}
+          <p>
+            Privacy-specific questions can be sent to{' '}
+            <a
+              href="mailto:privacy@clearslot.net"
+              className="font-medium text-[#236a43] underline decoration-[#b7ddc2] underline-offset-4"
+            >
+              privacy@clearslot.net
+            </a>
+            .
+          </p>
+        </>
+      ),
+    },
+  ];
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section style={{ marginBottom: '48px' }}>
-      <h2
-        style={{
-          fontSize: '20px',
-          fontWeight: '600',
-          color: '#111111',
-          marginBottom: '16px',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        {title}
-      </h2>
-      <div style={{ color: '#6B7280', lineHeight: '1.8', fontSize: '16px' }}>{children}</div>
-    </section>
+    <LegalLayout
+      title="Terms of Use"
+      updated="June 22, 2026"
+      intro={
+        <p>
+          These Terms of Use explain the rules that apply when you access or
+          use ClearSlot.
+        </p>
+      }
+      sections={sections}
+      currentPage="terms"
+    />
   );
 }
