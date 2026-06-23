@@ -1,5 +1,6 @@
 import LegalLayout, { LegalSection } from '../components/LegalLayout';
 
+<br />
 export default function PrivacyPage() {
   const sections: LegalSection[] = [
     {
@@ -17,6 +18,7 @@ export default function PrivacyPage() {
           intentionally send calendar content or room payload contents to those
           analytics tools.
         </p>
+        <br />
       ),
     },
     {
