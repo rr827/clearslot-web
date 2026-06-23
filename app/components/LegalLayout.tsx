@@ -16,9 +16,9 @@ type LegalLayoutProps = {
 };
 
 const proseClasses =
-  'mt-3 max-w-2xl text-[15px] leading-7 text-slate-600 ' +
-  '[&_p]:mb-4 [&_p:last-child]:mb-0 ' +
-  '[&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5 [&_li]:text-slate-600 ' +
+  'mt-5 max-w-2xl text-[15px] leading-7 text-slate-600 ' +
+  '[&_p]:mb-6 [&_p:last-child]:mb-0 ' +
+  '[&_ul]:list-disc [&_ul]:space-y-3 [&_ul]:pl-5 [&_ul]:mb-6 [&_li]:text-slate-600 ' +
   '[&_a]:font-medium [&_a]:text-[#2F7B49] [&_a]:underline [&_a]:decoration-[#CFE3D5] [&_a]:underline-offset-4 [&_a:hover]:decoration-[#2F7B49] ' +
   '[&_code]:break-all [&_code]:rounded-md [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:font-mono [&_code]:text-slate-700';
 
@@ -105,7 +105,7 @@ export default function LegalLayout({
 }: LegalLayoutProps) {
   return (
     <div className="min-h-screen bg-white text-slate-900">
-      <div className="mx-auto max-w-5xl px-6 pb-28 pt-16 sm:px-10 sm:pt-24">
+      <div className="mx-auto max-w-5xl px-8 pb-28 pt-16 sm:px-12 sm:pt-24 lg:px-20">
         <div className="grid lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="hidden lg:block lg:border-r lg:border-slate-100 lg:pr-12">
             <div className="sticky top-16 max-h-[calc(100vh-4rem)] overflow-y-auto">
