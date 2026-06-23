@@ -24,12 +24,12 @@ const proseClasses =
 
 function TocList({ sections }: { sections: LegalSection[] }) {
   return (
-    <ul className="space-y-2.5">
+    <ul className="space-y-5">
       {sections.map((section) => (
         <li key={section.id}>
           <a
             href={`#${section.id}`}
-            className="block text-[13px] leading-5 text-slate-500 transition hover:text-slate-900"
+            className="block text-[15px] leading-6 text-slate-500 transition hover:text-slate-900"
           >
             {section.title}
           </a>
@@ -46,14 +46,14 @@ function RelatedLinks({ currentPage }: { currentPage: 'privacy' | 'terms' }) {
   ];
 
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-3">
       {relatedLinks.map((link) => {
         const active = currentPage === link.key;
         return (
           <li key={link.href}>
             <Link
               href={link.href}
-              className={`block text-[13px] leading-5 transition ${
+              className={`block text-[15px] leading-6 transition ${
                 active ? 'font-medium text-slate-900' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
@@ -74,21 +74,21 @@ function LegalNav({
   currentPage: 'privacy' | 'terms';
 }) {
   return (
-    <nav className="space-y-8">
+    <nav className="space-y-10">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+        <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
           On this page
         </p>
-        <div className="mt-4">
+        <div className="mt-5">
           <TocList sections={sections} />
         </div>
       </div>
 
-      <div className="border-t border-slate-100 pt-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Related
+      <div className="border-t border-slate-100 pt-7">
+        <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
+          Related legal pages
         </p>
-        <div className="mt-4">
+        <div className="mt-5">
           <RelatedLinks currentPage={currentPage} />
         </div>
       </div>
@@ -106,14 +106,14 @@ export default function LegalLayout({
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto max-w-5xl px-6 pb-28 pt-16 sm:px-10 sm:pt-24">
-        <div className="grid gap-16 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-          <aside className="hidden lg:block">
-            <div className="sticky top-16">
+        <div className="grid lg:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className="hidden lg:block lg:border-r lg:border-slate-100 lg:pr-12">
+            <div className="sticky top-16 max-h-[calc(100vh-4rem)] overflow-y-auto">
               <LegalNav sections={sections} currentPage={currentPage} />
             </div>
           </aside>
 
-          <main className="min-w-0">
+          <main className="min-w-0 lg:pl-12">
             <div className="max-w-2xl">
               <Link
                 href="/"
@@ -126,10 +126,10 @@ export default function LegalLayout({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2F7B49]">
                   ClearSlot Legal
                 </p>
-                <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900 sm:text-[2.75rem]">
+                <h1 className="mt-5 text-4xl font-semibold tracking-tight text-slate-900 sm:text-[2.75rem]">
                   {title}
                 </h1>
-                <p className="mt-3 text-sm text-slate-400">Last updated {updated}</p>
+                <p className="mt-4 text-sm text-slate-400">Last updated {updated}</p>
                 {intro ? (
                   <div className="mt-6 max-w-2xl text-base leading-7 text-slate-500">{intro}</div>
                 ) : null}
@@ -146,7 +146,7 @@ export default function LegalLayout({
 
               <div className="mt-16 divide-y divide-slate-100">
                 {sections.map((section) => (
-                  <section key={section.id} id={section.id} className="py-10 first:pt-0 scroll-mt-28">
+                  <section key={section.id} id={section.id} className="py-12 first:pt-0 scroll-mt-28">
                     <h2 className="text-lg font-semibold text-slate-900">{section.title}</h2>
                     <div className={proseClasses}>{section.content}</div>
                   </section>
