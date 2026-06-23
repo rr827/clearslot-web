@@ -96,7 +96,7 @@ export default function LegalLayout({
           <main className="min-w-0">
             <div className="max-w-2xl">
               <header>
-                <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium uppercase tracking-[0.22em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2f8a57]">
                   ClearSlot Legal
                 </div>
                 <h1 className="mt-5 text-[42px] font-bold tracking-tight text-slate-950 sm:text-[42px]">
