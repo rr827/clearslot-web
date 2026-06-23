@@ -104,7 +104,7 @@ export default function Home() {
             Flexible scheduling for modern teams
           </div>
           <h1 style={{ fontSize: 72, fontWeight: 700, lineHeight: 1.02, letterSpacing: '-0.05em', margin: '0 0 24px', color: TEXT }}>
-            Find the right time together, without the follow-up chaos.
+            Find the time, be accountable.
           </h1>
           <p style={{ fontSize: 19, color: MUTED, lineHeight: 1.7, margin: '0 auto 30px', maxWidth: 680 }}>
             Open a shared room, compare availability, propose a slot, and confirm it with everyone looking at the same scheduling truth.

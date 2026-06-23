@@ -274,7 +274,6 @@ export default function PrivacyPage() {
             time through your Google account permissions page at{' '}
             <a
               href="https://myaccount.google.com/permissions"
-              className="font-medium text-[#236a43] underline decoration-[#b7ddc2] underline-offset-4"
               target="_blank"
               rel="noreferrer"
             >
@@ -284,12 +283,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             You can also request deletion of your data by contacting{' '}
-            <a
-              href="mailto:privacy@clearslot.net"
-              className="font-medium text-[#236a43] underline decoration-[#b7ddc2] underline-offset-4"
-            >
-              privacy@clearslot.net
-            </a>
+            <a href="mailto:privacy@clearslot.net">privacy@clearslot.net</a>
             .
           </p>
           <p>
