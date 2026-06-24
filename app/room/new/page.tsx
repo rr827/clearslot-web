@@ -99,10 +99,91 @@ export default function RoomNewPage() {
   }, [router]);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <div style={{ width: 36, height: 36, border: '2px solid rgba(34,197,94,0.3)', borderTopColor: '#22C55E', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      <p style={{ fontSize: 14, color: '#6B7280' }}>Setting up your room…</p>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#F8F9FC',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '32px 20px',
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: 960, display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E8EBF0',
+            borderRadius: 20,
+            padding: 24,
+            boxShadow: '0 12px 30px rgba(15,23,42,0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 18,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+              <div className="ghost-block" style={{ width: 96, height: 12, borderRadius: 999 }} />
+              <div className="ghost-block" style={{ width: 220, height: 32, borderRadius: 12 }} />
+            </div>
+            <div className="ghost-block" style={{ width: 112, height: 40, borderRadius: 12 }} />
+          </div>
+
+          <div className="ghost-block" style={{ width: '100%', height: 18, borderRadius: 10 }} />
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '80px repeat(5, 1fr)',
+              gap: 8,
+              alignItems: 'stretch',
+            }}
+          >
+            {Array.from({ length: 24 }).map((_, i) => (
+              <div
+                key={i}
+                className="ghost-block"
+                style={{
+                  height: i < 6 ? 28 : 42,
+                  borderRadius: 10,
+                  opacity: i < 6 ? 0.7 : 1,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 6px' }}>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Setting up your room…</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div className="ghost-dot" />
+            <div className="ghost-dot" style={{ animationDelay: '0.15s' }} />
+            <div className="ghost-dot" style={{ animationDelay: '0.3s' }} />
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes ghostPulse {
+          0%, 100% { opacity: 0.55; }
+          50% { opacity: 1; }
+        }
+
+        .ghost-block {
+          background: linear-gradient(135deg, #EEF2F7 0%, #F7F9FC 100%);
+          animation: ghostPulse 1.4s ease-in-out infinite;
+        }
+
+        .ghost-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background-color: #22C55E;
+          animation: ghostPulse 1s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }
