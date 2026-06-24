@@ -845,10 +845,33 @@ function RoomContent() {
   const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
-    const ua = navigator.userAgent;
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
-    if (isMobile) setShowAppBanner(true);
-  }, []);
+    const isMobileUA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (!isMobileUA) return;
+
+    let cancelled = false;
+    const cancelFallback = () => { cancelled = true; };
+    const onVisibilityChange = () => {
+      if (document.hidden) cancelFallback();
+    };
+
+    // Give the OS a chance to hand off to the installed app. If the tab is
+    // still visible after ~1.5s, assume it's not installed and show the
+    // download banner instead of waiting indefinitely.
+    const timer = setTimeout(() => {
+      if (!cancelled) setShowAppBanner(true);
+    }, 1500);
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', cancelFallback);
+
+    window.location.href = `clearslot://room?code=${code}`;
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', cancelFallback);
+    };
+  }, [code]);
 
   // Manual time entry
   const [manualDate, setManualDate] = useState('');
@@ -908,7 +931,17 @@ function RoomContent() {
   }, [weekBase]);
 
   const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(buildRoomLink(code));
+    const url = buildRoomLink(code);
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: 'ClearSlot', text: 'Find a time that works for both of us:', url });
+        return;
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        // share failed for some other reason — fall through to clipboard copy
+      }
+    }
+    await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

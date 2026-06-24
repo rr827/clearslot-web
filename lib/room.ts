@@ -173,3 +173,19 @@ export async function acceptProposal(code: string, proposalIndex: number): Promi
     .eq('code', code.toUpperCase());
   if (error) throw new Error(error.message);
 }
+
+export async function declineProposal(code: string, proposalIndex: number): Promise<void> {
+  const supabase = db();
+  const room = await getRoom(code);
+  if (!room) throw new Error('Room not found');
+  if (proposalIndex < 0 || proposalIndex >= room.proposals.length)
+    throw new Error('Invalid proposal');
+  const updated = room.proposals.map((p, i) =>
+    i === proposalIndex ? { ...p, status: 'declined' as const } : p
+  );
+  const { error } = await supabase
+    .from('rooms')
+    .update({ proposals: updated })
+    .eq('code', code.toUpperCase());
+  if (error) throw new Error(error.message);
+}
