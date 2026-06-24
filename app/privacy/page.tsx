@@ -23,13 +23,17 @@ export default function PrivacyPage() {
     {
       id: 'google-user-data-we-access',
       title: 'Google User Data We Access',
+      children: [
+        { id: 'google-user-data-we-access-web', title: 'Web app' },
+        { id: 'google-user-data-we-access-mobile', title: 'Mobile app' },
+      ],
       content: (
         <>
           <p>
             ClearSlot&apos;s Google Calendar connection flow is currently
             designed around read-only Google Calendar access only.
           </p>
-          <h3>Web app</h3>
+          <h3 id="google-user-data-we-access-web">Web app</h3>
           <p>
             The ClearSlot web app requests the{' '}
             <code>https://www.googleapis.com/auth/calendar.readonly</code>{' '}
@@ -38,7 +42,7 @@ export default function PrivacyPage() {
             instances as returned by Google Calendar, so ClearSlot can
             determine when you are busy.
           </p>
-          <h3>Mobile app</h3>
+          <h3 id="google-user-data-we-access-mobile">Mobile app</h3>
           <p>
             The ClearSlot mobile app also requests read-only Google Calendar
             access only. On mobile, the resulting access token is stored in the
@@ -83,9 +87,13 @@ export default function PrivacyPage() {
     {
       id: 'how-we-use-google-user-data',
       title: 'How We Use Google User Data',
+      children: [
+        { id: 'how-we-use-google-user-data-web', title: 'Web app' },
+        { id: 'how-we-use-google-user-data-mobile', title: 'Mobile app' },
+      ],
       content: (
         <>
-          <h3>Web app</h3>
+          <h3 id="how-we-use-google-user-data-web">Web app</h3>
           <p>
             When you connect your Google Calendar on the web app,
             ClearSlot&apos;s server retrieves your calendar events from Google
@@ -95,7 +103,7 @@ export default function PrivacyPage() {
             not written to shared room payloads or to ClearSlot&apos;s room
             storage.
           </p>
-          <h3>Mobile app</h3>
+          <h3 id="how-we-use-google-user-data-mobile">Mobile app</h3>
           <p>
             When you connect your Google Calendar on the mobile app, ClearSlot
             reads Google Calendar timing data to determine your availability
@@ -185,13 +193,17 @@ export default function PrivacyPage() {
     {
       id: 'how-we-store-and-protect-data',
       title: 'How We Store and Protect Data',
+      children: [
+        { id: 'how-we-store-and-protect-data-web', title: 'Web app' },
+        { id: 'how-we-store-and-protect-data-mobile', title: 'Mobile app' },
+      ],
       content: (
         <>
           <p>
             ClearSlot handles different categories of data differently,
             depending on what the data is and how long it is needed.
           </p>
-          <h3>Web app</h3>
+          <h3 id="how-we-store-and-protect-data-web">Web app</h3>
           <p>
             During sign in, ClearSlot creates a short lived, random value to
             prevent cross site request forgery, stored as an httpOnly cookie
@@ -229,7 +241,7 @@ export default function PrivacyPage() {
             accessible to client-side JavaScript at any point. This token is
             short lived and is never written to ClearSlot&apos;s database.
           </p>
-          <h3>Mobile app</h3>
+          <h3 id="how-we-store-and-protect-data-mobile">Mobile app</h3>
           <p>
             On the mobile app, Google and Microsoft access tokens, where used,
             are stored in the device&apos;s secure storage.
@@ -275,9 +287,13 @@ export default function PrivacyPage() {
     {
       id: 'how-long-we-retain-data',
       title: 'How Long We Retain Data',
+      children: [
+        { id: 'how-long-we-retain-data-web', title: 'Web app' },
+        { id: 'how-long-we-retain-data-mobile', title: 'Mobile app' },
+      ],
       content: (
         <>
-          <h3>Web app</h3>
+          <h3 id="how-long-we-retain-data-web">Web app</h3>
           <p>
             OAuth handshake state on the web app is discarded after five
             minutes, or immediately upon successful sign in, whichever happens
@@ -293,7 +309,7 @@ export default function PrivacyPage() {
             you clear your browser data or it is overwritten, and is not tied
             to an expiration window the way server-side room data is.
           </p>
-          <h3>Mobile app</h3>
+          <h3 id="how-long-we-retain-data-mobile">Mobile app</h3>
           <p>
             Mobile secure-storage tokens remain on the device until revoked,
             expired, or removed by the user through disconnect or sign-out.
@@ -326,9 +342,13 @@ export default function PrivacyPage() {
     {
       id: 'how-users-can-revoke-access-and-request-deletion',
       title: 'How Users Can Revoke Access and Request Deletion',
+      children: [
+        { id: 'how-users-can-revoke-access-and-request-deletion-web', title: 'Web app' },
+        { id: 'how-users-can-revoke-access-and-request-deletion-mobile', title: 'Mobile app' },
+      ],
       content: (
         <>
-          <h3>Web app</h3>
+          <h3 id="how-users-can-revoke-access-and-request-deletion-web">Web app</h3>
           <p>
             You can revoke ClearSlot&apos;s access to your Google Calendar at any
             time through your Google account permissions page at{' '}
@@ -341,7 +361,7 @@ export default function PrivacyPage() {
             </a>
             .
           </p>
-          <h3>Mobile app</h3>
+          <h3 id="how-users-can-revoke-access-and-request-deletion-mobile">Mobile app</h3>
           <p>
             Mobile users can also disconnect from within the app, which removes
             stored local authentication and session data from the device.

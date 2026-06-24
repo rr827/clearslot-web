@@ -1,10 +1,13 @@
+'use client';
+
 import Link from 'next/link';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 
 export type LegalSection = {
   id: string;
   title: string;
   content: ReactNode;
+  children?: { id: string; title: string }[];
 };
 
 type LegalLayoutProps = {
@@ -23,19 +26,70 @@ const proseClasses =
   '[&_a]:font-medium [&_a]:text-[#2F7B49] [&_a]:underline [&_a]:decoration-[#CFE3D5] [&_a]:underline-offset-4 [&_a:hover]:decoration-[#2F7B49] ' +
   '[&_code]:break-all [&_code]:rounded-md [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:font-mono [&_code]:text-slate-700';
 
-function TocList({ sections }: { sections: LegalSection[] }) {
+function TocList({
+  sections,
+  showChildren,
+}: {
+  sections: LegalSection[];
+  showChildren: boolean;
+}) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
   return (
     <ul className="space-y-5">
-      {sections.map((section) => (
-        <li key={section.id}>
-          <a
-            href={`#${section.id}`}
-            className="block text-[15px] leading-6 text-slate-500 transition hover:text-slate-900"
-          >
-            {section.title}
-          </a>
-        </li>
-      ))}
+      {sections.map((section) => {
+        const hasChildren = showChildren && section.children && section.children.length > 0;
+        const isExpanded = expanded[section.id];
+
+        return (
+          <li key={section.id}>
+            <div className="flex items-start gap-3">
+              <a
+                href={`#${section.id}`}
+                className="min-w-0 flex-1 text-[15px] leading-6 text-slate-500 transition hover:text-slate-900"
+              >
+                {section.title}
+              </a>
+              {hasChildren ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpanded((current) => ({
+                      ...current,
+                      [section.id]: !current[section.id],
+                    }))
+                  }
+                  className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label={`${isExpanded ? 'Hide' : 'Show'} subsections for ${section.title}`}
+                  aria-expanded={isExpanded ? 'true' : 'false'}
+                >
+                  <span
+                    className="text-sm transition-transform duration-200"
+                    style={{ transform: isExpanded ? 'rotate(45deg)' : 'rotate(0deg)' }}
+                  >
+                    +
+                  </span>
+                </button>
+              ) : null}
+            </div>
+
+            {hasChildren && isExpanded ? (
+              <ul className="mt-3 space-y-2 border-l border-slate-100 pl-4">
+                {section.children!.map((child) => (
+                  <li key={child.id}>
+                    <a
+                      href={`#${child.id}`}
+                      className="block text-[13px] leading-5 text-slate-400 transition hover:text-slate-700"
+                    >
+                      {child.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -70,9 +124,11 @@ function RelatedLinks({ currentPage }: { currentPage: 'privacy' | 'terms' }) {
 function LegalNav({
   sections,
   currentPage,
+  showChildren,
 }: {
   sections: LegalSection[];
   currentPage: 'privacy' | 'terms';
+  showChildren: boolean;
 }) {
   return (
     <nav className="space-y-10">
@@ -81,7 +137,7 @@ function LegalNav({
           On this page
         </p>
         <div className="mt-5">
-          <TocList sections={sections} />
+          <TocList sections={sections} showChildren={showChildren} />
         </div>
       </div>
 
@@ -116,7 +172,7 @@ export default function LegalLayout({
               ← ClearSlot
             </Link>
             <div className="mt-10">
-              <LegalNav sections={sections} currentPage={currentPage} />
+              <LegalNav sections={sections} currentPage={currentPage} showChildren />
             </div>
           </aside>
 
@@ -147,7 +203,7 @@ export default function LegalLayout({
                   Contents
                 </summary>
                 <div className="mt-4">
-                  <LegalNav sections={sections} currentPage={currentPage} />
+                  <LegalNav sections={sections} currentPage={currentPage} showChildren={false} />
                 </div>
               </details>
 
