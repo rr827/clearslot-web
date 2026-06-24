@@ -29,19 +29,21 @@ export default function PrivacyPage() {
             ClearSlot&apos;s Google Calendar connection flow is currently
             designed around read-only Google Calendar access only.
           </p>
+          <h3>Web app</h3>
           <p>
-            Web app. The ClearSlot web app requests the{' '}
+            The ClearSlot web app requests the{' '}
             <code>https://www.googleapis.com/auth/calendar.readonly</code>{' '}
             scope from Google. This scope allows ClearSlot to read calendar
             timing information, including start times, end times, and recurring
             instances as returned by Google Calendar, so ClearSlot can
             determine when you are busy.
           </p>
+          <h3>Mobile app</h3>
           <p>
-            Mobile app. The ClearSlot mobile app also requests read-only Google
-            Calendar access only. On mobile, the resulting access token is
-            stored in the device&apos;s secure storage so the app can read
-            calendar timing information for scheduling features.
+            The ClearSlot mobile app also requests read-only Google Calendar
+            access only. On mobile, the resulting access token is stored in the
+            device&apos;s secure storage so the app can read calendar timing
+            information for scheduling features.
           </p>
           <p>
             ClearSlot does not request Gmail, Google Drive, Google Contacts, or
@@ -83,8 +85,9 @@ export default function PrivacyPage() {
       title: 'How We Use Google User Data',
       content: (
         <>
+          <h3>Web app</h3>
           <p>
-            Web app. When you connect your Google Calendar on the web app,
+            When you connect your Google Calendar on the web app,
             ClearSlot&apos;s server retrieves your calendar events from Google
             using your access token. This server-side process reduces events to
             the timing information needed for scheduling. The event title,
@@ -92,11 +95,11 @@ export default function PrivacyPage() {
             not written to shared room payloads or to ClearSlot&apos;s room
             storage.
           </p>
+          <h3>Mobile app</h3>
           <p>
-            Mobile app. When you connect your Google Calendar on the mobile
-            app, ClearSlot reads Google Calendar timing data to determine your
-            availability and use it for room coordination and scheduling
-            features.
+            When you connect your Google Calendar on the mobile app, ClearSlot
+            reads Google Calendar timing data to determine your availability
+            and use it for room coordination and scheduling features.
           </p>
           <p>ClearSlot uses the resulting timing data to:</p>
           <ul className="list-disc space-y-3 pl-6">
@@ -188,16 +191,17 @@ export default function PrivacyPage() {
             ClearSlot handles different categories of data differently,
             depending on what the data is and how long it is needed.
           </p>
+          <h3>Web app</h3>
           <p>
-            Web app. During sign in, ClearSlot creates a short lived, random
-            value to prevent cross site request forgery, stored as an httpOnly
-            cookie for five minutes. This value is validated against what
-            Google returns during the callback step and is discarded once sign
-            in completes. It contains no calendar data and no personal
+            During sign in, ClearSlot creates a short lived, random value to
+            prevent cross site request forgery, stored as an httpOnly cookie
+            for five minutes. This value is validated against what Google
+            returns during the callback step and is discarded once sign in
+            completes. It contains no calendar data and no personal
             information.
           </p>
           <p>
-            Web app. ClearSlot temporarily stores a small amount of in progress
+            ClearSlot temporarily stores a small amount of in progress
             scheduling state in your browser&apos;s sessionStorage, used to
             carry information between steps of the connect and room creation
             flow, such as your questionnaire responses and the action you are
@@ -211,33 +215,34 @@ export default function PrivacyPage() {
             your browser session ends.
           </p>
           <p>
-            Web app. Separately from sessionStorage, ClearSlot stores a small
-            room participation reference in your browser&apos;s localStorage,
-            keyed by room code, to help your browser recognize which
-            participant slot you occupy in a specific room when you return to
-            it. This value persists across browser sessions, unlike the
-            sessionStorage data described above, and contains a room code and a
-            participant reference only, not calendar event details.
+            Separately from sessionStorage, ClearSlot stores a small room
+            participation reference in your browser&apos;s localStorage, keyed
+            by room code, to help your browser recognize which participant slot
+            you occupy in a specific room when you return to it. This value
+            persists across browser sessions, unlike the sessionStorage data
+            described above, and contains a room code and a participant
+            reference only, not calendar event details.
           </p>
           <p>
-            Web app. Your Google access token is stored in a separate httpOnly
-            cookie, set and managed entirely by ClearSlot&apos;s server, and is
-            not accessible to client-side JavaScript at any point. This token
-            is short lived and is never written to ClearSlot&apos;s database.
+            Your Google access token is stored in a separate httpOnly cookie,
+            set and managed entirely by ClearSlot&apos;s server, and is not
+            accessible to client-side JavaScript at any point. This token is
+            short lived and is never written to ClearSlot&apos;s database.
+          </p>
+          <h3>Mobile app</h3>
+          <p>
+            On the mobile app, Google and Microsoft access tokens, where used,
+            are stored in the device&apos;s secure storage.
           </p>
           <p>
-            Mobile app. On the mobile app, Google and Microsoft access tokens,
-            where used, are stored in the device&apos;s secure storage.
+            The mobile app also stores minimal local room and session
+            references needed to rejoin rooms and maintain the user&apos;s
+            place in a room.
           </p>
           <p>
-            Mobile app. The mobile app also stores minimal local room and
-            session references needed to rejoin rooms and maintain the
-            user&apos;s place in a room.
-          </p>
-          <p>
-            Mobile app. The mobile app communicates with ClearSlot&apos;s
-            backend room services to create rooms, join rooms, propose times,
-            accept times, and synchronize room state.
+            The mobile app communicates with ClearSlot&apos;s backend room
+            services to create rooms, join rooms, propose times, accept times,
+            and synchronize room state.
           </p>
           <p>
             Room availability payloads. Across the web and mobile products,
@@ -272,43 +277,44 @@ export default function PrivacyPage() {
       title: 'How Long We Retain Data',
       content: (
         <>
+          <h3>Web app</h3>
           <p>
-            OAuth handshake state on the web app: discarded after five
+            OAuth handshake state on the web app is discarded after five
             minutes, or immediately upon successful sign in, whichever happens
             first.
           </p>
           <p>
-            Browser session data on the web app: cleared when your browser
+            Browser session data on the web app is cleared when your browser
             session ends, and in any case never persists beyond the active
             scheduling flow.
           </p>
           <p>
-            Browser local storage on the web app: the room reference described
-            above persists in your browser until you clear your browser data or
-            it is overwritten, and is not tied to an expiration window the way
-            server-side room data is.
+            Browser local storage on the web app persists in your browser until
+            you clear your browser data or it is overwritten, and is not tied
+            to an expiration window the way server-side room data is.
           </p>
+          <h3>Mobile app</h3>
           <p>
-            Mobile secure-storage tokens: remain on the device until revoked,
+            Mobile secure-storage tokens remain on the device until revoked,
             expired, or removed by the user through disconnect or sign-out.
           </p>
           <p>
-            Browser local references and mobile local references: remain
-            on-device until cleared, overwritten, or removed by sign-out or app
-            removal where applicable.
+            Mobile local references remain on-device until cleared,
+            overwritten, or removed by sign-out or app removal where
+            applicable.
           </p>
           <p>
-            Room availability payloads: retained for up to 48 hours across
+            Room availability payloads are retained for up to 48 hours across
             products, then deleted automatically by expiration.
           </p>
           <p>
-            Authentication cookies on the web app: retained until their
+            Authentication cookies on the web app are retained until their
             configured expiration time, and removed when they expire or are
             replaced by a new sign in.
           </p>
           <p>
-            Analytics and performance telemetry for the web product: retained
-            according to ClearSlot&apos;s Vercel account configuration.
+            Analytics and performance telemetry for the web product are
+            retained according to ClearSlot&apos;s Vercel account configuration.
           </p>
           <p>
             Google access tokens are short lived and are not written into
@@ -322,6 +328,7 @@ export default function PrivacyPage() {
       title: 'How Users Can Revoke Access and Request Deletion',
       content: (
         <>
+          <h3>Web app</h3>
           <p>
             You can revoke ClearSlot&apos;s access to your Google Calendar at any
             time through your Google account permissions page at{' '}
@@ -334,6 +341,7 @@ export default function PrivacyPage() {
             </a>
             .
           </p>
+          <h3>Mobile app</h3>
           <p>
             Mobile users can also disconnect from within the app, which removes
             stored local authentication and session data from the device.
