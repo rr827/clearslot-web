@@ -12,6 +12,23 @@ import { format, addDays, differenceInDays } from 'date-fns';
 // Reads questionnaire + action from sessionStorage, fetches calendar blocks
 // via the server-side proxy, encodes the payload, then creates or joins a room.
 
+function Sk({ w, h, r = 6, style }: { w?: string | number; h: number; r?: number; style?: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        width: w ?? '100%',
+        height: h,
+        borderRadius: r,
+        background:
+          'linear-gradient(90deg, rgba(225,225,220,0.9) 0%, rgba(241,241,236,0.95) 50%, rgba(225,225,220,0.9) 100%)',
+        backgroundSize: '200% 100%',
+        animation: 'skshimmer 1.25s linear infinite',
+        ...style,
+      }}
+    />
+  );
+}
+
 export default function RoomNewPage() {
   const router = useRouter();
   const ran = useRef(false);
@@ -99,91 +116,50 @@ export default function RoomNewPage() {
   }, [router]);
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#F8F9FC',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px 20px',
-        fontFamily: 'Inter, system-ui, sans-serif',
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: 960, display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E8EBF0',
-            borderRadius: 20,
-            padding: 24,
-            boxShadow: '0 12px 30px rgba(15,23,42,0.05)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 18,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
-              <div className="ghost-block" style={{ width: 96, height: 12, borderRadius: 999 }} />
-              <div className="ghost-block" style={{ width: 220, height: 32, borderRadius: 12 }} />
-            </div>
-            <div className="ghost-block" style={{ width: 112, height: 40, borderRadius: 12 }} />
-          </div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
+      <style>{`@keyframes skshimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
 
-          <div className="ghost-block" style={{ width: '100%', height: 18, borderRadius: 10 }} />
+      <div style={{ borderBottom: '1px solid #e2e2dc', padding: '0 28px', height: 86, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+        <Sk w={96} h={22} />
+        <Sk w={130} h={34} r={10} />
+        <div style={{ display: 'flex' }}>
+          {[0, 1].map((i) => <Sk key={i} w={24} h={24} r={12} style={{ marginLeft: i > 0 ? -8 : 0 }} />)}
+        </div>
+        <div style={{ flex: 1 }} />
+        <Sk w={118} h={34} r={9} />
+      </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '80px repeat(5, 1fr)',
-              gap: 8,
-              alignItems: 'stretch',
-            }}
-          >
-            {Array.from({ length: 24 }).map((_, i) => (
-              <div
-                key={i}
-                className="ghost-block"
-                style={{
-                  height: i < 6 ? 28 : 42,
-                  borderRadius: 10,
-                  opacity: i < 6 ? 0.7 : 1,
-                }}
-              />
+      <div style={{ borderBottom: '1px solid #e2e2dc', padding: '10px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <Sk w={26} h={26} r={6} />
+        <Sk w={190} h={18} />
+        <Sk w={26} h={26} r={6} />
+        <Sk w={58} h={28} r={6} />
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div style={{ flex: 1, padding: '28px 32px 48px', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+            {Array.from({ length: 7 }).map((_, col) => (
+              <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Sk h={30} r={8} />
+                {Array.from({ length: 9 }).map((_, row) => (
+                  <Sk key={row} h={38} r={6} style={{ opacity: 1 - row * 0.06 }} />
+                ))}
+              </div>
             ))}
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 6px' }}>
-          <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Setting up your room…</p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div className="ghost-dot" />
-            <div className="ghost-dot" style={{ animationDelay: '0.15s' }} />
-            <div className="ghost-dot" style={{ animationDelay: '0.3s' }} />
+        <div style={{ width: 288, borderLeft: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Sk h={46} r={11} />
+          </div>
+          <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Sk w={110} h={13} />
+            {[0, 1, 2].map((i) => <Sk key={i} h={72} r={9} />)}
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes ghostPulse {
-          0%, 100% { opacity: 0.55; }
-          50% { opacity: 1; }
-        }
-
-        .ghost-block {
-          background: linear-gradient(135deg, #EEF2F7 0%, #F7F9FC 100%);
-          animation: ghostPulse 1.4s ease-in-out infinite;
-        }
-
-        .ghost-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 999px;
-          background-color: #22C55E;
-          animation: ghostPulse 1s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 }
