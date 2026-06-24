@@ -39,9 +39,12 @@ export default function TermsPage() {
           </p>
           <p>
             ClearSlot can determine availability from a connected Google
-            Calendar or from an uploaded .ics calendar file. Once a time is
-            confirmed, ClearSlot can also generate a downloadable .ics file so
-            you can add that confirmed time to your own calendar application.
+            Calendar on the web and mobile products, from on-device Apple
+            Calendar access in the mobile app, and from an uploaded .ics
+            calendar file on supported surfaces. Once a time is confirmed,
+            ClearSlot can also generate or share a calendar file, or use a
+            device-calendar add flow, so you can add that confirmed time to
+            your own calendar application.
           </p>
         </>
       ),
@@ -54,8 +57,9 @@ export default function TermsPage() {
           <p>
             If you connect Google Calendar, ClearSlot requests only the{' '}
             <code>https://www.googleapis.com/auth/calendar.readonly</code>{' '}
-            scope. ClearSlot reads calendar timing information so it can
-            determine when you are busy or free.
+            scope during the current Google-first product phase. ClearSlot
+            reads calendar timing information so it can determine when you are
+            busy or free.
           </p>
           <p>
             ClearSlot does not request Google Calendar write access and does
@@ -63,15 +67,22 @@ export default function TermsPage() {
             Google API.
           </p>
           <p>
-            ClearSlot also supports optional .ics file import. This lets you
-            provide availability from another calendar application without
-            connecting Google Calendar.
+            The mobile app may also read Apple Calendar timing information on
+            device, with your permission, to support the same scheduling
+            experience without using Google&apos;s API for that calendar source.
+          </p>
+          <p>
+            ClearSlot also supports optional .ics file import on supported
+            surfaces. This lets you provide availability from another calendar
+            application without connecting Google Calendar.
           </p>
           <p>
             ClearSlot&apos;s .ics export feature creates a downloadable calendar
-            file from a confirmed meeting time only. The file is imported by
-            your own device or calendar app, not written directly by ClearSlot
-            into Google Calendar or any other calendar service.
+            file from a confirmed meeting time only. On mobile, ClearSlot may
+            instead add the confirmed time to your device calendar directly or
+            fall back to an .ics share flow. In either case, the result is not
+            written directly by ClearSlot into Google Calendar or any other
+            calendar service through the Google API.
           </p>
         </>
       ),
@@ -116,6 +127,12 @@ export default function TermsPage() {
           <p>
             ClearSlot does not intentionally send calendar content or room
             payload contents to analytics tools.
+          </p>
+          <p>
+            The web product uses Vercel-hosted telemetry for analytics and
+            performance monitoring. The mobile app may also rely on
+            ClearSlot&apos;s backend room services so room state can stay in sync
+            across devices.
           </p>
           <p>
             Detailed information about data handling, storage, retention,

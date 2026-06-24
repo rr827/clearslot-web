@@ -96,9 +96,9 @@ export default function GuidePage() {
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 700, margin: '6px 0 8px' }}>Set your preferences &amp; connect</h2>
               <p style={{ fontSize: 16, color: '#555', lineHeight: 1.6, margin: 0 }}>
-                Pick your date range and working hours, then sign in with Google or Microsoft.
+                Pick your date range and working hours, then sign in with Google.
                 ClearSlot reads only <strong>start and end times</strong> — no event titles, no attendees.
-                Nothing private ever leaves your device.
+                Temporary availability blocks may be stored so your room can stay in sync.
               </p>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import LegalLayout, { LegalSection } from '../components/LegalLayout';
+
 export default function PrivacyPage() {
   const sections: LegalSection[] = [
     {
@@ -7,14 +8,15 @@ export default function PrivacyPage() {
       content: (
         <p>
           ClearSlot uses calendar timing information, from a connected Google
-          Calendar or from an uploaded .ics file, to compute availability and
-          help people coordinate shared meeting times. ClearSlot does not store
-          calendar event titles, descriptions, attendees, organizers, or
-          locations on its servers. ClearSlot temporarily stores derived
-          availability blocks for shared room functionality. ClearSlot also uses
-          product analytics and performance telemetry, and does not
-          intentionally send calendar content or room payload contents to those
-          analytics tools.
+          Calendar, from on-device Apple Calendar access in the mobile app, or
+          from an uploaded .ics file where supported, to compute availability
+          and help people coordinate shared meeting times. ClearSlot does not
+          store calendar event titles, descriptions, attendees, organizers, or
+          locations in shared room payloads. ClearSlot temporarily stores
+          derived availability blocks for shared room functionality. ClearSlot
+          also uses product analytics and performance telemetry on the web
+          product, and does not intentionally send calendar content or room
+          payload contents to those analytics tools.
         </p>
       ),
     },
@@ -24,12 +26,22 @@ export default function PrivacyPage() {
       content: (
         <>
           <p>
-            ClearSlot&apos;s Google Calendar connection flow requests the{' '}
+            ClearSlot&apos;s Google Calendar connection flow is currently
+            designed around read-only Google Calendar access only.
+          </p>
+          <p>
+            Web app. The ClearSlot web app requests the{' '}
             <code>https://www.googleapis.com/auth/calendar.readonly</code>{' '}
             scope from Google. This scope allows ClearSlot to read calendar
-            event timing information, including start times, end times, and
-            recurring instances as returned by Google Calendar, so ClearSlot
-            can determine when you are busy.
+            timing information, including start times, end times, and recurring
+            instances as returned by Google Calendar, so ClearSlot can
+            determine when you are busy.
+          </p>
+          <p>
+            Mobile app. The ClearSlot mobile app also requests read-only Google
+            Calendar access only. On mobile, the resulting access token is
+            stored in the device&apos;s secure storage so the app can read
+            calendar timing information for scheduling features.
           </p>
           <p>
             ClearSlot does not request Gmail, Google Drive, Google Contacts, or
@@ -37,7 +49,8 @@ export default function PrivacyPage() {
           </p>
           <p>
             ClearSlot does not request any Google Calendar scope that allows
-            creating, editing, or deleting events.
+            creating, editing, or deleting events during the current
+            Google-first product phase.
           </p>
           <p>The categories of Google user data ClearSlot accesses are:</p>
           <ul className="list-disc space-y-3 pl-6">
@@ -51,9 +64,10 @@ export default function PrivacyPage() {
               used for scheduling features.
             </li>
             <li>
-              OAuth and session state: temporary, short lived cookies and
-              browser state used to complete sign in and maintain your connected
-              state, described in full under How We Store and Protect Data.
+              OAuth, session, and authentication state: temporary cookies,
+              browser state, and secure device storage used to complete sign
+              in and maintain your connected state, described in full under How
+              We Store and Protect Data.
             </li>
           </ul>
           <p>
@@ -70,12 +84,19 @@ export default function PrivacyPage() {
       content: (
         <>
           <p>
-            When you connect your Google Calendar, ClearSlot&apos;s server
-            retrieves your calendar events from Google using your access token.
-            This server side process reduces events to the timing information
-            needed for scheduling, the event title, description, attendees,
-            location, calendar ID, and event ID are not written to shared room
-            payloads or to ClearSlot&apos;s room storage.
+            Web app. When you connect your Google Calendar on the web app,
+            ClearSlot&apos;s server retrieves your calendar events from Google
+            using your access token. This server-side process reduces events to
+            the timing information needed for scheduling. The event title,
+            description, attendees, location, calendar ID, and event ID are
+            not written to shared room payloads or to ClearSlot&apos;s room
+            storage.
+          </p>
+          <p>
+            Mobile app. When you connect your Google Calendar on the mobile
+            app, ClearSlot reads Google Calendar timing data to determine your
+            availability and use it for room coordination and scheduling
+            features.
           </p>
           <p>ClearSlot uses the resulting timing data to:</p>
           <ul className="list-disc space-y-3 pl-6">
@@ -89,18 +110,20 @@ export default function PrivacyPage() {
               room.
             </li>
             <li>
-              Let you generate a downloadable .ics file based on a confirmed
-              meeting time shown in your room, described below. This export is
-              built from the confirmed time itself, not from a new fetch of
-              your Google Calendar data.
+              Support user-requested exports such as downloadable .ics files or
+              device-calendar add flows based on a confirmed meeting time,
+              rather than by creating, editing, or deleting Google Calendar
+              events through the Google API in the current product flow.
             </li>
           </ul>
           <p>
             ClearSlot does not use Google user data for advertising, profiling,
-            sale, brokerage, or data enrichment. ClearSlot does not use Google
-            user data to train generalized AI or machine learning models, and
-            does not use Google user data to train personalized AI or machine
-            learning models on behalf of any user.
+            sale, brokerage, or model training.
+          </p>
+          <p>
+            ClearSlot does not use Google user data to create, edit, or delete
+            Google Calendar events through the Google API in the current
+            product flow.
           </p>
         </>
       ),
@@ -116,10 +139,14 @@ export default function PrivacyPage() {
             analytics vendors.
           </p>
           <p>
+            Room participants receive only derived availability timing needed
+            for scheduling, not Google event details.
+          </p>
+          <p>
             ClearSlot does not disclose your Google access token to room
-            participants, advertisers, analytics tools, or Supabase. The token
-            is used only by ClearSlot&apos;s server to make Google API requests
-            on your behalf.
+            participants. The token is used only by ClearSlot to make Google
+            API requests on your behalf where needed for the current
+            read-only scheduling flow.
           </p>
           <p>
             Shared rooms: derived availability blocks, containing timing
@@ -127,18 +154,22 @@ export default function PrivacyPage() {
             a room, solely to make room scheduling work.
           </p>
           <p>
-            Infrastructure providers: temporary room payloads are stored using
-            Supabase, which processes this data solely on ClearSlot&apos;s behalf
-            for room functionality. Site hosting and traffic delivery are
-            handled through Vercel.
+            Infrastructure providers: web room payloads are stored temporarily
+            using Supabase, which processes this data solely on
+            ClearSlot&apos;s behalf for room functionality. Site hosting and
+            traffic delivery are handled through Vercel.
           </p>
           <p>
-            Analytics providers: Vercel Analytics and Vercel Speed Insights
-            receive product usage and performance telemetry. ClearSlot masks
-            room codes and strips query strings before sending data to Vercel
-            Analytics. ClearSlot does not intentionally send calendar content,
-            room payload contents, room codes, or share link query strings to
-            analytics tools.
+            The mobile app also uses ClearSlot&apos;s backend room services so
+            participants can join the same shared room state across devices.
+          </p>
+          <p>
+            Analytics providers: ClearSlot&apos;s web product uses Vercel
+            Analytics and Vercel Speed Insights for product usage and
+            performance telemetry. ClearSlot masks room codes and strips query
+            strings before sending data to Vercel Analytics. ClearSlot does not
+            intentionally send calendar content, room payload contents, room
+            codes, or share link query strings to analytics tools.
           </p>
           <p>
             ClearSlot does not use your calendar data to train any machine
@@ -158,58 +189,72 @@ export default function PrivacyPage() {
             depending on what the data is and how long it is needed.
           </p>
           <p>
-            OAuth handshake state. During sign in, ClearSlot creates a short
-            lived, random value to prevent cross site request forgery, stored
-            as an httpOnly cookie for five minutes. This value is validated
-            against what Google returns during the callback step and is
-            discarded once sign in completes. It contains no calendar data and
-            no personal information.
+            Web app. During sign in, ClearSlot creates a short lived, random
+            value to prevent cross site request forgery, stored as an httpOnly
+            cookie for five minutes. This value is validated against what
+            Google returns during the callback step and is discarded once sign
+            in completes. It contains no calendar data and no personal
+            information.
           </p>
           <p>
-            Browser session data. ClearSlot temporarily stores a small amount
-            of in progress scheduling state in your browser&apos;s
-            sessionStorage, used to carry information between steps of the
-            connect and room creation flow, such as your questionnaire
-            responses and the action you are taking. If you import an .ics
-            calendar file to provide your availability, described below, the
-            busy time blocks read from that file are also held in your
-            browser&apos;s sessionStorage until you create or join a room, at
-            which point they become part of the room&apos;s availability payload
-            in the same derived availability form as availability from a
-            connected Google Calendar. This data exists only in your browser
-            and is cleared when your browser session ends.
+            Web app. ClearSlot temporarily stores a small amount of in progress
+            scheduling state in your browser&apos;s sessionStorage, used to
+            carry information between steps of the connect and room creation
+            flow, such as your questionnaire responses and the action you are
+            taking. If you import an .ics calendar file on the web app to
+            provide your availability, described below, the busy time blocks
+            read from that file are also held in your browser&apos;s
+            sessionStorage until you create or join a room, at which point they
+            become part of the room&apos;s availability payload in the same
+            derived availability form as availability from a connected Google
+            Calendar. This data exists only in your browser and is cleared when
+            your browser session ends.
           </p>
           <p>
-            Browser local storage. Separately from sessionStorage, ClearSlot
-            stores a small room participation reference in your browser&apos;s
-            localStorage, keyed by room code, to help your browser recognize
-            which participant slot you occupy in a specific room when you
-            return to it. This value persists across browser sessions, unlike
-            the sessionStorage data described above, and contains a room code
-            and a participant reference only, not calendar event details.
+            Web app. Separately from sessionStorage, ClearSlot stores a small
+            room participation reference in your browser&apos;s localStorage,
+            keyed by room code, to help your browser recognize which
+            participant slot you occupy in a specific room when you return to
+            it. This value persists across browser sessions, unlike the
+            sessionStorage data described above, and contains a room code and a
+            participant reference only, not calendar event details.
           </p>
           <p>
-            Authentication cookie. Your Google access token is stored in a
-            separate httpOnly cookie, set and managed entirely by
-            ClearSlot&apos;s server, and is not accessible to client side
-            JavaScript at any point. This token is short lived and is never
-            written to ClearSlot&apos;s database.
+            Web app. Your Google access token is stored in a separate httpOnly
+            cookie, set and managed entirely by ClearSlot&apos;s server, and is
+            not accessible to client-side JavaScript at any point. This token
+            is short lived and is never written to ClearSlot&apos;s database.
           </p>
           <p>
-            Room availability payloads. Derived availability blocks used for
-            shared rooms are stored server side, using Supabase, for up to 48
-            hours, so participants in the room can interact with the same
-            scheduling state. These payloads do not contain calendar event
-            titles, descriptions, attendees, organizers, locations, calendar
-            IDs, or event IDs, whether that availability came from a connected
-            Google Calendar or from an imported .ics file.
+            Mobile app. On the mobile app, Google and Microsoft access tokens,
+            where used, are stored in the device&apos;s secure storage.
           </p>
           <p>
-            Analytics data. Usage and performance telemetry is stored by
-            Vercel according to our account settings.
+            Mobile app. The mobile app also stores minimal local room and
+            session references needed to rejoin rooms and maintain the
+            user&apos;s place in a room.
           </p>
           <p>
-            During calendar fetches, ClearSlot&apos;s server processes Google
+            Mobile app. The mobile app communicates with ClearSlot&apos;s
+            backend room services to create rooms, join rooms, propose times,
+            accept times, and synchronize room state.
+          </p>
+          <p>
+            Room availability payloads. Across the web and mobile products,
+            derived availability blocks used for shared rooms may be stored
+            server side, using Supabase, for up to 48 hours, so participants in
+            the room can interact with the same scheduling state. These
+            payloads do not contain calendar event titles, descriptions,
+            attendees, organizers, locations, calendar IDs, or event IDs,
+            whether that availability came from a connected Google Calendar, an
+            imported .ics file, or on-device calendar access.
+          </p>
+          <p>
+            Analytics data. Usage and performance telemetry for the web product
+            is stored by Vercel according to our account settings.
+          </p>
+          <p>
+            During web calendar fetches, ClearSlot&apos;s server processes Google
             Calendar responses in memory and reduces them to timing information
             used for scheduling. Calendar event details are not stored in
             backend room payloads or application room tables.
@@ -228,31 +273,42 @@ export default function PrivacyPage() {
       content: (
         <>
           <p>
-            OAuth handshake state: discarded after five minutes, or immediately
-            upon successful sign in, whichever happens first.
+            OAuth handshake state on the web app: discarded after five
+            minutes, or immediately upon successful sign in, whichever happens
+            first.
           </p>
           <p>
-            Browser session data: cleared when your browser session ends, and
-            in any case never persists beyond the active scheduling flow.
+            Browser session data on the web app: cleared when your browser
+            session ends, and in any case never persists beyond the active
+            scheduling flow.
           </p>
           <p>
-            Browser local storage: the room reference described above persists
-            in your browser until you clear your browser data or it is
-            overwritten, and is not tied to an expiration window the way server
-            side room data is.
+            Browser local storage on the web app: the room reference described
+            above persists in your browser until you clear your browser data or
+            it is overwritten, and is not tied to an expiration window the way
+            server-side room data is.
           </p>
           <p>
-            Room availability payloads: retained for up to 48 hours, then
-            deleted automatically by expiration.
+            Mobile secure-storage tokens: remain on the device until revoked,
+            expired, or removed by the user through disconnect or sign-out.
           </p>
           <p>
-            Authentication cookies: retained until their configured expiration
-            time, and removed when they expire or are replaced by a new sign
-            in.
+            Browser local references and mobile local references: remain
+            on-device until cleared, overwritten, or removed by sign-out or app
+            removal where applicable.
           </p>
           <p>
-            Analytics and performance telemetry: retained according to
-            ClearSlot&apos;s Vercel account configuration.
+            Room availability payloads: retained for up to 48 hours across
+            products, then deleted automatically by expiration.
+          </p>
+          <p>
+            Authentication cookies on the web app: retained until their
+            configured expiration time, and removed when they expire or are
+            replaced by a new sign in.
+          </p>
+          <p>
+            Analytics and performance telemetry for the web product: retained
+            according to ClearSlot&apos;s Vercel account configuration.
           </p>
           <p>
             Google access tokens are short lived and are not written into
@@ -279,19 +335,24 @@ export default function PrivacyPage() {
             .
           </p>
           <p>
-            You can also request deletion of your data by contacting{' '}
-            <a href="mailto:privacy@clearslot.net">privacy@clearslot.net</a>
-            .
+            Mobile users can also disconnect from within the app, which removes
+            stored local authentication and session data from the device.
           </p>
           <p>
-            Because ClearSlot supports anonymous room participation in the free
-            product, deletion requests should include any room code, the
-            approximate room creation time, and any other details that will
-            help us identify the temporary room data you want removed.
+            You can also request deletion of your data by contacting{' '}
+            <a href="mailto:privacy@clearslot.net">privacy@clearslot.net</a>.
+          </p>
+          <p>
+            Deletion requests can remove server-side room data that can still
+            be identified. Because ClearSlot supports anonymous room
+            participation in the free product, deletion requests should include
+            any room code, the approximate room creation time, and any other
+            details that will help us identify the temporary room data you want
+            removed.
           </p>
           <p>
             Revoking Google access does not retroactively remove temporary room
-            payloads that were already created, those payloads remain subject to
+            payloads that were already created. Those payloads remain subject to
             the 48 hour expiration window unless you request earlier deletion.
           </p>
         </>
@@ -303,9 +364,9 @@ export default function PrivacyPage() {
       content: (
         <>
           <p>
-            ClearSlot collects product usage and performance analytics to
-            understand how people move through the product and where the product
-            needs improvement.
+            ClearSlot&apos;s web product uses Vercel Analytics and Vercel Speed
+            Insights to understand how people move through the product and
+            where the product needs improvement.
           </p>
           <p>
             Examples include page views, room creation, room join, proposal,
@@ -313,12 +374,37 @@ export default function PrivacyPage() {
           </p>
           <p>
             ClearSlot does not intentionally send raw calendar events, event
-            titles, event descriptions, room payloads, share links, or room
-            codes to analytics.
+            titles, event descriptions, room payloads, share links, room codes,
+            or share link query strings to those analytics tools.
           </p>
           <p>
             Analytics are used to understand product behavior, not calendar
             content.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'mobile-app-apple-calendar-access',
+      title: 'Mobile App: Apple Calendar Access',
+      content: (
+        <>
+          <p>
+            On the mobile app, ClearSlot may request access to the device&apos;s
+            Apple Calendar so it can read busy and free timing information
+            directly from the device.
+          </p>
+          <p>
+            This Apple Calendar access is permission-based and occurs on
+            device.
+          </p>
+          <p>
+            If you choose to add a confirmed meeting to your device calendar,
+            the mobile app may create a device-calendar event locally.
+          </p>
+          <p>
+            This Apple Calendar access does not use Google&apos;s API and is
+            separate from Google OAuth.
           </p>
         </>
       ),
@@ -329,21 +415,22 @@ export default function PrivacyPage() {
       content: (
         <>
           <p>
-            In addition to connecting a Google Calendar, ClearSlot allows you
-            to provide your availability by uploading a standard .ics calendar
-            file exported from another calendar application, such as Apple
-            Calendar or Outlook.
+            On the web app, in addition to connecting a Google Calendar,
+            ClearSlot allows you to provide your availability by uploading a
+            standard .ics calendar file exported from another calendar
+            application, such as Apple Calendar or Outlook.
           </p>
           <p>
-            When you upload an .ics file, ClearSlot reads it in your browser to
-            determine your busy time ranges. ClearSlot&apos;s parser reads only
-            the start and end times needed to determine when you are busy, event
-            titles, descriptions, attendees, organizers, and locations
-            contained in the uploaded file are not retained. These busy time
-            ranges are held temporarily in your browser, as described above, and
-            become part of the room&apos;s availability payload when you create
-            or join a room, in the same room availability format as
-            availability derived from a connected Google Calendar.
+            When you upload an .ics file on the web app, ClearSlot reads it in
+            your browser to determine your busy time ranges. ClearSlot&apos;s
+            parser reads only the start and end times needed to determine when
+            you are busy. Event titles, descriptions, attendees, organizers,
+            and locations contained in the uploaded file are not retained.
+            These busy time ranges are held temporarily in your browser, as
+            described above, and become part of the room&apos;s availability
+            payload when you create or join a room, in the same room
+            availability format as availability derived from a connected Google
+            Calendar.
           </p>
           <p>
             This import feature does not involve Google&apos;s API or your
@@ -360,31 +447,33 @@ export default function PrivacyPage() {
         <>
           <p>
             Separately from the import feature above, ClearSlot allows you to
-            export a confirmed scheduling time as a standard .ics calendar file,
-            so you can add it to Google Calendar, Apple Calendar, Outlook, or
-            another calendar application.
+            export a confirmed scheduling time as a standard .ics calendar
+            file, so you can add it to Google Calendar, Apple Calendar,
+            Outlook, or another calendar application.
           </p>
           <p>
-            This export feature is generated entirely in your browser, from the
-            confirmed meeting time only. It does not call the Google Calendar
-            API and does not create, modify, or write anything to your Google
-            Calendar directly. ClearSlot generates a calendar file containing
-            only the confirmed meeting time, which you then choose to open or
-            import using your own device and calendar app.
+            On the web app, this export feature is generated in your browser
+            from the confirmed meeting time only. It does not call the Google
+            Calendar API and does not create, modify, or write anything to your
+            Google Calendar directly.
+          </p>
+          <p>
+            On the mobile app, ClearSlot may export or share a confirmed
+            meeting as an .ics file through the device share flow if direct
+            device-calendar creation is unavailable.
           </p>
           <p>
             Because this export does not use the Google Calendar API, it does
-            not require any additional Google OAuth scope beyond the read only
+            not require any additional Google OAuth scope beyond the read-only
             access described above, and it works even if you later use the file
-            with a non Google calendar application.
+            with a non-Google calendar application.
           </p>
           <p>
-            Note, this export feature is distinct from, and uses a separate
-            code path than, the .ics import feature described above. Importing
-            an .ics file provides your availability to ClearSlot, while
-            exporting an .ics file lets you save a confirmed meeting time to
-            your own calendar application after a room participant has accepted
-            a proposed time.
+            Note, this export feature is distinct from the .ics import feature
+            described above. Importing an .ics file provides availability to
+            ClearSlot, while exporting an .ics file lets you save a confirmed
+            meeting time to your own calendar application after a room
+            participant has accepted a proposed time.
           </p>
         </>
       ),
@@ -448,12 +537,21 @@ export default function PrivacyPage() {
   return (
     <LegalLayout
       title="Privacy Policy"
-      updated="June 22, 2026"
+      updated="June 24, 2026"
       intro={
-        <p>
-          This policy describes exactly what ClearSlot accesses, uses, stores,
-          shares, and deletes.
-        </p>
+        <>
+          <p>
+            This policy describes exactly what ClearSlot accesses, uses,
+            stores, shares, and deletes.
+          </p>
+          <p>
+            This Privacy Policy applies to the ClearSlot website, the ClearSlot
+            web application, and the ClearSlot mobile application. Some
+            features and data flows differ between the web and mobile products,
+            so this policy describes both shared ClearSlot practices and
+            product-specific practices where relevant.
+          </p>
+        </>
       }
       sections={sections}
       currentPage="privacy"

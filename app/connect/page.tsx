@@ -43,7 +43,6 @@ function ConnectContent() {
   const [sleepTo, setSleepTo] = useState('07:00');
   const [preference, setPreference] = useState<Preference | null>(null);
   const [launching, setLaunching] = useState(false);
-  const [launchingOutlook, setLaunchingOutlook] = useState(false);
   const [icsStatus, setIcsStatus] = useState<'idle' | 'parsing' | 'ready' | 'error'>('idle');
   const [icsBlockCount, setIcsBlockCount] = useState(0);
   const [blockedEnabled, setBlockedEnabled] = useState(false);
@@ -73,23 +72,6 @@ function ConnectContent() {
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   }
 
-  async function launchMicrosoftOAuth(q: Questionnaire) {
-    storeQuestionnaire(q);
-    sessionStorage.setItem('aligned_provider', 'microsoft');
-    const res = await fetch('/api/auth/state', { method: 'POST' });
-    const { nonce } = await res.json();
-    const state = JSON.stringify({ nonce, returnTo: '/room/new' });
-    const params = new URLSearchParams({
-      client_id: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
-      redirect_uri: `${window.location.origin}/api/auth/microsoft/callback`,
-      response_type: 'code',
-      scope: 'openid email profile Calendars.Read offline_access',
-      prompt: 'select_account',
-      state,
-    });
-    window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;
-  }
-
   const getQuestionnaire = () => ({
     range: { start: rangeStart, end: rangeEnd },
     sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
@@ -100,11 +82,6 @@ function ConnectContent() {
   const handleOAuth = () => {
     setLaunching(true);
     launchOAuth(getQuestionnaire());
-  };
-
-  const handleOutlookOAuth = () => {
-    setLaunchingOutlook(true);
-    launchMicrosoftOAuth(getQuestionnaire());
   };
 
   const handleIcsFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,7 +133,7 @@ function ConnectContent() {
 
   const sectionLabel = { fontSize: 11, fontWeight: 600 as const, color: '#22C55E', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 12 };
 
-  const busy = launching || launchingOutlook || icsStatus === 'parsing';
+  const busy = launching || icsStatus === 'parsing';
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -327,17 +304,6 @@ function ConnectContent() {
             {launching ? 'Redirecting...' : 'Continue with Google'}
           </button>
 
-          {/* Outlook */}
-          <button onClick={handleOutlookOAuth} disabled={busy} type="button"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#fff', color: '#111111', borderRadius: 14, padding: '17px', fontSize: 15, fontWeight: 600, border: '1.5px solid #E5E7EB', cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <rect x="2" y="4" width="20" height="16" rx="2" fill="#0078D4"/>
-              <path d="M2 8l10 6 10-6" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            {launchingOutlook ? 'Redirecting...' : 'Continue with Outlook'}
-          </button>
-
-          {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
             <div style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
             <span style={{ fontSize: 12, color: '#9CA3AF' }}>or</span>
