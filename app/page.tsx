@@ -7,10 +7,10 @@ const BORDER = '#E8EBF0';
 const TEXT = '#111827';
 const MUTED = '#667085';
 const MUTED_SOFT = '#98A2B3';
-const ACCENT = '#3D9A5C';
-const ACCENT_DARK = '#2F7B49';
-const ACCENT_SOFT = '#EEF7F0';
-const ACCENT_BORDER = '#CFE3D5';
+const ACCENT = '#1EAF53';
+const ACCENT_DARK = '#178842';
+const ACCENT_SOFT = '#EDF9F1';
+const ACCENT_BORDER = '#BFEBCF';
 const SHADOW = '0 18px 46px rgba(15, 23, 42, 0.07), 0 3px 12px rgba(15, 23, 42, 0.04)';
 
 function IconCalendar() {

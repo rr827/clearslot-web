@@ -4,8 +4,8 @@ const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 const DATES = [8, 9, 10, 11, 12, 13, 14];
 const TODAY = 3; // THU
 const ROOM_CODE = 'K7QPMX';
-const ACCENT = '#3D9A5C';
-const ACCENT_SOFT = '#EEF7F0';
+const ACCENT = '#22C55E';
+const ACCENT_SOFT = '#ECFDF3';
 const BORDER = '#E8EBF0';
 const TEXT_MUTED = '#667085';
 
@@ -216,7 +216,7 @@ export default function WeekDemo() {
                         position: 'absolute',
                         top: `${SEL_TOP}%`,
                         left: 0, right: 0,
-                        backgroundColor: 'rgba(61,154,92,0.18)',
+                        backgroundColor: 'rgba(34,197,94,0.18)',
                         border: `2px solid ${ACCENT}`,
                         borderRadius: 3,
                         pointerEvents: 'none',
@@ -229,7 +229,7 @@ export default function WeekDemo() {
                         width: 8, height: 8,
                         borderRadius: '50%',
                         backgroundColor: ACCENT,
-                        boxShadow: '0 0 0 3px rgba(61,154,92,0.18)',
+                        boxShadow: '0 0 0 3px rgba(34,197,94,0.18)',
                         pointerEvents: 'none',
                         animation: 'cs-dot 5s ease-in-out infinite',
                       }} />
