@@ -105,24 +105,22 @@ export default function LegalLayout({
 }: LegalLayoutProps) {
   return (
     <div className="min-h-screen bg-white text-slate-900">
-      <div className="px-8 pb-28 pt-16 sm:px-12 sm:pt-24 lg:pl-12 lg:pr-20">
-        <div className="grid lg:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="px-8 pb-28 pt-10 sm:px-12 sm:pt-12 lg:pl-12 lg:pr-20">
+        <div className="grid lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="hidden lg:block lg:border-r lg:border-slate-100 lg:pr-12">
-            <div className="sticky top-16 max-h-[calc(100vh-4rem)] overflow-y-auto">
-              <Link
-                href="/"
-                className="block text-sm font-medium text-slate-400 transition hover:text-slate-700"
-              >
-                ← ClearSlot
-              </Link>
-              <div className="mt-10">
-                <LegalNav sections={sections} currentPage={currentPage} />
-              </div>
+            <Link
+              href="/"
+              className="block text-sm font-medium text-slate-400 transition hover:text-slate-700"
+            >
+              ← ClearSlot
+            </Link>
+            <div className="mt-10">
+              <LegalNav sections={sections} currentPage={currentPage} />
             </div>
           </aside>
 
           <main className="min-w-0 lg:pl-12">
-            <div className="max-w-3xl">
+            <div className="no-scrollbar max-w-3xl lg:sticky lg:top-16 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
               <Link
                 href="/"
                 className="text-sm font-medium text-slate-400 transition hover:text-slate-700 lg:hidden"

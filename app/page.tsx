@@ -53,6 +53,14 @@ function IconCheck() {
   );
 }
 
+function IconArrow() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const features = [
     { icon: <IconCalendar />, title: 'Smart scheduling', body: 'Find the best overlap across everyone\'s calendar automatically.' },
@@ -88,11 +96,8 @@ export default function Home() {
             <a href="/guide" style={{ fontSize: 14, color: MUTED, textDecoration: 'none', fontWeight: 500 }}>Guide</a>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <a href="/connect" style={{ fontSize: 14, color: MUTED, textDecoration: 'none', fontWeight: 500, padding: '10px 12px', borderRadius: 10 }}>
-              Log in
-            </a>
             <a href="/connect" style={{ fontSize: 14, backgroundColor: ACCENT, color: '#fff', fontWeight: 600, padding: '12px 18px', borderRadius: 12, textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 10px 24px rgba(61,154,92,0.16)' }}>
-              Get started
+              Create a room
             </a>
           </div>
         </div>
@@ -109,28 +114,33 @@ export default function Home() {
             Stay Accountable.
           </h1>
           <p style={{ fontSize: 19, color: MUTED, lineHeight: 1.7, margin: '0 auto 30px', maxWidth: 680 }}>
-            Open a shared room, compare availability, propose a slot, and confirm it with everyone looking at the same scheduling truth.
+            The easiest way for groups to find the best time, commit, and{' '}
+            <span style={{ color: ACCENT, fontWeight: 700 }}>actually show up</span>.
           </p>
 
           <div className="cs-hero-actions" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
             <a href="/connect" style={{ backgroundColor: ACCENT, color: '#fff', fontWeight: 600, padding: '16px 28px', borderRadius: 14, fontSize: 16, textDecoration: 'none', display: 'inline-block', boxShadow: '0 14px 28px rgba(61,154,92,0.18)' }}>
-              Get started — it&apos;s free
+              Create a room
             </a>
-            <a href="#how" style={{ fontSize: 16, color: TEXT, textDecoration: 'none', fontWeight: 600 }}>
-              See how it works
+            <a href="#join-room" style={{ fontSize: 16, color: TEXT, textDecoration: 'none', fontWeight: 600 }}>
+              Join a room →
             </a>
           </div>
 
-          <form action="/connect" method="get" style={{ maxWidth: 540, margin: '0 auto 26px', padding: 10, borderRadius: 18, border: `1px solid ${BORDER}`, backgroundColor: SURFACE, boxShadow: SHADOW, display: 'flex', gap: 10, alignItems: 'center' }}>
+          <form id="join-room" action="/connect" method="get" style={{ maxWidth: 540, margin: '0 auto 26px', padding: 10, borderRadius: 18, border: `1px solid ${BORDER}`, backgroundColor: SURFACE, boxShadow: SHADOW, display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: ACCENT_SOFT, border: `1px solid ${ACCENT_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ACCENT_DARK, flexShrink: 0 }}>
+              <IconPeople />
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 600, color: TEXT, whiteSpace: 'nowrap' }}>Have a room code?</span>
             <input
               name="room"
               type="text"
-              placeholder="Have a room code? Enter it to join"
+              placeholder="Enter room code"
               maxLength={6}
-              style={{ flex: 1, backgroundColor: 'transparent', border: 'none', padding: '12px 14px', fontSize: 15, color: TEXT, outline: 'none', minWidth: 0 }}
+              style={{ flex: 1, backgroundColor: BG, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '12px 14px', fontSize: 15, color: TEXT, outline: 'none', minWidth: 0 }}
             />
-            <button type="submit" style={{ backgroundColor: ACCENT_SOFT, border: `1px solid ${ACCENT_BORDER}`, color: ACCENT_DARK, borderRadius: 12, padding: '12px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              Join room
+            <button type="submit" aria-label="Join room" style={{ width: 40, height: 40, flexShrink: 0, backgroundColor: ACCENT, border: 'none', color: '#fff', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <IconArrow />
             </button>
           </form>
 
@@ -152,7 +162,7 @@ export default function Home() {
         <div className="cs-shell" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px' }}>
           <p style={{ fontSize: 12, color: ACCENT_DARK, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 14, fontWeight: 700 }}>Built for busy teams</p>
           <div className="cs-section-head" style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'end', marginBottom: 42 }}>
-            <h2 style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', margin: 0, color: TEXT, maxWidth: 620 }}>Everything you need to reach a real scheduling decision</h2>
+            <h2 className="cs-h2" style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', margin: 0, color: TEXT, maxWidth: 620 }}>Everything you need to reach a real scheduling decision</h2>
             <p style={{ maxWidth: 360, color: MUTED, fontSize: 16, lineHeight: 1.7, margin: 0 }}>
               ClearSlot is designed to reduce back-and-forth without sacrificing clarity, accountability, or privacy.
             </p>
@@ -161,7 +171,7 @@ export default function Home() {
           <div className="cs-features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 22 }}>
             {features.map((feature) => (
               <div key={feature.title} style={{ backgroundColor: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 22, padding: 28, boxShadow: SHADOW }}>
-                <div style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: ACCENT_SOFT, border: `1px solid ${ACCENT_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ACCENT_DARK, marginBottom: 18 }}>
+                <div className="cs-feature-icon" style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: ACCENT_SOFT, border: `1px solid ${ACCENT_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ACCENT_DARK, marginBottom: 18 }}>
                   {feature.icon}
                 </div>
                 <h3 style={{ fontSize: 20, fontWeight: 650, color: TEXT, margin: '0 0 10px' }}>{feature.title}</h3>
@@ -175,12 +185,12 @@ export default function Home() {
       <section id="how" style={{ padding: '0 0 112px' }}>
         <div className="cs-shell" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px' }}>
           <p style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 14, fontWeight: 700 }}>How it works</p>
-          <h2 style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 42px', color: TEXT }}>Three steps, no awkward scheduling loop.</h2>
+          <h2 className="cs-h2" style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 42px', color: TEXT }}>Three steps, no awkward scheduling loop.</h2>
           <div className="cs-how-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 22, position: 'relative' }}>
             <div className="cs-how-line" style={{ position: 'absolute', top: 32, left: '16.66%', right: '16.66%', borderTop: `1px dashed ${ACCENT_BORDER}`, zIndex: 0 }} />
             {steps.map((step) => (
               <div key={step.num} style={{ position: 'relative', zIndex: 1, backgroundColor: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 22, padding: 26, boxShadow: SHADOW }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: ACCENT, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, marginBottom: 18 }}>
+                <div className="cs-step-num" style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: ACCENT, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, marginBottom: 18 }}>
                   {step.num}
                 </div>
                 <h3 style={{ fontSize: 21, fontWeight: 650, margin: '0 0 10px', color: TEXT }}>{step.title}</h3>
@@ -195,7 +205,7 @@ export default function Home() {
         <div className="cs-shell cs-privacy-grid" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px', display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 48, alignItems: 'start' }}>
           <div>
             <p style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 14, fontWeight: 700 }}>Privacy first</p>
-            <h2 style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 20px', color: TEXT }}>What gets shared is limited by design.</h2>
+            <h2 className="cs-h2" style={{ fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 20px', color: TEXT }}>What gets shared is limited by design.</h2>
             <p style={{ fontSize: 17, color: MUTED, lineHeight: 1.8, marginBottom: 28 }}>
               ClearSlot reads calendar timing to compute availability. Event titles, descriptions, attendees, and locations are not stored on ClearSlot servers as part of the room scheduling flow.
             </p>
@@ -231,12 +241,12 @@ export default function Home() {
       <section style={{ padding: '0 0 88px' }}>
         <div className="cs-shell" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 40px' }}>
           <div style={{ backgroundColor: '#1E2E27', borderRadius: 28, padding: '56px 36px', textAlign: 'center', boxShadow: '0 24px 52px rgba(17,24,39,0.14)' }}>
-            <h2 style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 18px', color: '#FFFFFF' }}>Ready to find your overlap?</h2>
+            <h2 className="cs-h2" style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 18px', color: '#FFFFFF' }}>Ready to find your overlap?</h2>
             <p style={{ color: 'rgba(255,255,255,0.72)', margin: '0 0 30px', fontSize: 18, lineHeight: 1.7 }}>
               Open a room in seconds and give everyone one place to land on the same answer.
             </p>
             <a href="/connect" style={{ display: 'inline-block', backgroundColor: '#FFFFFF', color: '#1E2E27', fontWeight: 700, padding: '16px 32px', borderRadius: 14, fontSize: 16, textDecoration: 'none' }}>
-              Get started — it&apos;s free
+              Create a room
             </a>
           </div>
         </div>
@@ -295,6 +305,28 @@ export default function Home() {
           }
           h1 {
             font-size: 52px !important;
+          }
+          .cs-h2 {
+            font-size: 32px !important;
+          }
+          .cs-features-grid > div,
+          .cs-how-grid > div {
+            padding: 20px !important;
+          }
+          .cs-feature-icon {
+            width: 36px !important;
+            height: 36px !important;
+          }
+          .cs-step-num {
+            width: 34px !important;
+            height: 34px !important;
+          }
+          .cs-nav svg {
+            width: 48px !important;
+            height: 48px !important;
+          }
+          .cs-nav span {
+            font-size: 27px !important;
           }
         }
       `}</style>
