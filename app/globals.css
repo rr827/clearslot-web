@@ -11,8 +11,10 @@
   --color-text-secondary: #6B7280;
 }
 
-* { box-sizing: border-box; padding: 0; margin: 0; }
-html, body { background-color: #FFFFFF; color: #111111; max-width: 100vw; overflow-x: hidden; }
+@layer base {
+  * { box-sizing: border-box; padding: 0; margin: 0; }
+  html, body { background-color: #FFFFFF; color: #111111; max-width: 100vw; overflow-x: hidden; }
+}
 
 ::selection { background: #22C55E; color: #fff; }
 
