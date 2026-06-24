@@ -247,6 +247,16 @@ export default function PrivacyPage() {
             are stored in the device&apos;s secure storage.
           </p>
           <p>
+            To complete Google sign-in, the mobile app opens a brief,
+            secure in-app browser session. Google redirects to a stateless
+            page at clearslot.net/mobile/google-redirect, which immediately
+            forwards the sign-in result to the app through a private
+            clearslot:// link on your device. This redirect page does not
+            log, store, or otherwise process the sign-in result on any
+            ClearSlot server; it only relays it, client-side, back into the
+            app.
+          </p>
+          <p>
             The mobile app also stores minimal local room and session
             references needed to rejoin rooms and maintain the user&apos;s
             place in a room.
