@@ -16,7 +16,7 @@ type LegalLayoutProps = {
 };
 
 const proseClasses =
-  'mt-5 max-w-2xl text-[15px] leading-7 text-slate-600 ' +
+  'mt-5 max-w-3xl text-[15px] leading-7 text-slate-600 ' +
   '[&_p]:mb-6 [&_p:last-child]:mb-0 ' +
   '[&_ul]:list-disc [&_ul]:space-y-3 [&_ul]:pl-5 [&_ul]:mb-6 [&_li]:text-slate-600 ' +
   '[&_a]:font-medium [&_a]:text-[#2F7B49] [&_a]:underline [&_a]:decoration-[#CFE3D5] [&_a]:underline-offset-4 [&_a:hover]:decoration-[#2F7B49] ' +
@@ -105,19 +105,27 @@ export default function LegalLayout({
 }: LegalLayoutProps) {
   return (
     <div className="min-h-screen bg-white text-slate-900">
-      <div className="mx-auto max-w-5xl px-8 pb-28 pt-16 sm:px-12 sm:pt-24 lg:px-20">
+      <div className="px-8 pb-28 pt-16 sm:px-12 sm:pt-24 lg:pl-12 lg:pr-20">
         <div className="grid lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="hidden lg:block lg:border-r lg:border-slate-100 lg:pr-12">
             <div className="sticky top-16 max-h-[calc(100vh-4rem)] overflow-y-auto">
-              <LegalNav sections={sections} currentPage={currentPage} />
+              <Link
+                href="/"
+                className="block text-sm font-medium text-slate-400 transition hover:text-slate-700"
+              >
+                ← ClearSlot
+              </Link>
+              <div className="mt-10">
+                <LegalNav sections={sections} currentPage={currentPage} />
+              </div>
             </div>
           </aside>
 
           <main className="min-w-0 lg:pl-12">
-            <div className="max-w-2xl">
+            <div className="max-w-3xl">
               <Link
                 href="/"
-                className="text-sm font-medium text-slate-400 transition hover:text-slate-700"
+                className="text-sm font-medium text-slate-400 transition hover:text-slate-700 lg:hidden"
               >
                 ← ClearSlot
               </Link>
@@ -131,7 +139,7 @@ export default function LegalLayout({
                 </h1>
                 <p className="mt-4 text-sm text-slate-400">Last updated {updated}</p>
                 {intro ? (
-                  <div className="mt-6 max-w-2xl text-base leading-7 text-slate-500">{intro}</div>
+                  <div className="mt-6 max-w-3xl text-base leading-7 text-slate-500">{intro}</div>
                 ) : null}
               </header>
 
