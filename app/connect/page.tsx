@@ -122,6 +122,7 @@ function ConnectContent() {
   };
 
   const skipAll = () => {
+    setLaunching(true);
     launchOAuth({ range: { start: today, end: twoWeeks }, sleep: null, preference: null });
   };
 
@@ -141,8 +142,8 @@ function ConnectContent() {
       {/* Header */}
       <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, backgroundColor: '#FFFFFF', zIndex: 10, borderBottom: '1px solid #F3F4F6' }}>
         <Logo iconSize={56} textSize={32} />
-        <button onClick={skipAll} style={{ fontSize: 13, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer' }}>
-          Skip all →
+        <button onClick={skipAll} disabled={busy} style={{ fontSize: 13, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
+          {launching ? 'Redirecting...' : 'Skip all →'}
         </button>
       </div>
 
