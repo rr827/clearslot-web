@@ -27,6 +27,8 @@ declare global {
 }
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
+const CALENDAR_FETCH_TIMEOUT_MS = 15_000;
+const ROOM_MUTATION_TIMEOUT_MS = 15_000;
 
 // Post-OAuth bridge page.
 // /api/auth/google/callback redirects here (returnTo: /room/new).
@@ -60,6 +62,7 @@ export default function RoomNewPage() {
   const [joinChallengeMessage, setJoinChallengeMessage] = useState<string | null>(null);
   const [turnstileReady, setTurnstileReady] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState('Preparing your room…');
 
   useEffect(() => {
     if (joinCooldownSeconds <= 0) return;
@@ -104,6 +107,22 @@ export default function RoomNewPage() {
     setTurnstileToken(null);
     if (turnstileWidgetRef.current && window.turnstile) {
       window.turnstile.reset(turnstileWidgetRef.current);
+    }
+  }
+
+  async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs: number): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      return await fetch(input, { ...init, signal: controller.signal });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('REQUEST_TIMEOUT');
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeoutId);
     }
   }
 
@@ -165,17 +184,20 @@ export default function RoomNewPage() {
 
     let blocks: BusyBlock[] = [];
     if (provider === 'ics') {
+      setLoadingMessage('Preparing your imported calendar…');
       const raw = sessionStorage.getItem('aligned_ics_blocks');
       blocks = raw ? JSON.parse(raw) : [];
     } else if (provider === 'manual') {
+      setLoadingMessage('Preparing your manual availability…');
       const raw = sessionStorage.getItem('aligned_manual_blocks');
       blocks = raw ? JSON.parse(raw) : [];
     } else {
+      setLoadingMessage('Loading your calendar availability…');
       try {
         if (provider === 'microsoft') {
-          blocks = await fetchBusyBlocksMicrosoft(daysAhead, q?.includeAllDay ?? true);
+          blocks = await fetchBusyBlocksMicrosoft(daysAhead, q?.includeAllDay ?? true, CALENDAR_FETCH_TIMEOUT_MS);
         } else {
-          blocks = await fetchBusyBlocks(daysAhead, q?.includeAllDay ?? true);
+          blocks = await fetchBusyBlocks(daysAhead, q?.includeAllDay ?? true, CALENDAR_FETCH_TIMEOUT_MS);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : '';
@@ -198,11 +220,18 @@ export default function RoomNewPage() {
 
     if (action.startsWith('join:')) {
       const code = action.slice(5);
-      const res = await fetch('/api/room/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, payload: encoded, turnstileToken: turnstileTokenOverride }),
-      });
+      setLoadingMessage('Joining the room…');
+      let res: Response;
+      try {
+        res = await fetchWithTimeout('/api/room/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, payload: encoded, turnstileToken: turnstileTokenOverride }),
+        }, ROOM_MUTATION_TIMEOUT_MS);
+      } catch (error) {
+        router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
+        return;
+      }
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         clearFlowState();
@@ -232,11 +261,18 @@ export default function RoomNewPage() {
 
     if (action.startsWith('update:')) {
       const code = action.slice(7);
-      const res = await fetch('/api/room/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, payload: encoded }),
-      });
+      setLoadingMessage('Refreshing your availability…');
+      let res: Response;
+      try {
+        res = await fetchWithTimeout('/api/room/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, payload: encoded }),
+        }, ROOM_MUTATION_TIMEOUT_MS);
+      } catch (error) {
+        router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
+        return;
+      }
       if (res.ok) {
         clearFlowState();
         router.replace(`/room/${code}`);
@@ -247,11 +283,18 @@ export default function RoomNewPage() {
       return;
     }
 
-    const res = await fetch('/api/room/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payload: encoded }),
-    });
+    setLoadingMessage('Creating your room…');
+    let res: Response;
+    try {
+      res = await fetchWithTimeout('/api/room/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload: encoded }),
+      }, ROOM_MUTATION_TIMEOUT_MS);
+    } catch (error) {
+      router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
+      return;
+    }
     if (res.ok) {
       const { code: createdCode } = await res.json();
       clearFlowState();
@@ -300,6 +343,14 @@ export default function RoomNewPage() {
         <Sk w={26} h={26} r={6} />
         <Sk w={58} h={28} r={6} />
       </div>
+
+      {!showJoinChallenge && !showJoinCooldown ? (
+        <div style={{ padding: '14px 28px 0', flexShrink: 0 }}>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#6B7280' }}>
+            {loadingMessage}
+          </p>
+        </div>
+      ) : null}
 
       {showJoinChallenge || showJoinCooldown ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
