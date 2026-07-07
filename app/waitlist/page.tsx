@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import WaitlistForm from './WaitlistForm';
 
@@ -12,5 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default function WaitlistPage() {
-  return <WaitlistForm />;
+  return (
+    <Suspense fallback={null}>
+      <WaitlistForm />
+    </Suspense>
+  );
 }
