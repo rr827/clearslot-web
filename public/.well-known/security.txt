@@ -1,0 +1,4 @@
+Contact: mailto:security@clearslot.net
+Canonical: https://clearslot.net/.well-known/security.txt
+Policy: https://clearslot.net/privacy
+Preferred-Languages: en

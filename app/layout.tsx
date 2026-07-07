@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Inter_Tight } from 'next/font/google';
 import AnalyticsWrapper from './components/AnalyticsWrapper';
+import PostHogProvider from './components/PostHogProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import './globals.css';
 
@@ -37,6 +38,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <ErrorBoundary>{children}</ErrorBoundary>
         <AnalyticsWrapper />
+        <PostHogProvider />
       </body>
     </html>
   );

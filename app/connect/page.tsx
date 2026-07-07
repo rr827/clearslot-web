@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { format, addDays } from 'date-fns';
 import Logo from '../components/Logo';
@@ -11,11 +11,126 @@ interface Questionnaire {
   range: { start: string; end: string };
   sleep: { from: string; to: string } | null;
   preference: Preference | null;
+  includeAllDay?: boolean;
   blocked?: { from: string; to: string }[] | null;
 }
 
+type ConnectErrorCode =
+  | 'oauth_denied'
+  | 'invalid_state'
+  | 'token_exchange'
+  | 'server'
+  | 'calendar_fetch_failed'
+  | 'service_misconfigured'
+  | 'payload_too_large'
+  | 'room_failed'
+  | 'join_failed'
+  | 'auth_required';
+
+const CONNECT_ERRORS: Record<ConnectErrorCode, { title: string; body: string }> = {
+  oauth_denied: {
+    title: 'Google sign-in was cancelled',
+    body: 'ClearSlot could not connect your calendar because access was denied before sign-in finished.',
+  },
+  invalid_state: {
+    title: 'Your sign-in session expired',
+    body: 'For security reasons, ClearSlot could not verify the sign-in return. Please try again.',
+  },
+  token_exchange: {
+    title: 'Calendar connection failed',
+    body: 'Google sign-in finished, but ClearSlot could not complete the secure token exchange.',
+  },
+  server: {
+    title: 'Something went wrong on our side',
+    body: 'ClearSlot hit a server error while trying to complete sign-in.',
+  },
+  calendar_fetch_failed: {
+    title: 'Calendar availability could not be loaded',
+    body: 'ClearSlot could not read your calendar timing data. Please try again in a moment.',
+  },
+  service_misconfigured: {
+    title: 'Local setup is incomplete',
+    body: 'This ClearSlot environment is missing a required server setting, so rooms cannot be created yet.',
+  },
+  payload_too_large: {
+    title: 'This calendar file is too large to share',
+    body: 'ClearSlot could not fit the imported availability into a room payload. Try a shorter date range or a smaller .ics export.',
+  },
+  room_failed: {
+    title: 'Room setup failed',
+    body: 'ClearSlot could not finish creating your room from the calendar data you provided.',
+  },
+  join_failed: {
+    title: 'Could not join this room',
+    body: 'ClearSlot could not add your availability to the room. The room may be full, expired, or temporarily unavailable.',
+  },
+  auth_required: {
+    title: 'Reconnect to continue',
+    body: 'ClearSlot needs your calendar connection again before it can create or join the room.',
+  },
+};
+
 // Minimum scope for the initial verification flow.
 const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+const MAX_ICS_FILE_BYTES = 1_000_000;
+const MAX_ICS_BLOCKS = 5_000;
+const ICS_PARSE_TIMEOUT_MS = 1_500;
+
+function parseIcsTimestamp(raw: string): string | null {
+  if (/^\d{8}$/.test(raw)) {
+    const y = raw.slice(0, 4);
+    const mo = raw.slice(4, 6);
+    const d = raw.slice(6, 8);
+    return new Date(`${y}-${mo}-${d}T00:00:00`).toISOString();
+  }
+
+  if (/^\d{8}T\d{6}Z?$/.test(raw)) {
+    const y = raw.slice(0, 4);
+    const mo = raw.slice(4, 6);
+    const d = raw.slice(6, 8);
+    const h = raw.slice(9, 11);
+    const mi = raw.slice(11, 13);
+    const sec = raw.slice(13, 15);
+    return new Date(`${y}-${mo}-${d}T${h}:${mi}:${sec}${raw.endsWith('Z') ? 'Z' : ''}`).toISOString();
+  }
+
+  return null;
+}
+
+function extractIcsBlocks(text: string, includeAllDay: boolean): { start: string; end: string }[] {
+  if (/\b(?:RRULE|RDATE|EXDATE)\b/i.test(text)) {
+    throw new Error('ICS_RECURRING_UNSUPPORTED');
+  }
+
+  const blocks: { start: string; end: string }[] = [];
+  const events = text.split('BEGIN:VEVENT');
+  const startedAt = performance.now();
+
+  for (let i = 1; i < events.length; i++) {
+    if (performance.now() - startedAt > ICS_PARSE_TIMEOUT_MS) {
+      throw new Error('ICS_PARSE_TIMEOUT');
+    }
+
+    const eventChunk = events[i];
+    const dtstart = eventChunk.match(/DTSTART(?:;[^:]+)?:(.+)/);
+    const dtend = eventChunk.match(/DTEND(?:;[^:]+)?:(.+)/);
+    if (!dtstart || !dtend) continue;
+
+    const startRaw = dtstart[1].trim().split(/\r?\n/)[0];
+    const endRaw = dtend[1].trim().split(/\r?\n/)[0];
+    const isAllDay = /^\d{8}$/.test(startRaw) && /^\d{8}$/.test(endRaw);
+    if (isAllDay && !includeAllDay) continue;
+
+    const start = parseIcsTimestamp(startRaw);
+    const end = parseIcsTimestamp(endRaw);
+    if (start && end) blocks.push({ start, end });
+    if (blocks.length > MAX_ICS_BLOCKS) {
+      throw new Error('ICS_TOO_MANY_EVENTS');
+    }
+  }
+
+  return blocks;
+}
 
 function Check() {
   return (
@@ -29,12 +144,12 @@ function Check() {
 
 function ConnectContent() {
   const searchParams = useSearchParams();
-  const roomCode = searchParams.get('room');
   const router = useRouter();
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const twoWeeks = format(addDays(new Date(), 14), 'yyyy-MM-dd');
 
+  const [storedRoomCode, setStoredRoomCode] = useState<string | null>(null);
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [rangeStart, setRangeStart] = useState(today);
   const [rangeEnd, setRangeEnd] = useState(twoWeeks);
@@ -42,17 +157,65 @@ function ConnectContent() {
   const [sleepFrom, setSleepFrom] = useState('23:00');
   const [sleepTo, setSleepTo] = useState('07:00');
   const [preference, setPreference] = useState<Preference | null>(null);
+  const [includeAllDay, setIncludeAllDay] = useState(true);
   const [launching, setLaunching] = useState(false);
   const [icsStatus, setIcsStatus] = useState<'idle' | 'parsing' | 'ready' | 'error'>('idle');
   const [icsBlockCount, setIcsBlockCount] = useState(0);
+  const [icsErrorMessage, setIcsErrorMessage] = useState<string | null>(null);
   const [blockedEnabled, setBlockedEnabled] = useState(false);
   const [blockedRanges, setBlockedRanges] = useState<{ from: string; to: string }[]>([{ from: '12:00', to: '13:00' }]);
   const [showExportHint, setShowExportHint] = useState(false);
+  const [storedIsEditing, setStoredIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const roomCode = searchParams.get('room') ?? storedRoomCode;
+  const isEditing = searchParams.get('edit') === '1' || storedIsEditing;
+  const errorCode = searchParams.get('error') as ConnectErrorCode | null;
+  const errorMeta = errorCode ? CONNECT_ERRORS[errorCode] : null;
+
+  useEffect(() => {
+    try {
+      setStoredRoomCode(null);
+      setStoredIsEditing(false);
+      const rawQuestionnaire = sessionStorage.getItem('aligned_questionnaire');
+      if (rawQuestionnaire) {
+        const parsed = JSON.parse(rawQuestionnaire) as Questionnaire;
+        if (parsed.range?.start && parsed.range?.end) {
+          const isDefaultTwoWeeks = parsed.range.start === today && parsed.range.end === twoWeeks;
+          setUseCustomRange(!isDefaultTwoWeeks);
+          setRangeStart(parsed.range.start);
+          setRangeEnd(parsed.range.end);
+        }
+        setSleepEnabled(Boolean(parsed.sleep));
+        if (parsed.sleep?.from) setSleepFrom(parsed.sleep.from);
+        if (parsed.sleep?.to) setSleepTo(parsed.sleep.to);
+        setPreference(parsed.preference ?? null);
+        setIncludeAllDay(parsed.includeAllDay ?? true);
+        if (parsed.blocked?.length) {
+          setBlockedEnabled(true);
+          setBlockedRanges(parsed.blocked);
+        } else {
+          setBlockedEnabled(false);
+        }
+      }
+
+      const action = sessionStorage.getItem('aligned_room_action');
+      if (action?.startsWith('join:')) {
+        setStoredRoomCode(action.slice(5).toUpperCase());
+      } else if (action?.startsWith('update:')) {
+        setStoredRoomCode(action.slice(7).toUpperCase());
+        setStoredIsEditing(true);
+      }
+    } catch {
+      // Ignore malformed recovery state and fall back to defaults.
+    }
+  }, [today, twoWeeks]);
 
   function storeQuestionnaire(q: Questionnaire) {
     sessionStorage.setItem('aligned_questionnaire', JSON.stringify(q));
-    sessionStorage.setItem('aligned_room_action', roomCode ? `join:${roomCode.toUpperCase()}` : 'create');
+    const nextAction = roomCode
+      ? `${isEditing ? 'update' : 'join'}:${roomCode.toUpperCase()}`
+      : 'create';
+    sessionStorage.setItem('aligned_room_action', nextAction);
   }
 
   async function launchOAuth(q: Questionnaire) {
@@ -76,6 +239,7 @@ function ConnectContent() {
     range: { start: rangeStart, end: rangeEnd },
     sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
     preference,
+    includeAllDay,
     blocked: blockedEnabled && blockedRanges.length > 0 ? blockedRanges : null,
   });
 
@@ -87,43 +251,57 @@ function ConnectContent() {
   const handleIcsFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_ICS_FILE_BYTES) {
+      setIcsStatus('error');
+      setIcsErrorMessage('This .ics file is too large. Please use a file under 1 MB.');
+      e.target.value = '';
+      return;
+    }
+
     setIcsStatus('parsing');
+    setIcsErrorMessage(null);
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
         const text = ev.target?.result as string;
-        const blocks: { start: string; end: string }[] = [];
-        const events = text.split('BEGIN:VEVENT');
-        for (let i = 1; i < events.length; i++) {
-          const ev = events[i];
-          const dtstart = ev.match(/DTSTART(?:;[^:]+)?:(\d{8}T\d{6}Z?)/);
-          const dtend = ev.match(/DTEND(?:;[^:]+)?:(\d{8}T\d{6}Z?)/);
-          if (dtstart && dtend) {
-            const parseIcsDate = (s: string) => {
-              const y = s.slice(0, 4), mo = s.slice(4, 6), d = s.slice(6, 8);
-              const h = s.slice(9, 11), mi = s.slice(11, 13), sec = s.slice(13, 15);
-              return new Date(`${y}-${mo}-${d}T${h}:${mi}:${sec}${s.endsWith('Z') ? 'Z' : ''}`).toISOString();
-            };
-            blocks.push({ start: parseIcsDate(dtstart[1]), end: parseIcsDate(dtend[1]) });
-          }
-        }
+        const blocks = extractIcsBlocks(text, includeAllDay);
         setIcsBlockCount(blocks.length);
         setIcsStatus('ready');
         storeQuestionnaire(getQuestionnaire());
         sessionStorage.setItem('aligned_provider', 'ics');
         sessionStorage.setItem('aligned_ics_blocks', JSON.stringify(blocks));
         router.push('/room/new');
-      } catch {
+      } catch (error) {
         setIcsStatus('error');
+        const message = error instanceof Error ? error.message : '';
+        if (message === 'ICS_RECURRING_UNSUPPORTED') {
+          setIcsErrorMessage('Recurring .ics events are not supported yet. Please export a non-recurring range.');
+        } else if (message === 'ICS_PARSE_TIMEOUT') {
+          setIcsErrorMessage('This .ics file took too long to parse. Please try a smaller export.');
+        } else if (message === 'ICS_TOO_MANY_EVENTS') {
+          setIcsErrorMessage('This .ics file contains too many events. Please export a shorter date range.');
+        } else {
+          setIcsErrorMessage('ClearSlot could not read this .ics file. Please try another export.');
+        }
       }
     };
-    reader.onerror = () => setIcsStatus('error');
+    reader.onerror = () => {
+      setIcsStatus('error');
+      setIcsErrorMessage('ClearSlot could not read this .ics file. Please try again.');
+    };
     reader.readAsText(file);
   };
 
   const skipAll = () => {
     setLaunching(true);
-    launchOAuth({ range: { start: today, end: twoWeeks }, sleep: null, preference: null });
+    launchOAuth({ range: { start: today, end: twoWeeks }, sleep: null, preference: null, includeAllDay: true });
+  };
+
+  const handleManual = () => {
+    setLaunching(true);
+    storeQuestionnaire(getQuestionnaire());
+    sessionStorage.setItem('aligned_provider', 'manual');
+    router.push('/manual');
   };
 
   const inputStyle = {
@@ -135,6 +313,18 @@ function ConnectContent() {
   const sectionLabel = { fontSize: 11, fontWeight: 600 as const, color: '#22C55E', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 12 };
 
   const busy = launching || icsStatus === 'parsing';
+  const retryHref = roomCode
+    ? `/connect?room=${roomCode}${isEditing ? '&edit=1' : ''}`
+    : '/connect';
+
+  function clearRecoveryState() {
+    sessionStorage.removeItem('aligned_questionnaire');
+    sessionStorage.removeItem('aligned_room_action');
+    sessionStorage.removeItem('aligned_provider');
+    sessionStorage.removeItem('aligned_ics_blocks');
+    setStoredRoomCode(null);
+    setStoredIsEditing(false);
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -150,13 +340,52 @@ function ConnectContent() {
       {/* Scrollable content */}
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '8px 24px 64px', display: 'flex', flexDirection: 'column', gap: 28 }}>
 
+        {errorMeta && (
+          <div style={{ border: '1px solid #FECACA', backgroundColor: '#FEF2F2', borderRadius: 16, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: '#991B1B' }}>{errorMeta.title}</p>
+              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#7F1D1D' }}>{errorMeta.body}</p>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => router.replace(retryHref)}
+                style={{ backgroundColor: '#991B1B', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearRecoveryState();
+                  router.replace('/connect');
+                }}
+                style={{ backgroundColor: '#fff', color: '#7F1D1D', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Start over
+              </button>
+              <button
+                type="button"
+                onClick={() => router.replace('/')}
+                style={{ background: 'none', color: '#7F1D1D', border: 'none', padding: '10px 4px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Go home
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Title */}
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 700, color: '#111111', letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 6 }}>
-            {roomCode ? `Joining room ${roomCode}` : 'Set your preferences'}
+            {isEditing && roomCode ? `Update room ${roomCode}` : roomCode ? `Joining room ${roomCode}` : 'Set your preferences'}
           </h1>
           <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6 }}>
-            {roomCode ? "We'll compare your calendar with the room to find the best overlap." : "Tell us a bit about your schedule before connecting your calendar."}
+            {isEditing && roomCode
+              ? "Adjust your scheduling preferences and refresh the availability you've already shared with this room."
+              : roomCode
+                ? "We'll compare your calendar with the room to find the best overlap."
+                : "Tell us a bit about your schedule before connecting your calendar."}
           </p>
         </div>
 
@@ -220,6 +449,27 @@ function ConnectContent() {
           ) : (
             <p style={{ fontSize: 13, color: '#9CA3AF' }}>Sleep hours won't be blocked</p>
           )}
+        </div>
+
+        {/* ── All-day events ── */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div>
+              <p style={{ ...sectionLabel, marginBottom: 2 }}>All-day events</p>
+              <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>Treat full-day calendar events as unavailable time</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Toggle all-day events"
+              onClick={() => setIncludeAllDay((value) => !value)}
+              style={{ width: 44, height: 26, borderRadius: 999, backgroundColor: includeAllDay ? '#22C55E' : '#E5E7EB', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+            >
+              <div style={{ position: 'absolute', top: 3, left: includeAllDay ? 21 : 3, width: 20, height: 20, borderRadius: '50%', backgroundColor: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+            </button>
+          </div>
+          <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: 0 }}>
+            {includeAllDay ? 'Full-day events will block that entire day in your availability.' : 'Full-day events will be ignored when ClearSlot builds your availability.'}
+          </p>
         </div>
 
         {/* ── Meeting preference ── */}
@@ -327,6 +577,11 @@ function ConnectContent() {
           >
             {icsStatus === 'parsing' ? 'Reading file…' : icsStatus === 'ready' ? `✓ ${icsBlockCount} events loaded` : icsStatus === 'error' ? 'Error reading file — try again' : 'Upload calendar file (.ics)'}
           </button>
+          {icsErrorMessage ? (
+            <p style={{ textAlign: 'center', fontSize: 12, color: '#B42318', marginTop: -2, lineHeight: 1.6 }}>
+              {icsErrorMessage}
+            </p>
+          ) : null}
           <p style={{ textAlign: 'center', fontSize: 12, color: '#9CA3AF', marginTop: -4 }}>
             Apple Calendar · Yahoo · Proton · any other calendar
           </p>
@@ -343,6 +598,21 @@ function ConnectContent() {
               <strong style={{ color: '#374151' }}>Outlook</strong> → Settings → General → Privacy &amp; data → Export mailbox
             </div>
           )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
+            <span style={{ fontSize: 12, color: '#9CA3AF' }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleManual}
+            disabled={busy}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'transparent', color: '#6B7280', borderRadius: 14, padding: '14px 17px', fontSize: 14, fontWeight: 500, border: '1.5px dashed #E5E7EB', cursor: 'pointer', opacity: busy ? 0.5 : 1 }}
+          >
+            Enter availability manually
+          </button>
 
           <p style={{ textAlign: 'center', fontSize: 12, color: '#9CA3AF', lineHeight: 1.6 }}>
             Read-only calendar timing access only. ClearSlot does not store event details on its servers. Temporary availability blocks may be stored for shared rooms. Any future calendar write permission would be requested separately.

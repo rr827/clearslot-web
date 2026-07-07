@@ -1,11 +1,32 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import Script from 'next/script';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isConnected } from '@/lib/auth';
 import { fetchBusyBlocks, fetchBusyBlocksMicrosoft, BusyBlock } from '@/lib/calendar';
 import { encodePayload, AlignedPayload } from '@/lib/payload';
 import { format, addDays, differenceInDays } from 'date-fns';
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: {
+          sitekey: string;
+          callback: (token: string) => void;
+          'expired-callback'?: () => void;
+          'error-callback'?: () => void;
+        }
+      ) => string;
+      reset: (widgetId?: string) => void;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
 
 // Post-OAuth bridge page.
 // /api/auth/google/callback redirects here (returnTo: /room/new).
@@ -32,91 +53,235 @@ function Sk({ w, h, r = 6, style }: { w?: string | number; h: number; r?: number
 export default function RoomNewPage() {
   const router = useRouter();
   const ran = useRef(false);
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetRef = useRef<string | null>(null);
+  const [joinChallenge, setJoinChallenge] = useState<{ code: string; payload: string } | null>(null);
+  const [joinCooldownSeconds, setJoinCooldownSeconds] = useState(0);
+  const [joinChallengeMessage, setJoinChallengeMessage] = useState<string | null>(null);
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (joinCooldownSeconds <= 0) return;
+    const id = window.setInterval(() => {
+      setJoinCooldownSeconds((current) => (current > 0 ? current - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [joinCooldownSeconds]);
+
+  useEffect(() => {
+    if (!joinChallenge || !TURNSTILE_SITE_KEY || !turnstileReady || !turnstileContainerRef.current || !window.turnstile) {
+      return;
+    }
+
+    if (turnstileWidgetRef.current) return;
+
+    turnstileWidgetRef.current = window.turnstile.render(turnstileContainerRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: (token) => {
+        setTurnstileToken(token);
+        setJoinChallengeMessage(null);
+      },
+      'expired-callback': () => {
+        setTurnstileToken(null);
+      },
+      'error-callback': () => {
+        setTurnstileToken(null);
+        setJoinChallengeMessage('Verification failed to load. Please try again.');
+      },
+    });
+  }, [joinChallenge, turnstileReady]);
+
+  useEffect(() => {
+    if (!joinChallenge && turnstileWidgetRef.current && window.turnstile) {
+      window.turnstile.remove(turnstileWidgetRef.current);
+      turnstileWidgetRef.current = null;
+      setTurnstileToken(null);
+    }
+  }, [joinChallenge]);
+
+  function resetTurnstile() {
+    setTurnstileToken(null);
+    if (turnstileWidgetRef.current && window.turnstile) {
+      window.turnstile.reset(turnstileWidgetRef.current);
+    }
+  }
+
+  async function continueFlow(turnstileTokenOverride?: string) {
+    const action = sessionStorage.getItem('aligned_room_action') ?? 'create';
+    const provider = sessionStorage.getItem('aligned_provider') ?? 'google';
+    const requiresCalendarAuth = provider !== 'ics' && provider !== 'manual';
+    const isUpdateAction = action.startsWith('update:');
+    if (requiresCalendarAuth && !isConnected()) {
+      const reconnectCode = action.startsWith('join:') || action.startsWith('update:')
+        ? action.slice(action.indexOf(':') + 1)
+        : null;
+      const reconnectPath = reconnectCode
+        ? `/connect?room=${reconnectCode}&error=auth_required${isUpdateAction ? '&edit=1' : ''}`
+        : '/connect?error=auth_required';
+      router.replace(reconnectPath);
+      return;
+    }
+
+    const qRaw = sessionStorage.getItem('aligned_questionnaire');
+    const q = qRaw ? JSON.parse(qRaw) : null;
+    const range: { start: string; end: string } = q?.range ?? {
+      start: format(new Date(), 'yyyy-MM-dd'),
+      end: format(addDays(new Date(), 14), 'yyyy-MM-dd'),
+    };
+
+    const daysAhead = Math.max(
+      14,
+      differenceInDays(new Date(range.end + 'T23:59'), new Date()) + 1
+    );
+
+    const reconnectCode = action.startsWith('join:') || action.startsWith('update:')
+      ? action.slice(action.indexOf(':') + 1)
+      : null;
+    const connectPath = (errorCode: string) =>
+      reconnectCode
+        ? `/connect?room=${reconnectCode}&error=${errorCode}${isUpdateAction ? '&edit=1' : ''}`
+        : `/connect?error=${errorCode}`;
+    const mapRoomError = (message: unknown) => {
+      const text = typeof message === 'string' ? message : '';
+      if (text === 'Service misconfigured' || text === 'ROOM_SESSION_SECRET is not configured') {
+        return 'service_misconfigured';
+      }
+      if (text === 'Payload too large') {
+        return 'payload_too_large';
+      }
+      if (text === 'Room not found') {
+        return 'join_failed';
+      }
+      return 'room_failed';
+    };
+    const clearFlowState = () => {
+      sessionStorage.removeItem('aligned_questionnaire');
+      sessionStorage.removeItem('aligned_room_action');
+      sessionStorage.removeItem('aligned_provider');
+      sessionStorage.removeItem('aligned_ics_blocks');
+      sessionStorage.removeItem('aligned_manual_blocks');
+    };
+
+    let blocks: BusyBlock[] = [];
+    if (provider === 'ics') {
+      const raw = sessionStorage.getItem('aligned_ics_blocks');
+      blocks = raw ? JSON.parse(raw) : [];
+    } else if (provider === 'manual') {
+      const raw = sessionStorage.getItem('aligned_manual_blocks');
+      blocks = raw ? JSON.parse(raw) : [];
+    } else {
+      try {
+        if (provider === 'microsoft') {
+          blocks = await fetchBusyBlocksMicrosoft(daysAhead, q?.includeAllDay ?? true);
+        } else {
+          blocks = await fetchBusyBlocks(daysAhead, q?.includeAllDay ?? true);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '';
+        router.replace(connectPath(errorMessage.includes('401') ? 'auth_required' : 'calendar_fetch_failed'));
+        return;
+      }
+    }
+
+    const payload: AlignedPayload = {
+      range,
+      sleep: q?.sleep ?? null,
+      preference: q?.preference ?? null,
+      includeAllDay: q?.includeAllDay ?? true,
+      blocks,
+      blocked: q?.blocked ?? null,
+      source: provider as AlignedPayload['source'],
+    };
+
+    const encoded = encodePayload(payload);
+
+    if (action.startsWith('join:')) {
+      const code = action.slice(5);
+      const res = await fetch('/api/room/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, payload: encoded, turnstileToken: turnstileTokenOverride }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        clearFlowState();
+        localStorage.setItem(`room_${code}`, String(data.room.participants.length - 1));
+        router.replace(`/room/${code}`);
+        return;
+      }
+
+      if (data.challengeRequired) {
+        setJoinChallenge({ code, payload: encoded });
+        setJoinCooldownSeconds(0);
+        setJoinChallengeMessage('Please complete the verification check to join this room.');
+        resetTurnstile();
+        return;
+      }
+
+      if (data.cooldownActive) {
+        setJoinCooldownSeconds(Number(data.retryAfter) || 30);
+        setJoinChallenge(null);
+        setJoinChallengeMessage(null);
+        return;
+      }
+
+      router.replace(connectPath(mapRoomError(data.error)));
+      return;
+    }
+
+    if (action.startsWith('update:')) {
+      const code = action.slice(7);
+      const res = await fetch('/api/room/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, payload: encoded }),
+      });
+      if (res.ok) {
+        clearFlowState();
+        router.replace(`/room/${code}`);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        router.replace(connectPath(data.error === 'Not authenticated for this room' ? 'auth_required' : mapRoomError(data.error)));
+      }
+      return;
+    }
+
+    const res = await fetch('/api/room/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payload: encoded }),
+    });
+    if (res.ok) {
+      const { code: createdCode } = await res.json();
+      clearFlowState();
+      localStorage.setItem(`room_${createdCode}`, '0');
+      router.replace(`/room/${createdCode}`);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      router.replace(connectPath(mapRoomError(data.error)));
+    }
+  }
 
   useEffect(() => {
     if (ran.current) return;
     ran.current = true;
 
-    (async () => {
-      if (!isConnected()) { router.replace('/connect'); return; }
-
-      const qRaw = sessionStorage.getItem('aligned_questionnaire');
-      const action = sessionStorage.getItem('aligned_room_action') ?? 'create';
-      sessionStorage.removeItem('aligned_questionnaire');
-      sessionStorage.removeItem('aligned_room_action');
-
-      const q = qRaw ? JSON.parse(qRaw) : null;
-      const range: { start: string; end: string } = q?.range ?? {
-        start: format(new Date(), 'yyyy-MM-dd'),
-        end: format(addDays(new Date(), 14), 'yyyy-MM-dd'),
-      };
-
-      const daysAhead = Math.max(
-        14,
-        differenceInDays(new Date(range.end + 'T23:59'), new Date()) + 1
-      );
-
-      const provider = sessionStorage.getItem('aligned_provider') ?? 'google';
-      sessionStorage.removeItem('aligned_provider');
-
-      let blocks: BusyBlock[];
-      try {
-        if (provider === 'ics') {
-          const raw = sessionStorage.getItem('aligned_ics_blocks');
-          sessionStorage.removeItem('aligned_ics_blocks');
-          blocks = raw ? JSON.parse(raw) : [];
-        } else if (provider === 'microsoft') {
-          blocks = await fetchBusyBlocksMicrosoft(daysAhead);
-        } else {
-          blocks = await fetchBusyBlocks(daysAhead);
-        }
-      } catch {
-        blocks = [];
-      }
-
-      const payload: AlignedPayload = {
-        range,
-        sleep: q?.sleep ?? null,
-        preference: q?.preference ?? null,
-        blocks,
-        blocked: q?.blocked ?? null,
-      };
-
-      const encoded = encodePayload(payload);
-
-      if (action.startsWith('join:')) {
-        const code = action.slice(5);
-        const res = await fetch('/api/room/join', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, payload: encoded }),
-        });
-        if (res.ok) {
-          const { room } = await res.json();
-          localStorage.setItem(`room_${code}`, String(room.participants.length - 1));
-          router.replace(`/room/${code}`);
-        } else {
-          router.replace(`/room/${code}?error=join_failed`);
-        }
-      } else {
-        const res = await fetch('/api/room/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ payload: encoded }),
-        });
-        if (res.ok) {
-          const { code } = await res.json();
-          localStorage.setItem(`room_${code}`, '0');
-          router.replace(`/room/${code}`);
-        } else {
-          router.replace('/connect?error=room_failed');
-        }
-      }
-    })();
+    void continueFlow();
   }, [router]);
+
+  const showJoinChallenge = Boolean(joinChallenge);
+  const showJoinCooldown = joinCooldownSeconds > 0 && !showJoinChallenge;
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
+      {showJoinChallenge && TURNSTILE_SITE_KEY ? (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          strategy="afterInteractive"
+          onLoad={() => setTurnstileReady(true)}
+        />
+      ) : null}
       <style>{`@keyframes skshimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
 
       <div style={{ borderBottom: '1px solid #e2e2dc', padding: '0 28px', height: 86, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
@@ -136,30 +301,87 @@ export default function RoomNewPage() {
         <Sk w={58} h={28} r={6} />
       </div>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <div style={{ flex: 1, padding: '28px 32px 48px', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-            {Array.from({ length: 7 }).map((_, col) => (
-              <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <Sk h={30} r={8} />
-                {Array.from({ length: 9 }).map((_, row) => (
-                  <Sk key={row} h={38} r={6} style={{ opacity: 1 - row * 0.06 }} />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
+      {showJoinChallenge || showJoinCooldown ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+          <div style={{ width: '100%', maxWidth: 420, border: '1px solid #E5E7EB', borderRadius: 20, backgroundColor: '#FFFFFF', padding: '28px 24px', boxShadow: '0 16px 40px rgba(15, 23, 42, 0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#16A34A' }}>
+                Room protection
+              </p>
+              <h1 style={{ margin: 0, fontSize: 28, lineHeight: 1.15, fontWeight: 700, color: '#111827' }}>
+                {showJoinChallenge ? 'Verify to continue' : 'Please wait a moment'}
+              </h1>
+            </div>
 
-        <div style={{ width: 288, borderLeft: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Sk h={46} r={11} />
-          </div>
-          <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Sk w={110} h={13} />
-            {[0, 1, 2].map((i) => <Sk key={i} h={72} r={9} />)}
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: '#667085' }}>
+              {showJoinChallenge
+                ? 'ClearSlot detected repeated failed room joins from this connection. Complete the verification check to continue joining this room.'
+                : `Too many failed join attempts were detected from this connection. Try again in ${joinCooldownSeconds} second${joinCooldownSeconds === 1 ? '' : 's'}.`}
+            </p>
+
+            {showJoinChallenge ? (
+              <>
+                <div
+                  ref={turnstileContainerRef}
+                  style={{ minHeight: 70, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                />
+                {joinChallengeMessage ? (
+                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#B42318' }}>
+                    {joinChallengeMessage}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!turnstileToken) {
+                      setJoinChallengeMessage('Please complete the verification check before continuing.');
+                      return;
+                    }
+                    void continueFlow(turnstileToken);
+                  }}
+                  style={{ width: '100%', backgroundColor: '#1EAF53', color: '#fff', border: 'none', borderRadius: 12, padding: '14px 16px', fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: turnstileToken ? 1 : 0.7 }}
+                >
+                  Verify and join room
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void continueFlow()}
+                disabled={joinCooldownSeconds > 0}
+                style={{ width: '100%', backgroundColor: '#F3F4F6', color: '#111827', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px', fontSize: 15, fontWeight: 700, cursor: joinCooldownSeconds > 0 ? 'not-allowed' : 'pointer', opacity: joinCooldownSeconds > 0 ? 0.6 : 1 }}
+              >
+                {joinCooldownSeconds > 0 ? `Try again in ${joinCooldownSeconds}s` : 'Try again'}
+              </button>
+            )}
           </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          <div style={{ flex: 1, padding: '28px 32px 48px', overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+              {Array.from({ length: 7 }).map((_, col) => (
+                <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <Sk h={30} r={8} />
+                  {Array.from({ length: 9 }).map((_, row) => (
+                    <Sk key={row} h={38} r={6} style={{ opacity: 1 - row * 0.06 }} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ width: 288, borderLeft: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e2dc', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Sk h={46} r={11} />
+            </div>
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Sk w={110} h={13} />
+              {[0, 1, 2].map((i) => <Sk key={i} h={72} r={9} />)}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

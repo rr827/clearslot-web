@@ -8,7 +8,8 @@ import { addDays } from 'date-fns';
 
 async function fetchGoogleBlocks(
   token: string,
-  daysAhead: number
+  daysAhead: number,
+  includeAllDay: boolean
 ): Promise<{ start: string; end: string }[]> {
   const timeMin = new Date().toISOString();
   const timeMax = addDays(new Date(), daysAhead).toISOString();
@@ -28,13 +29,24 @@ async function fetchGoogleBlocks(
   if (!res.ok) throw new Error(`Google Calendar error: ${res.status}`);
   const data = await res.json();
   return (data.items || [])
-    .filter((e: any) => e.start?.dateTime && e.end?.dateTime)
-    .map((e: any) => ({ start: e.start.dateTime, end: e.end.dateTime }));
+    .flatMap((e: any) => {
+      if (e.start?.dateTime && e.end?.dateTime) {
+        return [{ start: e.start.dateTime, end: e.end.dateTime }];
+      }
+      if (includeAllDay && e.start?.date && e.end?.date) {
+        return [{
+          start: new Date(`${e.start.date}T00:00:00`).toISOString(),
+          end: new Date(`${e.end.date}T00:00:00`).toISOString(),
+        }];
+      }
+      return [];
+    });
 }
 
 async function fetchMicrosoftBlocks(
   token: string,
-  daysAhead: number
+  daysAhead: number,
+  includeAllDay: boolean
 ): Promise<{ start: string; end: string }[]> {
   const startDateTime = new Date().toISOString();
   const endDateTime = addDays(new Date(), daysAhead).toISOString();
@@ -48,7 +60,7 @@ async function fetchMicrosoftBlocks(
   if (!res.ok) throw new Error(`Microsoft Calendar error: ${res.status}`);
   const data = await res.json();
   return (data.value || [])
-    .filter((e: any) => e.start?.dateTime && e.end?.dateTime)
+    .filter((e: any) => e.start?.dateTime && e.end?.dateTime && (includeAllDay || !e.isAllDay))
     .map((e: any) => ({
       start: new Date(e.start.dateTime + (e.start.timeZone === 'UTC' ? 'Z' : '')).toISOString(),
       end: new Date(e.end.dateTime + (e.end.timeZone === 'UTC' ? 'Z' : '')).toISOString(),
@@ -68,12 +80,13 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const daysAhead = Math.max(1, Math.min(90, Number(searchParams.get('daysAhead') ?? '14')));
+  const includeAllDay = searchParams.get('includeAllDay') !== '0';
   const provider = request.cookies.get('aligned_provider')?.value ?? 'google';
 
   try {
     const blocks = provider === 'microsoft'
-      ? await fetchMicrosoftBlocks(token, daysAhead)
-      : await fetchGoogleBlocks(token, daysAhead);
+      ? await fetchMicrosoftBlocks(token, daysAhead, includeAllDay)
+      : await fetchGoogleBlocks(token, daysAhead, includeAllDay);
     return NextResponse.json(blocks);
   } catch (err: any) {
     console.error('Calendar proxy error:', err.message);

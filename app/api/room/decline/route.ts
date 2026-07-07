@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { declineProposal } from '@/lib/room';
 import { getRoomSessionToken, verifyRoomSession } from '@/lib/roomSession';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { getClientIp } from '@/lib/clientIp';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +15,15 @@ export async function POST(req: NextRequest) {
     const declinerIndex = await verifyRoomSession(code, token);
     if (declinerIndex === null) {
       return NextResponse.json({ error: 'Not authenticated for this room' }, { status: 401 });
+    }
+
+    const ip = getClientIp(req);
+    const rateKey = `room_decline:${code.toUpperCase()}:${declinerIndex}:${token ?? ip}`;
+    if (!(await checkRateLimit(rateKey, 30, 60_000))) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      );
     }
 
     await declineProposal(code, proposalIndex);

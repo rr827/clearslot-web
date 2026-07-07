@@ -6,10 +6,12 @@ export interface AlignedPayload {
   range: { start: string; end: string };
   sleep: { from: string; to: string } | null;
   preference: Preference | null;
+  includeAllDay?: boolean;
   blocks: BusyBlock[];
   blocked?: { from: string; to: string }[] | null; // recurring daily time ranges to hard-block
   uid?: string;          // stable random UUID for duplicate-join detection
   displayName?: string;  // user-chosen display name (optional, privacy-controlled)
+  source?: 'google' | 'microsoft' | 'ics' | 'manual'; // how blocks were produced
 }
 
 // ── V2 helpers ─────────────────────────────────────────────────────────────
@@ -32,6 +34,7 @@ export function encodePayload(payload: AlignedPayload): string {
     r: { s: payload.range.start, e: payload.range.end },
     sl: payload.sleep ?? null,
     p: payload.preference ?? null,
+    ad: payload.includeAllDay ?? true,
     b: payload.blocks.map((b) => [
       Math.floor(new Date(b.start).getTime() / 1000),
       Math.floor(new Date(b.end).getTime() / 1000),
@@ -39,6 +42,7 @@ export function encodePayload(payload: AlignedPayload): string {
     bk: payload.blocked?.length ? payload.blocked.map(b => [b.from, b.to]) : null,
     u: payload.uid ?? null,
     dn: payload.displayName ?? null,
+    sc: payload.source ?? null,
   };
   return b64encode(JSON.stringify(compact));
 }
@@ -54,6 +58,7 @@ export function decodePayload(encoded: string): AlignedPayload {
         : (raw.range ?? { start: '', end: '' });
       const sleep = raw.sl !== undefined ? raw.sl : (raw.sleep ?? null);
       const preference = raw.p !== undefined ? raw.p : (raw.preference ?? null);
+      const includeAllDay = raw.ad !== undefined ? Boolean(raw.ad) : (raw.includeAllDay ?? true);
       const blocks: BusyBlock[] = raw.b
         ? (raw.b as number[][]).map(([s, e]) => ({
             start: new Date(s * 1000).toISOString(),
@@ -67,10 +72,12 @@ export function decodePayload(encoded: string): AlignedPayload {
         range,
         sleep,
         preference,
+        includeAllDay,
         blocks,
         blocked,
         uid: raw.u ?? raw.uid ?? undefined,
         displayName: raw.dn ?? raw.displayName ?? undefined,
+        source: raw.sc ?? raw.source ?? undefined,
       };
     }
 
@@ -81,6 +88,7 @@ export function decodePayload(encoded: string): AlignedPayload {
         range: { start: today, end: today },
         sleep: null,
         preference: null,
+        includeAllDay: true,
         blocks: (raw as number[][]).map(([s, e]) => ({
           start: new Date(s * 1000).toISOString(),
           end: new Date(e * 1000).toISOString(),
@@ -88,9 +96,9 @@ export function decodePayload(encoded: string): AlignedPayload {
       };
     }
 
-    return { range: { start: '', end: '' }, sleep: null, preference: null, blocks: [] };
+    return { range: { start: '', end: '' }, sleep: null, preference: null, includeAllDay: true, blocks: [] };
   } catch {
-    return { range: { start: '', end: '' }, sleep: null, preference: null, blocks: [] };
+    return { range: { start: '', end: '' }, sleep: null, preference: null, includeAllDay: true, blocks: [] };
   }
 }
 

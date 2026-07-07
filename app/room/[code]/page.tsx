@@ -856,6 +856,7 @@ function RoomContent() {
   const [acceptingIdx, setAcceptingIdx] = useState<number | null>(null);
   const [downloadedIcsIdx, setDownloadedIcsIdx] = useState<number | null>(null);
   const [eventTitles, setEventTitles] = useState<Record<number, string>>({});
+  const [actionError, setActionError] = useState<string | null>(null);
   const [showAppBanner, setShowAppBanner] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
@@ -944,15 +945,6 @@ function RoomContent() {
 
   const handleCopyLink = async () => {
     const url = buildRoomLink(code);
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ title: 'ClearSlot', text: 'Find a time that works for both of us:', url });
-        return;
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        // share failed for some other reason — fall through to clipboard copy
-      }
-    }
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -971,9 +963,10 @@ function RoomContent() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? 'Failed to propose');
       }
+      setActionError(null);
       setProposed(true);
-    } catch {
-      alert('Could not save proposal. Try again.');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not save proposal. Try again.');
     } finally {
       setProposing(false);
     }
@@ -996,6 +989,7 @@ function RoomContent() {
         body: JSON.stringify({ code, proposalIndex }),
       });
       if (!res.ok) throw new Error('Failed to accept');
+      setActionError(null);
     } catch {
       // Revert on failure
       setRoom(prev => {
@@ -1005,7 +999,7 @@ function RoomContent() {
         );
         return { ...prev, proposals };
       });
-      alert('Could not accept proposal. Try again.');
+      setActionError('Could not accept proposal. Try again.');
     } finally {
       setAcceptingIdx(null);
     }
@@ -1018,6 +1012,7 @@ function RoomContent() {
         start: prop.start_time,
         end: prop.end_time,
         title,
+        description: 'Scheduled with ClearSlot — https://clearslot.net',
       });
       const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -1033,12 +1028,13 @@ function RoomContent() {
       anchor.click();
       document.body.removeChild(anchor);
       URL.revokeObjectURL(url);
+      setActionError(null);
       setDownloadedIcsIdx(proposalIndex);
       window.setTimeout(() => {
         setDownloadedIcsIdx((prev) => (prev === proposalIndex ? null : prev));
       }, 2000);
     } catch {
-      alert('Could not generate the calendar file. Try again.');
+      setActionError('Could not generate the calendar file. Try again.');
     }
   };
 
@@ -1062,6 +1058,22 @@ function RoomContent() {
   };
 
   const handleJoin = () => router.push(`/connect?room=${code}`);
+
+  const handleUpdatePreferences = () => {
+    if (myIndex === null) return;
+    const mine = participants[myIndex];
+    if (!mine) return;
+
+    sessionStorage.setItem('aligned_questionnaire', JSON.stringify({
+      range: mine.range,
+      sleep: mine.sleep ?? null,
+      preference: mine.preference ?? null,
+      includeAllDay: mine.includeAllDay ?? true,
+      blocked: mine.blocked ?? null,
+    }));
+    sessionStorage.setItem('aligned_room_action', `update:${code}`);
+    router.push(`/connect?room=${code}&edit=1`);
+  };
 
   // Join buttons are shown based on room membership (myIndex), not calendar connection.
   // This prevents room creators from seeing join buttons after a browser restart.
@@ -1121,9 +1133,22 @@ function RoomContent() {
   );
 
   if (error) return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
-      <p style={{ fontSize: 22, color: '#555' }}>{error}</p>
-      <button onClick={() => router.replace('/connect')} style={{ fontSize: 19, color: '#22C55E', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Start a new room</button>
+    <div style={{ minHeight: '100vh', backgroundColor: ROOM_BG, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div style={{ width: '100%', maxWidth: 440, backgroundColor: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 24, padding: '28px 26px', boxShadow: ROOM_SHADOW, textAlign: 'center' }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: ROOM_ACCENT_DARK, letterSpacing: '0.14em', textTransform: 'uppercase', margin: '0 0 10px' }}>Room unavailable</p>
+        <h1 style={{ fontSize: 28, lineHeight: 1.15, color: ROOM_TEXT, margin: '0 0 12px' }}>
+          {error.includes('expired') || error.includes('not found') ? 'This room link is no longer active' : 'ClearSlot could not open this room'}
+        </h1>
+        <p style={{ fontSize: 15, color: ROOM_MUTED, lineHeight: 1.7, margin: '0 0 20px' }}>{error}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button onClick={() => router.replace('/connect')} style={{ width: '100%', fontSize: 16, fontWeight: 700, color: '#fff', backgroundColor: ROOM_ACCENT, border: 'none', borderRadius: 14, padding: '13px 16px', cursor: 'pointer' }}>
+            Start a new room
+          </button>
+          <button onClick={() => router.replace('/')} style={{ width: '100%', fontSize: 15, fontWeight: 600, color: ROOM_ACCENT_DARK, backgroundColor: ROOM_ACCENT_SOFT, border: `1px solid ${ROOM_ACCENT_BORDER}`, borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}>
+            Go home
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -1347,7 +1372,33 @@ function RoomContent() {
                 Join this room
               </button>
             )}
+            {myIndex !== null && (
+              <button
+                onClick={handleUpdatePreferences}
+                style={{ width: '100%', backgroundColor: ROOM_SURFACE, color: ROOM_ACCENT_DARK, borderRadius: 14, padding: '13px', fontSize: 15, fontWeight: 700, border: `1px solid ${ROOM_ACCENT_BORDER}`, cursor: 'pointer' }}
+              >
+                Update my availability
+              </button>
+            )}
           </div>
+
+          {actionError && (
+            <div style={{ margin: '16px 20px 0', padding: '12px 14px', borderRadius: 14, backgroundColor: '#FEF2F2', border: '1px solid #FECACA', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#991B1B' }}>Action could not be completed</p>
+                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#7F1D1D' }}>{actionError}</p>
+                </div>
+                <button
+                  onClick={() => setActionError(null)}
+                  style={{ background: 'none', border: 'none', color: '#B91C1C', fontSize: 18, lineHeight: 1, cursor: 'pointer', padding: 0 }}
+                  aria-label="Dismiss error"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Proposals list */}
           {room?.proposals && room.proposals.length > 0 && (
@@ -1389,6 +1440,10 @@ function RoomContent() {
                           <span style={{ fontSize: 12, color: '#888' }}>
                             Import into Google Calendar, Apple Calendar, Outlook, or any calendar app that supports .ics files.
                           </span>
+                          <div style={{ marginTop: 4, paddingTop: 8, borderTop: `1px solid ${ROOM_BORDER}` }}>
+                            <span style={{ fontSize: 12, color: '#9CA3AF' }}>Want ClearSlot for your next group?{' '}</span>
+                            <a href="/connect" style={{ fontSize: 12, color: ROOM_ACCENT, fontWeight: 600, textDecoration: 'none' }}>Create a room free →</a>
+                          </div>
                         </div>
                       ) : canAccept ? (
                         <button

@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const stateParam = searchParams.get('state');
 
   if (error || !code) {
-    return NextResponse.redirect(new URL('/?error=oauth_denied', request.url));
+    return NextResponse.redirect(new URL('/connect?error=oauth_denied', request.url));
   }
 
   // Validate state nonce (CSRF protection)
@@ -18,11 +18,11 @@ export async function GET(request: NextRequest) {
   try {
     parsedState = stateParam ? JSON.parse(stateParam) : {};
   } catch {
-    return NextResponse.redirect(new URL('/?error=invalid_state', request.url));
+    return NextResponse.redirect(new URL('/connect?error=invalid_state', request.url));
   }
 
   if (parsedState.nonce !== expectedNonce) {
-    return NextResponse.redirect(new URL('/?error=invalid_state', request.url));
+    return NextResponse.redirect(new URL('/connect?error=invalid_state', request.url));
   }
 
   // Only allow relative paths — prevents open redirect to external URLs
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     if (!res.ok) {
       console.error('Google token exchange failed:', await res.text());
-      return NextResponse.redirect(new URL('/?error=token_exchange', request.url));
+      return NextResponse.redirect(new URL('/connect?error=token_exchange', request.url));
     }
 
     const data = await res.json();
@@ -88,6 +88,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (err) {
     console.error('Google OAuth callback error:', err);
-    return NextResponse.redirect(new URL('/?error=server', request.url));
+    return NextResponse.redirect(new URL('/connect?error=server', request.url));
   }
 }

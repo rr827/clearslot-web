@@ -1,27 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
 import { decodePayload } from './payload';
-
-export interface Proposal {
-  proposer_index: number;
-  start_time: string;
-  end_time: string;
-  status: 'pending' | 'accepted' | 'declined';
-}
-
-export interface RoomRow {
-  code: string;
-  expires_at: string;
-  participants: string[]; // encoded AlignedPayload strings
-  proposals: Proposal[];
-  created_at: string;
-}
-
-function db() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { getRoomStore } from './storage';
+import type { Proposal, RoomRow } from './storage/types';
 
 const MAX_PAYLOAD_BYTES = 25_000;
 export const MAX_PARTICIPANTS = 10;
@@ -47,44 +26,37 @@ function generateCode(): string {
 
 export async function createRoom(encodedPayload: string): Promise<string> {
   validatePayload(encodedPayload);
-  const supabase = db();
+  const roomStore = getRoomStore();
   const expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = generateCode();
-    const { error } = await supabase.from('rooms').insert({
-      code,
-      expires_at,
-      participants: [encodedPayload],
-      proposals: [],
-    });
-    if (!error) return code;
-    // 23505 = unique constraint violation — retry with a new code
-    if (error.code !== '23505') throw new Error(error.message);
+    try {
+      await roomStore.createRoom({
+        code,
+        expiresAt: expires_at,
+        participants: [encodedPayload],
+        proposals: [],
+      });
+      return code;
+    } catch (error: any) {
+      // 23505 = unique constraint violation — retry with a new code
+      if (error?.code !== '23505') throw new Error(error?.message ?? 'Failed to create room');
+    }
   }
   throw new Error('Could not generate a unique room code');
 }
 
 // Deletes all rooms past their expires_at. Returns the number of rows deleted.
 export async function deleteExpiredRooms(): Promise<number> {
-  const { data, error } = await db()
-    .from('rooms')
-    .delete()
-    .lt('expires_at', new Date().toISOString())
-    .select('code');
-  if (error) throw new Error(error.message);
-  return data?.length ?? 0;
+  return getRoomStore().deleteExpiredRooms(new Date().toISOString());
 }
 
 export async function getRoom(code: string): Promise<RoomRow | null> {
-  const { data, error } = await db()
-    .from('rooms')
-    .select('*')
-    .eq('code', validateCode(code))
-    .single();
-  if (error || !data) return null;
+  const data = await getRoomStore().getRoom(validateCode(code));
+  if (!data) return null;
   if (new Date(data.expires_at) < new Date()) return null;
-  return data as RoomRow;
+  return data;
 }
 
 export async function joinRoom(
@@ -92,7 +64,7 @@ export async function joinRoom(
   encodedPayload: string
 ): Promise<{ room: RoomRow; participantIndex: number }> {
   validatePayload(encodedPayload);
-  const supabase = db();
+  const roomStore = getRoomStore();
   const room = await getRoom(code);
   if (!room) throw new Error('Room not found');
   if (room.participants.length >= MAX_PARTICIPANTS)
@@ -113,14 +85,27 @@ export async function joinRoom(
     // If decode fails, proceed normally
   }
 
-  const { data, error } = await supabase
-    .from('rooms')
-    .update({ participants: [...room.participants, encodedPayload] })
-    .eq('code', code.toUpperCase())
-    .select()
-    .single();
-  if (error || !data) throw new Error(error?.message ?? 'Failed to join room');
-  return { room: data as RoomRow, participantIndex: (data as RoomRow).participants.length - 1 };
+  const data = await roomStore.updateParticipants(code.toUpperCase(), [...room.participants, encodedPayload]);
+  return { room: data, participantIndex: data.participants.length - 1 };
+}
+
+export async function updateParticipantPayload(
+  code: string,
+  participantIndex: number,
+  encodedPayload: string
+): Promise<RoomRow> {
+  validatePayload(encodedPayload);
+  const roomStore = getRoomStore();
+  const room = await getRoom(code);
+  if (!room) throw new Error('Room not found');
+  if (participantIndex < 0 || participantIndex >= room.participants.length) {
+    throw new Error('Invalid participant');
+  }
+
+  const participants = [...room.participants];
+  participants[participantIndex] = encodedPayload;
+
+  return roomStore.updateParticipants(code.toUpperCase(), participants);
 }
 
 export async function proposeTime(
@@ -129,7 +114,7 @@ export async function proposeTime(
   startTime: string,
   endTime: string
 ): Promise<void> {
-  const supabase = db();
+  const roomStore = getRoomStore();
   const room = await getRoom(code);
   if (!room) throw new Error('Room not found');
 
@@ -151,15 +136,11 @@ export async function proposeTime(
     status: 'pending',
   };
 
-  const { error } = await supabase
-    .from('rooms')
-    .update({ proposals: [...room.proposals, proposal] })
-    .eq('code', code.toUpperCase());
-  if (error) throw new Error(error.message);
+  await roomStore.updateProposals(code.toUpperCase(), [...room.proposals, proposal]);
 }
 
 export async function acceptProposal(code: string, proposalIndex: number): Promise<void> {
-  const supabase = db();
+  const roomStore = getRoomStore();
   const room = await getRoom(code);
   if (!room) throw new Error('Room not found');
   if (proposalIndex < 0 || proposalIndex >= room.proposals.length)
@@ -167,15 +148,11 @@ export async function acceptProposal(code: string, proposalIndex: number): Promi
   const updated = room.proposals.map((p, i) =>
     i === proposalIndex ? { ...p, status: 'accepted' as const } : p
   );
-  const { error } = await supabase
-    .from('rooms')
-    .update({ proposals: updated })
-    .eq('code', code.toUpperCase());
-  if (error) throw new Error(error.message);
+  await roomStore.updateProposals(code.toUpperCase(), updated);
 }
 
 export async function declineProposal(code: string, proposalIndex: number): Promise<void> {
-  const supabase = db();
+  const roomStore = getRoomStore();
   const room = await getRoom(code);
   if (!room) throw new Error('Room not found');
   if (proposalIndex < 0 || proposalIndex >= room.proposals.length)
@@ -183,9 +160,7 @@ export async function declineProposal(code: string, proposalIndex: number): Prom
   const updated = room.proposals.map((p, i) =>
     i === proposalIndex ? { ...p, status: 'declined' as const } : p
   );
-  const { error } = await supabase
-    .from('rooms')
-    .update({ proposals: updated })
-    .eq('code', code.toUpperCase());
-  if (error) throw new Error(error.message);
+  await roomStore.updateProposals(code.toUpperCase(), updated);
 }
+
+export type { Proposal, RoomRow } from './storage/types';
