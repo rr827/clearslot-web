@@ -27,12 +27,14 @@ export default async function ConnectPage({
     room?: string | string[];
     edit?: string | string[];
     error?: string | string[];
+    resume?: string | string[];
   }>;
 }) {
   const params = await searchParams;
   const room = firstValue(params.room);
   const edit = firstValue(params.edit);
   const error = firstValue(params.error);
+  const resume = firstValue(params.resume);
 
   const initialErrorCode = CONNECT_ERROR_CODES.has(error as ConnectErrorCode)
     ? (error as ConnectErrorCode)
@@ -43,6 +45,7 @@ export default async function ConnectPage({
       initialRoomCode={room ? room.toUpperCase() : null}
       initialIsEditing={edit === '1'}
       initialErrorCode={initialErrorCode}
+      initialResume={resume === '1'}
     />
   );
 }

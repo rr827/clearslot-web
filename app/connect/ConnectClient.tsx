@@ -32,6 +32,7 @@ interface ConnectClientProps {
   initialRoomCode: string | null;
   initialIsEditing: boolean;
   initialErrorCode: ConnectErrorCode | null;
+  initialResume: boolean;
 }
 
 const CONNECT_ERRORS: Record<ConnectErrorCode, { title: string; body: string }> = {
@@ -94,6 +95,19 @@ const ConnectIcsSection = dynamic(() => import('./ConnectIcsSection'), {
   ),
 });
 
+const RoomFlowLoader = dynamic(() => import('../components/RoomFlowLoader'), {
+  ssr: false,
+  loading: () => (
+    <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 32, height: 32, border: '2px solid rgba(34,197,94,0.3)', borderTopColor: '#22C55E', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ margin: 0, fontSize: 13, color: '#6B7280' }}>Preparing your room…</p>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  ),
+});
+
 function Check() {
   return (
     <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: '#22C55E', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 'auto' }}>
@@ -108,6 +122,7 @@ export default function ConnectClient({
   initialRoomCode,
   initialIsEditing,
   initialErrorCode,
+  initialResume,
 }: ConnectClientProps) {
   const router = useRouter();
 
@@ -132,6 +147,10 @@ export default function ConnectClient({
   const isEditing = initialIsEditing || storedIsEditing;
   const errorCode = initialErrorCode;
   const errorMeta = errorCode ? CONNECT_ERRORS[errorCode] : null;
+
+  if (initialResume) {
+    return <RoomFlowLoader />;
+  }
 
   useEffect(() => {
     try {
@@ -184,7 +203,7 @@ export default function ConnectClient({
     sessionStorage.setItem('aligned_provider', 'google');
     const res = await fetch('/api/auth/state', { method: 'POST' });
     const { nonce } = await res.json();
-    const state = JSON.stringify({ nonce, returnTo: '/room/new' });
+    const state = JSON.stringify({ nonce, returnTo: '/connect?resume=1' });
     const params = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       redirect_uri: `${window.location.origin}/api/auth/google/callback`,
@@ -213,7 +232,7 @@ export default function ConnectClient({
     storeQuestionnaire(getQuestionnaire());
     sessionStorage.setItem('aligned_provider', 'ics');
     sessionStorage.setItem('aligned_ics_blocks', JSON.stringify(blocks));
-    router.push('/room/new');
+    router.push('/connect?resume=1');
   };
 
   const skipAll = () => {

@@ -56,7 +56,7 @@ export default function ManualPage() {
   const handleContinue = () => {
     setLaunching(true);
     sessionStorage.setItem('aligned_manual_blocks', JSON.stringify(blocks));
-    router.push('/room/new');
+    router.push('/connect?resume=1');
   };
 
   const blockCount = blocks.length;
