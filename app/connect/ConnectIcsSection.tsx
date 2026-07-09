@@ -4,8 +4,8 @@ import { useRef, useState } from 'react';
 import { RRule } from 'rrule';
 
 const MAX_ICS_FILE_BYTES = 1_000_000;
-const MAX_ICS_BLOCKS = 5_000;
-const ICS_PARSE_TIMEOUT_MS = 1_500;
+const MAX_ICS_BLOCKS = 10_000;
+const ICS_PARSE_TIMEOUT_MS = 5_000;
 
 interface BusyBlock {
   start: string;
@@ -39,6 +39,28 @@ function parseIcsTimestamp(raw: string): string | null {
   }
 
   return null;
+}
+
+function parseIcsDurationMs(raw: string): number | null {
+  const match = raw.trim().match(
+    /^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/
+  );
+  if (!match) return null;
+
+  const weeks = Number(match[1] ?? 0);
+  const days = Number(match[2] ?? 0);
+  const hours = Number(match[3] ?? 0);
+  const minutes = Number(match[4] ?? 0);
+  const seconds = Number(match[5] ?? 0);
+
+  const totalSeconds =
+    weeks * 7 * 24 * 60 * 60 +
+    days * 24 * 60 * 60 +
+    hours * 60 * 60 +
+    minutes * 60 +
+    seconds;
+
+  return totalSeconds > 0 ? totalSeconds * 1000 : null;
 }
 
 function unfoldIcsText(text: string): string {
@@ -77,18 +99,24 @@ function extractIcsBlocks(
     const eventChunk = events[i];
     const dtstart = eventChunk.match(/DTSTART(?:;[^:]+)?:(.+)/);
     const dtend = eventChunk.match(/DTEND(?:;[^:]+)?:(.+)/);
-    if (!dtstart || !dtend) continue;
+    const durationMatch = eventChunk.match(/DURATION:(.+)/);
+    if (!dtstart || (!dtend && !durationMatch)) continue;
 
     const startRaw = dtstart[1].trim().split(/\r?\n/)[0];
-    const endRaw = dtend[1].trim().split(/\r?\n/)[0];
-    const isAllDay = /^\d{8}$/.test(startRaw) && /^\d{8}$/.test(endRaw);
+    const endRaw = dtend?.[1].trim().split(/\r?\n/)[0] ?? null;
+    const isAllDay = /^\d{8}$/.test(startRaw) && (!!endRaw ? /^\d{8}$/.test(endRaw) : false);
     if (isAllDay && !includeAllDay) continue;
 
     const start = parseIcsTimestamp(startRaw);
-    const end = parseIcsTimestamp(endRaw);
-    if (!start || !end) continue;
+    const end = endRaw ? parseIcsTimestamp(endRaw) : null;
+    const durationMsFromField = durationMatch
+      ? parseIcsDurationMs(durationMatch[1].trim().split(/\r?\n/)[0])
+      : null;
+    if (!start) continue;
 
-    const durationMs = new Date(end).getTime() - new Date(start).getTime();
+    const durationMs = end
+      ? new Date(end).getTime() - new Date(start).getTime()
+      : durationMsFromField ?? 0;
     if (durationMs <= 0) continue;
 
     const exdateMatches = Array.from(eventChunk.matchAll(/EXDATE(?:;[^:]+)?:(.+)/g));
