@@ -179,16 +179,18 @@ export default function ConnectClient({
       }
 
       const action = sessionStorage.getItem('aligned_room_action');
-      if (action?.startsWith('join:')) {
-        setStoredRoomCode(action.slice(5).toUpperCase());
-      } else if (action?.startsWith('update:')) {
-        setStoredRoomCode(action.slice(7).toUpperCase());
-        setStoredIsEditing(true);
+      if (!initialRoomCode) {
+        if (action?.startsWith('join:')) {
+          setStoredRoomCode(action.slice(5).toUpperCase());
+        } else if (action?.startsWith('update:')) {
+          setStoredRoomCode(action.slice(7).toUpperCase());
+          setStoredIsEditing(true);
+        }
       }
     } catch {
       // Ignore malformed recovery state and fall back to defaults.
     }
-  }, [today, twoWeeks]);
+  }, [initialRoomCode, today, twoWeeks]);
 
   function storeQuestionnaire(q: Questionnaire) {
     sessionStorage.setItem('aligned_questionnaire', JSON.stringify(q));

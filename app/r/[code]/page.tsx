@@ -17,6 +17,19 @@ export default function InviteRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [room, setRoom] = useState<InviteRoomState>(null);
 
+  function beginJoinFlow() {
+    try {
+      sessionStorage.removeItem('aligned_questionnaire');
+      sessionStorage.removeItem('aligned_provider');
+      sessionStorage.removeItem('aligned_ics_blocks');
+      sessionStorage.removeItem('aligned_manual_blocks');
+      sessionStorage.setItem('aligned_room_action', `join:${code}`);
+    } catch {
+      // If storage is unavailable, continue with the route transition anyway.
+    }
+    router.push(`/connect?room=${code}`);
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -144,7 +157,7 @@ export default function InviteRoomPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               type="button"
-              onClick={() => router.push(`/connect?room=${code}`)}
+              onClick={beginJoinFlow}
               style={{ width: '100%', fontSize: 16, fontWeight: 700, color: '#fff', backgroundColor: '#22C55E', border: 'none', borderRadius: 14, padding: '14px 16px', cursor: 'pointer' }}
             >
               Continue to join room
