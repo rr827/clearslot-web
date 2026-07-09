@@ -512,6 +512,7 @@ export default function ConnectClient({
           <ConnectIcsSection
             busy={busy}
             includeAllDay={includeAllDay}
+            range={{ start: rangeStart, end: rangeEnd }}
             onBusyChange={setIcsBusy}
             onParsed={handleIcsParsed}
           />

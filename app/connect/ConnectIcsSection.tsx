@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { RRule } from 'rrule';
 
 const MAX_ICS_FILE_BYTES = 1_000_000;
 const MAX_ICS_BLOCKS = 5_000;
@@ -14,6 +15,7 @@ interface BusyBlock {
 interface ConnectIcsSectionProps {
   busy: boolean;
   includeAllDay: boolean;
+  range: { start: string; end: string };
   onBusyChange: (busy: boolean) => void;
   onParsed: (blocks: BusyBlock[]) => void;
 }
@@ -39,13 +41,32 @@ function parseIcsTimestamp(raw: string): string | null {
   return null;
 }
 
-function extractIcsBlocks(text: string, includeAllDay: boolean): BusyBlock[] {
-  if (/\b(?:RRULE|RDATE|EXDATE)\b/i.test(text)) {
-    throw new Error('ICS_RECURRING_UNSUPPORTED');
+function unfoldIcsText(text: string): string {
+  return text.replace(/\r?\n[ \t]/g, '');
+}
+
+function parseTimestampValues(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((value) => parseIcsTimestamp(value.trim()))
+    .filter((value): value is string => Boolean(value));
+}
+
+function extractIcsBlocks(
+  text: string,
+  includeAllDay: boolean,
+  range: { start: string; end: string }
+): BusyBlock[] {
+  const unfoldedText = unfoldIcsText(text);
+  const rangeStart = new Date(`${range.start}T00:00:00`);
+  const rangeEndExclusive = new Date(`${range.end}T23:59:59.999`);
+
+  if (!Number.isFinite(rangeStart.getTime()) || !Number.isFinite(rangeEndExclusive.getTime())) {
+    throw new Error('ICS_RANGE_INVALID');
   }
 
   const blocks: BusyBlock[] = [];
-  const events = text.split('BEGIN:VEVENT');
+  const events = unfoldedText.split('BEGIN:VEVENT');
   const startedAt = performance.now();
 
   for (let i = 1; i < events.length; i++) {
@@ -65,9 +86,57 @@ function extractIcsBlocks(text: string, includeAllDay: boolean): BusyBlock[] {
 
     const start = parseIcsTimestamp(startRaw);
     const end = parseIcsTimestamp(endRaw);
-    if (start && end) blocks.push({ start, end });
-    if (blocks.length > MAX_ICS_BLOCKS) {
-      throw new Error('ICS_TOO_MANY_EVENTS');
+    if (!start || !end) continue;
+
+    const durationMs = new Date(end).getTime() - new Date(start).getTime();
+    if (durationMs <= 0) continue;
+
+    const exdateMatches = Array.from(eventChunk.matchAll(/EXDATE(?:;[^:]+)?:(.+)/g));
+    const excludedStarts = new Set(
+      exdateMatches.flatMap((match) =>
+        parseTimestampValues(match[1]).map((value) => new Date(value).getTime())
+      )
+    );
+
+    const addOccurrence = (occurrenceStart: Date) => {
+      if (performance.now() - startedAt > ICS_PARSE_TIMEOUT_MS) {
+        throw new Error('ICS_PARSE_TIMEOUT');
+      }
+
+      if (excludedStarts.has(occurrenceStart.getTime())) return;
+
+      const occurrenceEnd = new Date(occurrenceStart.getTime() + durationMs);
+      if (occurrenceEnd <= rangeStart || occurrenceStart >= rangeEndExclusive) return;
+
+      blocks.push({
+        start: occurrenceStart.toISOString(),
+        end: occurrenceEnd.toISOString(),
+      });
+      if (blocks.length > MAX_ICS_BLOCKS) {
+        throw new Error('ICS_TOO_MANY_EVENTS');
+      }
+    };
+
+    const rruleMatch = eventChunk.match(/RRULE:(.+)/);
+    const rdateMatches = Array.from(eventChunk.matchAll(/RDATE(?:;[^:]+)?:(.+)/g));
+
+    if (rruleMatch) {
+      const options = RRule.parseString(rruleMatch[1].trim());
+      options.dtstart = new Date(start);
+      const rule = new RRule(options);
+      const occurrences = rule.between(rangeStart, rangeEndExclusive, true);
+      for (const occurrenceStart of occurrences) {
+        addOccurrence(occurrenceStart);
+      }
+    } else {
+      addOccurrence(new Date(start));
+    }
+
+    for (const match of rdateMatches) {
+      const explicitStarts = parseTimestampValues(match[1]);
+      for (const explicitStart of explicitStarts) {
+        addOccurrence(new Date(explicitStart));
+      }
     }
   }
 
@@ -77,6 +146,7 @@ function extractIcsBlocks(text: string, includeAllDay: boolean): BusyBlock[] {
 export default function ConnectIcsSection({
   busy,
   includeAllDay,
+  range,
   onBusyChange,
   onParsed,
 }: ConnectIcsSectionProps) {
@@ -104,21 +174,21 @@ export default function ConnectIcsSection({
     reader.onload = async (ev) => {
       try {
         const text = ev.target?.result as string;
-        const blocks = extractIcsBlocks(text, includeAllDay);
+        const blocks = extractIcsBlocks(text, includeAllDay, range);
         setBlockCount(blocks.length);
         setStatus('ready');
         onParsed(blocks);
       } catch (error) {
         setStatus('error');
         const message = error instanceof Error ? error.message : '';
-        if (message === 'ICS_RECURRING_UNSUPPORTED') {
-          setErrorMessage('Recurring .ics events are not supported yet. Please export a non-recurring range.');
-        } else if (message === 'ICS_PARSE_TIMEOUT') {
+        if (message === 'ICS_PARSE_TIMEOUT') {
           setErrorMessage('This .ics file took too long to parse. Please try a smaller export.');
+        } else if (message === 'ICS_RANGE_INVALID') {
+          setErrorMessage('ClearSlot could not match this file to your selected date range. Please try again.');
         } else if (message === 'ICS_TOO_MANY_EVENTS') {
           setErrorMessage('This .ics file contains too many events. Please export a shorter date range.');
         } else {
-          setErrorMessage('ClearSlot could not read this .ics file. Please try another export.');
+          setErrorMessage('ClearSlot could not read this .ics file. Try another export or shorten the selected range.');
         }
       } finally {
         onBusyChange(false);
