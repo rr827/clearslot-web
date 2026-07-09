@@ -237,7 +237,7 @@ export default function ConnectClient({
     storeQuestionnaire(questionnaire);
     sessionStorage.setItem('aligned_provider', 'ics');
     sessionStorage.setItem('aligned_ics_blocks', JSON.stringify(normalizedBlocks));
-    router.push('/connect?resume=1');
+    window.location.assign('/connect?resume=1');
   };
 
   const skipAll = () => {
