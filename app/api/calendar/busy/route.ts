@@ -6,7 +6,31 @@ import { addDays } from 'date-fns';
 // an Authorization: Bearer header (PKCE path), then fetches busy blocks
 // from Google or Microsoft on behalf of the user.
 
-async function fetchGoogleBlocks(
+const GOOGLE_FETCH_TIMEOUT_MS = 15_000;
+const MICROSOFT_FETCH_TIMEOUT_MS = 15_000;
+
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number,
+  timeoutMessage: string
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(timeoutMessage);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function fetchGoogleEventBlocks(
   token: string,
   daysAhead: number,
   includeAllDay: boolean
@@ -14,7 +38,7 @@ async function fetchGoogleBlocks(
   const timeMin = new Date().toISOString();
   const timeMax = addDays(new Date(), daysAhead).toISOString();
 
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     'https://www.googleapis.com/calendar/v3/calendars/primary/events?' +
       new URLSearchParams({
         timeMin,
@@ -23,7 +47,9 @@ async function fetchGoogleBlocks(
         orderBy: 'startTime',
         maxResults: '250',
       }),
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` } },
+    GOOGLE_FETCH_TIMEOUT_MS,
+    'Google Calendar timeout'
   );
 
   if (!res.ok) throw new Error(`Google Calendar error: ${res.status}`);
@@ -43,6 +69,55 @@ async function fetchGoogleBlocks(
     });
 }
 
+async function fetchGoogleFreeBusyBlocks(
+  token: string,
+  daysAhead: number
+): Promise<{ start: string; end: string }[]> {
+  const timeMin = new Date().toISOString();
+  const timeMax = addDays(new Date(), daysAhead).toISOString();
+
+  const res = await fetchWithTimeout(
+    'https://www.googleapis.com/calendar/v3/freeBusy',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        timeMin,
+        timeMax,
+        items: [{ id: 'primary' }],
+      }),
+    },
+    GOOGLE_FETCH_TIMEOUT_MS,
+    'Google Calendar timeout'
+  );
+
+  if (!res.ok) throw new Error(`Google Calendar error: ${res.status}`);
+  const data = await res.json();
+  return (data.calendars?.primary?.busy || []).map((block: { start: string; end: string }) => ({
+    start: block.start,
+    end: block.end,
+  }));
+}
+
+async function fetchGoogleBlocks(
+  token: string,
+  daysAhead: number,
+  includeAllDay: boolean
+): Promise<{ start: string; end: string }[]> {
+  // freeBusy is much faster for ClearSlot's main availability use case because
+  // it returns busy ranges directly without expanding full event objects.
+  if (includeAllDay) {
+    return fetchGoogleFreeBusyBlocks(token, daysAhead);
+  }
+
+  // When all-day events should be ignored, we still need event-level detail to
+  // distinguish timed events from date-only all-day events.
+  return fetchGoogleEventBlocks(token, daysAhead, includeAllDay);
+}
+
 async function fetchMicrosoftBlocks(
   token: string,
   daysAhead: number,
@@ -51,10 +126,12 @@ async function fetchMicrosoftBlocks(
   const startDateTime = new Date().toISOString();
   const endDateTime = addDays(new Date(), daysAhead).toISOString();
 
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     'https://graph.microsoft.com/v1.0/me/calendarView?' +
       new URLSearchParams({ startDateTime, endDateTime, $top: '250' }),
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` } },
+    MICROSOFT_FETCH_TIMEOUT_MS,
+    'Microsoft Calendar timeout'
   );
 
   if (!res.ok) throw new Error(`Microsoft Calendar error: ${res.status}`);
