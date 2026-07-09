@@ -5,6 +5,57 @@ export interface BusyBlock {
   end: string;
 }
 
+interface NormalizeBusyBlockOptions {
+  range?: { start: string; end: string } | null;
+}
+
+export function normalizeBusyBlocks(
+  blocks: BusyBlock[],
+  options: NormalizeBusyBlockOptions = {}
+): BusyBlock[] {
+  const rangeStart = options.range
+    ? new Date(`${options.range.start}T00:00:00.000`)
+    : null;
+  const rangeEndExclusive = options.range
+    ? new Date(new Date(`${options.range.end}T00:00:00.000`).getTime() + 24 * 60 * 60 * 1000)
+    : null;
+
+  const normalized = blocks
+    .map((block) => ({
+      start: new Date(block.start),
+      end: new Date(block.end),
+    }))
+    .filter(({ start, end }) => Number.isFinite(start.getTime()) && Number.isFinite(end.getTime()) && end > start)
+    .map(({ start, end }) => {
+      const clippedStart = rangeStart && start < rangeStart ? rangeStart : start;
+      const clippedEnd = rangeEndExclusive && end > rangeEndExclusive ? rangeEndExclusive : end;
+      return { start: clippedStart, end: clippedEnd };
+    })
+    .filter(({ start, end }) => end > start)
+    .sort((a, b) => startOf(a) - startOf(b));
+
+  const merged: { start: Date; end: Date }[] = [];
+  for (const block of normalized) {
+    const current = merged[merged.length - 1];
+    if (current && block.start.getTime() <= current.end.getTime()) {
+      if (block.end > current.end) {
+        current.end = block.end;
+      }
+    } else {
+      merged.push({ ...block });
+    }
+  }
+
+  return merged.map((block) => ({
+    start: block.start.toISOString(),
+    end: block.end.toISOString(),
+  }));
+}
+
+function startOf(block: { start: Date }): number {
+  return block.start.getTime();
+}
+
 async function fetchWithTimeout(input: string, init: RequestInit = {}, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);

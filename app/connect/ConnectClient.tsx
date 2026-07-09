@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, addDays } from 'date-fns';
 import Logo from '../components/Logo';
+import { normalizeBusyBlocks } from '@/lib/calendar';
 
 type Preference = 'morning' | 'afternoon' | 'evening' | 'none';
 
@@ -231,9 +232,11 @@ export default function ConnectClient({
   };
 
   const handleIcsParsed = (blocks: { start: string; end: string }[]) => {
-    storeQuestionnaire(getQuestionnaire());
+    const questionnaire = getQuestionnaire();
+    const normalizedBlocks = normalizeBusyBlocks(blocks, { range: questionnaire.range });
+    storeQuestionnaire(questionnaire);
     sessionStorage.setItem('aligned_provider', 'ics');
-    sessionStorage.setItem('aligned_ics_blocks', JSON.stringify(blocks));
+    sessionStorage.setItem('aligned_ics_blocks', JSON.stringify(normalizedBlocks));
     router.push('/connect?resume=1');
   };
 

@@ -4,7 +4,7 @@ import Script from 'next/script';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isConnected } from '@/lib/auth';
-import { fetchBusyBlocks, fetchBusyBlocksMicrosoft, BusyBlock } from '@/lib/calendar';
+import { fetchBusyBlocks, fetchBusyBlocksMicrosoft, BusyBlock, normalizeBusyBlocks } from '@/lib/calendar';
 import { encodePayload, AlignedPayload } from '@/lib/payload';
 import { format, addDays, differenceInDays } from 'date-fns';
 
@@ -233,7 +233,7 @@ export default function RoomFlowLoader() {
         sleep: q?.sleep ?? null,
         preference: q?.preference ?? null,
         includeAllDay: q?.includeAllDay ?? true,
-        blocks,
+        blocks: normalizeBusyBlocks(blocks, { range }),
         blocked: q?.blocked ?? null,
         source: provider as AlignedPayload['source'],
       };
