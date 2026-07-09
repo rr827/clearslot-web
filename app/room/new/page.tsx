@@ -63,6 +63,7 @@ export default function RoomNewPage() {
   const [turnstileReady, setTurnstileReady] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('Preparing your room…');
+  const [flowError, setFlowError] = useState<string | null>(null);
 
   useEffect(() => {
     if (joinCooldownSeconds <= 0) return;
@@ -127,182 +128,208 @@ export default function RoomNewPage() {
   }
 
   async function continueFlow(turnstileTokenOverride?: string) {
-    const action = sessionStorage.getItem('aligned_room_action') ?? 'create';
-    const provider = sessionStorage.getItem('aligned_provider') ?? 'google';
-    const requiresCalendarAuth = provider !== 'ics' && provider !== 'manual';
-    const isUpdateAction = action.startsWith('update:');
-    if (requiresCalendarAuth && !isConnected()) {
+    try {
+      setFlowError(null);
+      const action = sessionStorage.getItem('aligned_room_action') ?? 'create';
+      const provider = sessionStorage.getItem('aligned_provider') ?? 'google';
+      const requiresCalendarAuth = provider !== 'ics' && provider !== 'manual';
+      const isUpdateAction = action.startsWith('update:');
+      if (requiresCalendarAuth && !isConnected()) {
+        const reconnectCode = action.startsWith('join:') || action.startsWith('update:')
+          ? action.slice(action.indexOf(':') + 1)
+          : null;
+        const reconnectPath = reconnectCode
+          ? `/connect?room=${reconnectCode}&error=auth_required${isUpdateAction ? '&edit=1' : ''}`
+          : '/connect?error=auth_required';
+        router.replace(reconnectPath);
+        return;
+      }
+
+      const qRaw = sessionStorage.getItem('aligned_questionnaire');
+      let q: {
+        range?: { start?: string; end?: string };
+        sleep?: { from: string; to: string } | null;
+        preference?: AlignedPayload['preference'];
+        includeAllDay?: boolean;
+        blocked?: { from: string; to: string }[] | null;
+      } | null = null;
+      try {
+        q = qRaw ? JSON.parse(qRaw) : null;
+      } catch {
+        q = null;
+      }
+
+      const range = q?.range?.start && q?.range?.end
+        ? { start: q.range.start, end: q.range.end }
+        : {
+            start: format(new Date(), 'yyyy-MM-dd'),
+            end: format(addDays(new Date(), 14), 'yyyy-MM-dd'),
+          };
+
+      const computedDaysAhead = differenceInDays(new Date(`${range.end}T23:59`), new Date()) + 1;
+      const daysAhead = Number.isFinite(computedDaysAhead) ? Math.max(14, computedDaysAhead) : 14;
+
       const reconnectCode = action.startsWith('join:') || action.startsWith('update:')
         ? action.slice(action.indexOf(':') + 1)
         : null;
-      const reconnectPath = reconnectCode
-        ? `/connect?room=${reconnectCode}&error=auth_required${isUpdateAction ? '&edit=1' : ''}`
-        : '/connect?error=auth_required';
-      router.replace(reconnectPath);
-      return;
-    }
-
-    const qRaw = sessionStorage.getItem('aligned_questionnaire');
-    const q = qRaw ? JSON.parse(qRaw) : null;
-    const range: { start: string; end: string } = q?.range ?? {
-      start: format(new Date(), 'yyyy-MM-dd'),
-      end: format(addDays(new Date(), 14), 'yyyy-MM-dd'),
-    };
-
-    const daysAhead = Math.max(
-      14,
-      differenceInDays(new Date(range.end + 'T23:59'), new Date()) + 1
-    );
-
-    const reconnectCode = action.startsWith('join:') || action.startsWith('update:')
-      ? action.slice(action.indexOf(':') + 1)
-      : null;
-    const connectPath = (errorCode: string) =>
-      reconnectCode
-        ? `/connect?room=${reconnectCode}&error=${errorCode}${isUpdateAction ? '&edit=1' : ''}`
-        : `/connect?error=${errorCode}`;
-    const mapRoomError = (message: unknown) => {
-      const text = typeof message === 'string' ? message : '';
-      if (text === 'Service misconfigured' || text === 'ROOM_SESSION_SECRET is not configured') {
-        return 'service_misconfigured';
-      }
-      if (text === 'Payload too large') {
-        return 'payload_too_large';
-      }
-      if (text === 'Room not found') {
-        return 'join_failed';
-      }
-      return 'room_failed';
-    };
-    const clearFlowState = () => {
-      sessionStorage.removeItem('aligned_questionnaire');
-      sessionStorage.removeItem('aligned_room_action');
-      sessionStorage.removeItem('aligned_provider');
-      sessionStorage.removeItem('aligned_ics_blocks');
-      sessionStorage.removeItem('aligned_manual_blocks');
-    };
-
-    let blocks: BusyBlock[] = [];
-    if (provider === 'ics') {
-      setLoadingMessage('Preparing your imported calendar…');
-      const raw = sessionStorage.getItem('aligned_ics_blocks');
-      blocks = raw ? JSON.parse(raw) : [];
-    } else if (provider === 'manual') {
-      setLoadingMessage('Preparing your manual availability…');
-      const raw = sessionStorage.getItem('aligned_manual_blocks');
-      blocks = raw ? JSON.parse(raw) : [];
-    } else {
-      setLoadingMessage('Loading your calendar availability…');
-      try {
-        if (provider === 'microsoft') {
-          blocks = await fetchBusyBlocksMicrosoft(daysAhead, q?.includeAllDay ?? true, CALENDAR_FETCH_TIMEOUT_MS);
-        } else {
-          blocks = await fetchBusyBlocks(daysAhead, q?.includeAllDay ?? true, CALENDAR_FETCH_TIMEOUT_MS);
+      const connectPath = (errorCode: string) =>
+        reconnectCode
+          ? `/connect?room=${reconnectCode}&error=${errorCode}${isUpdateAction ? '&edit=1' : ''}`
+          : `/connect?error=${errorCode}`;
+      const mapRoomError = (message: unknown) => {
+        const text = typeof message === 'string' ? message : '';
+        if (text === 'Service misconfigured' || text === 'ROOM_SESSION_SECRET is not configured') {
+          return 'service_misconfigured';
         }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : '';
-        router.replace(connectPath(errorMessage.includes('401') ? 'auth_required' : 'calendar_fetch_failed'));
+        if (text === 'Payload too large') {
+          return 'payload_too_large';
+        }
+        if (text === 'Room not found') {
+          return 'join_failed';
+        }
+        return 'room_failed';
+      };
+      const clearFlowState = () => {
+        sessionStorage.removeItem('aligned_questionnaire');
+        sessionStorage.removeItem('aligned_room_action');
+        sessionStorage.removeItem('aligned_provider');
+        sessionStorage.removeItem('aligned_ics_blocks');
+        sessionStorage.removeItem('aligned_manual_blocks');
+      };
+
+      let blocks: BusyBlock[] = [];
+      if (provider === 'ics') {
+        setLoadingMessage('Preparing your imported calendar…');
+        const raw = sessionStorage.getItem('aligned_ics_blocks');
+        try {
+          blocks = raw ? JSON.parse(raw) : [];
+        } catch {
+          blocks = [];
+        }
+      } else if (provider === 'manual') {
+        setLoadingMessage('Preparing your manual availability…');
+        const raw = sessionStorage.getItem('aligned_manual_blocks');
+        try {
+          blocks = raw ? JSON.parse(raw) : [];
+        } catch {
+          blocks = [];
+        }
+      } else {
+        setLoadingMessage('Loading your calendar availability…');
+        try {
+          if (provider === 'microsoft') {
+            blocks = await fetchBusyBlocksMicrosoft(daysAhead, q?.includeAllDay ?? true, CALENDAR_FETCH_TIMEOUT_MS);
+          } else {
+            blocks = await fetchBusyBlocks(daysAhead, q?.includeAllDay ?? true, CALENDAR_FETCH_TIMEOUT_MS);
+          }
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : '';
+          router.replace(connectPath(errorMessage.includes('401') ? 'auth_required' : 'calendar_fetch_failed'));
+          return;
+        }
+      }
+
+      const payload: AlignedPayload = {
+        range,
+        sleep: q?.sleep ?? null,
+        preference: q?.preference ?? null,
+        includeAllDay: q?.includeAllDay ?? true,
+        blocks,
+        blocked: q?.blocked ?? null,
+        source: provider as AlignedPayload['source'],
+      };
+
+      const encoded = encodePayload(payload);
+
+      if (action.startsWith('join:')) {
+        const code = action.slice(5);
+        setLoadingMessage('Joining the room…');
+        let res: Response;
+        try {
+          res = await fetchWithTimeout('/api/room/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, payload: encoded, turnstileToken: turnstileTokenOverride }),
+          }, ROOM_MUTATION_TIMEOUT_MS);
+        } catch (error) {
+          router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          clearFlowState();
+          localStorage.setItem(`room_${code}`, String(data.room.participants.length - 1));
+          router.replace(`/room/${code}`);
+          return;
+        }
+
+        if (data.challengeRequired) {
+          setJoinChallenge({ code, payload: encoded });
+          setJoinCooldownSeconds(0);
+          setJoinChallengeMessage('Please complete the verification check to join this room.');
+          resetTurnstile();
+          return;
+        }
+
+        if (data.cooldownActive) {
+          setJoinCooldownSeconds(Number(data.retryAfter) || 30);
+          setJoinChallenge(null);
+          setJoinChallengeMessage(null);
+          return;
+        }
+
+        router.replace(connectPath(mapRoomError(data.error)));
         return;
       }
-    }
 
-    const payload: AlignedPayload = {
-      range,
-      sleep: q?.sleep ?? null,
-      preference: q?.preference ?? null,
-      includeAllDay: q?.includeAllDay ?? true,
-      blocks,
-      blocked: q?.blocked ?? null,
-      source: provider as AlignedPayload['source'],
-    };
+      if (action.startsWith('update:')) {
+        const code = action.slice(7);
+        setLoadingMessage('Refreshing your availability…');
+        let res: Response;
+        try {
+          res = await fetchWithTimeout('/api/room/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, payload: encoded }),
+          }, ROOM_MUTATION_TIMEOUT_MS);
+        } catch (error) {
+          router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
+          return;
+        }
+        if (res.ok) {
+          clearFlowState();
+          router.replace(`/room/${code}`);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          router.replace(connectPath(data.error === 'Not authenticated for this room' ? 'auth_required' : mapRoomError(data.error)));
+        }
+        return;
+      }
 
-    const encoded = encodePayload(payload);
-
-    if (action.startsWith('join:')) {
-      const code = action.slice(5);
-      setLoadingMessage('Joining the room…');
+      setLoadingMessage('Creating your room…');
       let res: Response;
       try {
-        res = await fetchWithTimeout('/api/room/join', {
+        res = await fetchWithTimeout('/api/room/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, payload: encoded, turnstileToken: turnstileTokenOverride }),
+          body: JSON.stringify({ payload: encoded }),
         }, ROOM_MUTATION_TIMEOUT_MS);
       } catch (error) {
         router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
         return;
       }
-      const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        const { code: createdCode } = await res.json();
         clearFlowState();
-        localStorage.setItem(`room_${code}`, String(data.room.participants.length - 1));
-        router.replace(`/room/${code}`);
-        return;
-      }
-
-      if (data.challengeRequired) {
-        setJoinChallenge({ code, payload: encoded });
-        setJoinCooldownSeconds(0);
-        setJoinChallengeMessage('Please complete the verification check to join this room.');
-        resetTurnstile();
-        return;
-      }
-
-      if (data.cooldownActive) {
-        setJoinCooldownSeconds(Number(data.retryAfter) || 30);
-        setJoinChallenge(null);
-        setJoinChallengeMessage(null);
-        return;
-      }
-
-      router.replace(connectPath(mapRoomError(data.error)));
-      return;
-    }
-
-    if (action.startsWith('update:')) {
-      const code = action.slice(7);
-      setLoadingMessage('Refreshing your availability…');
-      let res: Response;
-      try {
-        res = await fetchWithTimeout('/api/room/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, payload: encoded }),
-        }, ROOM_MUTATION_TIMEOUT_MS);
-      } catch (error) {
-        router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
-        return;
-      }
-      if (res.ok) {
-        clearFlowState();
-        router.replace(`/room/${code}`);
+        localStorage.setItem(`room_${createdCode}`, '0');
+        router.replace(`/room/${createdCode}`);
       } else {
         const data = await res.json().catch(() => ({}));
-        router.replace(connectPath(data.error === 'Not authenticated for this room' ? 'auth_required' : mapRoomError(data.error)));
+        router.replace(connectPath(mapRoomError(data.error)));
       }
-      return;
-    }
-
-    setLoadingMessage('Creating your room…');
-    let res: Response;
-    try {
-      res = await fetchWithTimeout('/api/room/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload: encoded }),
-      }, ROOM_MUTATION_TIMEOUT_MS);
     } catch (error) {
-      router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
-      return;
-    }
-    if (res.ok) {
-      const { code: createdCode } = await res.json();
-      clearFlowState();
-      localStorage.setItem(`room_${createdCode}`, '0');
-      router.replace(`/room/${createdCode}`);
-    } else {
-      const data = await res.json().catch(() => ({}));
-      router.replace(connectPath(mapRoomError(data.error)));
+      console.error('room/new flow failed:', error);
+      setFlowError('ClearSlot could not finish preparing this room. Please try again or start over.');
     }
   }
 
@@ -352,7 +379,40 @@ export default function RoomNewPage() {
         </div>
       ) : null}
 
-      {showJoinChallenge || showJoinCooldown ? (
+      {flowError ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+          <div style={{ width: '100%', maxWidth: 420, border: '1px solid #FECACA', borderRadius: 20, backgroundColor: '#FFFFFF', padding: '28px 24px', boxShadow: '0 16px 40px rgba(15, 23, 42, 0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#B42318' }}>
+                Room setup failed
+              </p>
+              <h1 style={{ margin: 0, fontSize: 28, lineHeight: 1.15, fontWeight: 700, color: '#111827' }}>
+                Something went wrong
+              </h1>
+            </div>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: '#667085' }}>
+              {flowError}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                ran.current = false;
+                void continueFlow();
+              }}
+              style={{ width: '100%', backgroundColor: '#1EAF53', color: '#fff', border: 'none', borderRadius: 12, padding: '14px 16px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={() => router.replace('/connect')}
+              style={{ width: '100%', backgroundColor: '#F3F4F6', color: '#111827', border: '1px solid #E5E7EB', borderRadius: 12, padding: '14px 16px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+            >
+              Start over
+            </button>
+          </div>
+        </div>
+      ) : showJoinChallenge || showJoinCooldown ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
           <div style={{ width: '100%', maxWidth: 420, border: '1px solid #E5E7EB', borderRadius: 20, backgroundColor: '#FFFFFF', padding: '28px 24px', boxShadow: '0 16px 40px rgba(15, 23, 42, 0.08)', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
