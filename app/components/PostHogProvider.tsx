@@ -29,7 +29,9 @@ export default function PostHogProvider() {
   useEffect(() => {
     if (!POSTHOG_KEY) return;
     if (pathname === '/mobile/google-redirect') return;
-    const sanitized = pathname.replace(/\/room\/[A-Z2-9]{6}/i, '/room/[code]');
+    const sanitized = pathname
+      .replace(/\/room\/[A-Z2-9]{6}/i, '/room/[code]')
+      .replace(/\/r\/[A-Z2-9]{6}/i, '/r/[code]');
     posthog.capture('$pageview', { $current_url: sanitized });
   }, [pathname]);
 

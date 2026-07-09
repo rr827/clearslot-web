@@ -17,9 +17,10 @@ export async function GET(
     const { code } = await params;
     const room = await getRoom(code);
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    const inviteMode = req.nextUrl.searchParams.get('invite') === '1';
 
-    const token = getRoomSessionToken(req, code);
-    const participantIndex = await verifyRoomSession(code, token);
+    const token = inviteMode ? undefined : getRoomSessionToken(req, code);
+    const participantIndex = inviteMode ? null : await verifyRoomSession(code, token);
 
     // Verified members get the full room shape needed to render the page.
     if (participantIndex !== null && participantIndex < room.participants.length) {

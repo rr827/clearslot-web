@@ -105,6 +105,6 @@ export function decodePayload(encoded: string): AlignedPayload {
 // ── Link builders ──────────────────────────────────────────────────────────
 
 export function buildRoomLink(code: string): string {
-  const base = typeof window !== 'undefined' ? window.location.origin : 'https://getaligned.app';
-  return `${base}/room/${code}`;
+  const base = typeof window !== 'undefined' ? window.location.origin : 'https://clearslot.net';
+  return `${base}/r/${code}`;
 }

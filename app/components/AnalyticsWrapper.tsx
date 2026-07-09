@@ -8,7 +8,9 @@ function beforeSend(event: BeforeSendEvent): BeforeSendEvent {
   const [path] = event.url.split('?');
   return {
     ...event,
-    url: path.replace(/\/room\/[A-Z2-9]{6}/i, '/room/[code]'),
+    url: path
+      .replace(/\/room\/[A-Z2-9]{6}/i, '/room/[code]')
+      .replace(/\/r\/[A-Z2-9]{6}/i, '/r/[code]'),
   };
 }
 
