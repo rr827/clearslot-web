@@ -11,6 +11,7 @@ import { BusyBlock } from '@/lib/calendar';
 import { decodePayload, AlignedPayload, buildRoomLink } from '@/lib/payload';
 import { RoomRow, Proposal } from '@/lib/room';
 import { generateIcsEvent } from '@/lib/ics';
+import { captureClientEvent } from '@/lib/analyticsClient';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -947,6 +948,7 @@ function RoomContent() {
   const handleCopyLink = async () => {
     const url = buildRoomLink(code);
     await navigator.clipboard.writeText(url);
+    captureClientEvent('room_link_copied');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -964,6 +966,12 @@ function RoomContent() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? 'Failed to propose');
       }
+      captureClientEvent('room_proposal_created', {
+        duration_minutes: Math.max(
+          5,
+          Math.round((selectedRange.end.getTime() - selectedRange.start.getTime()) / 60_000)
+        ),
+      });
       setActionError(null);
       setProposed(true);
     } catch (err) {
@@ -990,6 +998,7 @@ function RoomContent() {
         body: JSON.stringify({ code, proposalIndex }),
       });
       if (!res.ok) throw new Error('Failed to accept');
+      captureClientEvent('room_proposal_accepted');
       setActionError(null);
     } catch {
       // Revert on failure
@@ -1022,6 +1031,7 @@ function RoomContent() {
         body: JSON.stringify({ code, proposalIndex }),
       });
       if (!res.ok) throw new Error('Failed to decline');
+      captureClientEvent('room_proposal_declined');
       setActionError(null);
     } catch {
       setRoom(prev => {
@@ -1060,6 +1070,7 @@ function RoomContent() {
       anchor.click();
       document.body.removeChild(anchor);
       URL.revokeObjectURL(url);
+      captureClientEvent('room_proposal_ics_downloaded');
       setActionError(null);
       setDownloadedIcsIdx(proposalIndex);
       window.setTimeout(() => {
@@ -1090,6 +1101,7 @@ function RoomContent() {
   };
 
   const handleJoin = () => router.push(`/connect?room=${code}`);
+
 
   const handleUpdatePreferences = () => {
     if (myIndex === null) return;

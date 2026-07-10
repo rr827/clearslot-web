@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { RRule } from 'rrule';
+import { captureClientEvent } from '@/lib/analyticsClient';
 
 const MAX_ICS_FILE_BYTES = 1_000_000;
 const MAX_ICS_BLOCKS = 10_000;
@@ -190,6 +191,11 @@ export default function ConnectIcsSection({
     if (file.size > MAX_ICS_FILE_BYTES) {
       setStatus('error');
       setErrorMessage('This .ics file is too large. Please use a file under 1 MB.');
+      captureClientEvent('connect_ics_failed', {
+        reason: 'file_too_large',
+        include_all_day: includeAllDay,
+        file_size_bytes: file.size,
+      });
       e.target.value = '';
       return;
     }
@@ -209,15 +215,24 @@ export default function ConnectIcsSection({
       } catch (error) {
         setStatus('error');
         const message = error instanceof Error ? error.message : '';
+        let reason = 'parse_failed';
         if (message === 'ICS_PARSE_TIMEOUT') {
           setErrorMessage('This .ics file took too long to parse. Please try a smaller export.');
+          reason = 'parse_timeout';
         } else if (message === 'ICS_RANGE_INVALID') {
           setErrorMessage('ClearSlot could not match this file to your selected date range. Please try again.');
+          reason = 'range_invalid';
         } else if (message === 'ICS_TOO_MANY_EVENTS') {
           setErrorMessage('This .ics file contains too many events. Please export a shorter date range.');
+          reason = 'too_many_events';
         } else {
           setErrorMessage('ClearSlot could not read this .ics file. Try another export or shorten the selected range.');
         }
+        captureClientEvent('connect_ics_failed', {
+          reason,
+          include_all_day: includeAllDay,
+          file_size_bytes: file.size,
+        });
       } finally {
         onBusyChange(false);
       }
@@ -226,6 +241,11 @@ export default function ConnectIcsSection({
     reader.onerror = () => {
       setStatus('error');
       setErrorMessage('ClearSlot could not read this .ics file. Please try again.');
+      captureClientEvent('connect_ics_failed', {
+        reason: 'file_read_error',
+        include_all_day: includeAllDay,
+        file_size_bytes: file.size,
+      });
       onBusyChange(false);
     };
 

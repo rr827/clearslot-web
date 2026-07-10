@@ -136,6 +136,18 @@ export default function PrivacyPage() {
             Google Calendar events through the Google API in the current
             product flow.
           </p>
+          <p>
+            ClearSlot&apos;s use and transfer of information received from
+            Google APIs will adhere to the{' '}
+            <a
+              href="https://developers.google.com/terms/api-services-user-data-policy"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Google API Services User Data Policy
+            </a>
+            , including the Limited Use requirements.
+          </p>
         </>
       ),
     },
@@ -175,12 +187,14 @@ export default function PrivacyPage() {
             participants can join the same shared room state across devices.
           </p>
           <p>
-            Analytics providers: ClearSlot&apos;s web product uses Vercel
-            Analytics and Vercel Speed Insights for product usage and
-            performance telemetry. ClearSlot masks room codes and strips query
-            strings before sending data to Vercel Analytics. ClearSlot does not
-            intentionally send calendar content, room payload contents, room
-            codes, or share link query strings to analytics tools.
+            Analytics and diagnostics providers: ClearSlot&apos;s web product
+            uses Vercel Analytics, Vercel Speed Insights, PostHog, and Sentry
+            for product usage, performance telemetry, and error monitoring.
+            ClearSlot strips query strings and replaces room codes with
+            placeholders before sending page URLs where supported by the
+            integration. ClearSlot does not intentionally send calendar
+            content, room payload contents, Google access tokens, or
+            unredacted room codes to those tools.
           </p>
           <p>
             ClearSlot does not use your calendar data to train any machine
@@ -241,6 +255,14 @@ export default function PrivacyPage() {
             accessible to client-side JavaScript at any point. This token is
             short lived and is never written to ClearSlot&apos;s database.
           </p>
+          <p>
+            Separately from the room-participation reference described above,
+            if PostHog analytics is enabled for the web product, PostHog stores
+            an anonymous analytics identifier in your browser&apos;s localStorage
+            so ClearSlot can measure product usage across page loads. This
+            analytics storage is separate from Google authentication and does
+            not contain calendar content.
+          </p>
           <h3 id="how-we-store-and-protect-data-mobile">Mobile app</h3>
           <p>
             On the mobile app, Google and Microsoft access tokens, where used,
@@ -277,8 +299,11 @@ export default function PrivacyPage() {
             imported .ics file, or on-device calendar access.
           </p>
           <p>
-            Analytics data. Usage and performance telemetry for the web product
-            is stored by Vercel according to our account settings.
+            Analytics and diagnostics data. Usage, performance, and
+            error-monitoring telemetry for the web product may be processed by
+            Vercel, PostHog, and Sentry according to ClearSlot&apos;s account
+            configuration. PostHog is configured with automatic DOM capture and
+            session recording disabled. Sentry session replay is also disabled.
           </p>
           <p>
             During web calendar fetches, ClearSlot&apos;s server processes Google
@@ -339,8 +364,9 @@ export default function PrivacyPage() {
             replaced by a new sign in.
           </p>
           <p>
-            Analytics and performance telemetry for the web product are
-            retained according to ClearSlot&apos;s Vercel account configuration.
+            Analytics, performance, and error-monitoring telemetry for the web
+            product are retained according to ClearSlot&apos;s Vercel, PostHog,
+            and Sentry account configuration.
           </p>
           <p>
             Google access tokens are short lived and are not written into
@@ -402,22 +428,40 @@ export default function PrivacyPage() {
       content: (
         <>
           <p>
-            ClearSlot&apos;s web product uses Vercel Analytics and Vercel Speed
-            Insights to understand how people move through the product and
-            where the product needs improvement.
+            ClearSlot uses three analytics and error-monitoring tools on its
+            web product: Vercel Analytics, PostHog, and Sentry.
           </p>
           <p>
-            Examples include page views, room creation, room join, proposal,
-            acceptance, and performance telemetry.
+            <strong>Vercel Analytics and Vercel Speed Insights</strong> collect
+            aggregated page-view and performance metrics. No personally
+            identifiable information is attached to these events.
           </p>
           <p>
-            ClearSlot does not intentionally send raw calendar events, event
-            titles, event descriptions, room payloads, share links, room codes,
-            or share link query strings to those analytics tools.
+            <strong>PostHog</strong> is used for product analytics. ClearSlot
+            configures PostHog with autocapture disabled, session recording
+            disabled, and no DOM scraping. Events are fired manually and
+            include actions such as page views, connect-flow starts, room
+            creation and join attempts, proposal submissions, .ics exports,
+            and waitlist sign-ups. Room codes are replaced with a placeholder
+            before any page-view URL is sent. PostHog stores an anonymous
+            identifier in your browser&apos;s local storage. No calendar content
+            is ever included in PostHog events.
           </p>
           <p>
-            Analytics are used to understand product behavior, not calendar
-            content.
+            <strong>Sentry</strong> is used for error monitoring and
+            performance tracing. Session replay is fully disabled. If an
+            error occurs, Sentry receives a stack trace and the URL of the
+            page where the error happened. Room codes in room and invite URLs
+            are replaced with a placeholder before the error report is
+            transmitted. Performance traces are sampled at 5% of requests. No
+            calendar content is included in Sentry reports.
+          </p>
+          <p>
+            None of these tools receive raw calendar events, event titles,
+            event descriptions, room payloads, Google access tokens, or
+            unredacted room codes. Analytics and diagnostics are used to
+            understand product behavior, monitor performance, and diagnose
+            errors, not to process calendar content.
           </p>
         </>
       ),

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { format, addDays } from 'date-fns';
 import Logo from '../components/Logo';
 import { normalizeBusyBlocks } from '@/lib/calendar';
+import { captureClientEvent } from '@/lib/analyticsClient';
 
 type Preference = 'morning' | 'afternoon' | 'evening' | 'none';
 
@@ -15,6 +16,25 @@ interface Questionnaire {
   preference: Preference | null;
   includeAllDay?: boolean;
   blocked?: { from: string; to: string }[] | null;
+}
+
+function questionnaireEventProps(questionnaire: Questionnaire) {
+  const start = new Date(`${questionnaire.range.start}T00:00:00`);
+  const end = new Date(`${questionnaire.range.end}T00:00:00`);
+  const rangeDays = Math.max(
+    1,
+    Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1
+  );
+
+  return {
+    has_room_code: false,
+    is_editing: false,
+    range_days: rangeDays,
+    has_sleep_hours: Boolean(questionnaire.sleep),
+    preference: questionnaire.preference ?? 'none',
+    include_all_day: questionnaire.includeAllDay ?? true,
+    blocked_range_count: questionnaire.blocked?.length ?? 0,
+  };
 }
 
 type ConnectErrorCode =
@@ -202,6 +222,11 @@ export default function ConnectClient({
   }
 
   async function launchOAuth(q: Questionnaire) {
+    captureClientEvent('connect_google_started', {
+      ...questionnaireEventProps(q),
+      has_room_code: Boolean(roomCode),
+      is_editing: isEditing,
+    });
     storeQuestionnaire(q);
     sessionStorage.setItem('aligned_provider', 'google');
     const res = await fetch('/api/auth/state', { method: 'POST' });
@@ -234,6 +259,12 @@ export default function ConnectClient({
   const handleIcsParsed = (blocks: { start: string; end: string }[]) => {
     const questionnaire = getQuestionnaire();
     const normalizedBlocks = normalizeBusyBlocks(blocks, { range: questionnaire.range });
+    captureClientEvent('connect_ics_parsed', {
+      ...questionnaireEventProps(questionnaire),
+      has_room_code: Boolean(roomCode),
+      is_editing: isEditing,
+      imported_block_count: normalizedBlocks.length,
+    });
     storeQuestionnaire(questionnaire);
     sessionStorage.setItem('aligned_provider', 'ics');
     sessionStorage.setItem('aligned_ics_blocks', JSON.stringify(normalizedBlocks));
@@ -242,12 +273,22 @@ export default function ConnectClient({
 
   const skipAll = () => {
     setLaunching(true);
+    captureClientEvent('connect_skip_all_selected', {
+      has_room_code: Boolean(roomCode),
+      is_editing: isEditing,
+    });
     launchOAuth({ range: { start: today, end: twoWeeks }, sleep: null, preference: null, includeAllDay: true });
   };
 
   const handleManual = () => {
     setLaunching(true);
-    storeQuestionnaire(getQuestionnaire());
+    const questionnaire = getQuestionnaire();
+    captureClientEvent('connect_manual_selected', {
+      ...questionnaireEventProps(questionnaire),
+      has_room_code: Boolean(roomCode),
+      is_editing: isEditing,
+    });
+    storeQuestionnaire(questionnaire);
     sessionStorage.setItem('aligned_provider', 'manual');
     router.push('/manual');
   };

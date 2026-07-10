@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { isConnected } from '@/lib/auth';
 import { fetchBusyBlocks, fetchBusyBlocksMicrosoft, BusyBlock, normalizeBusyBlocks } from '@/lib/calendar';
 import { encodePayload, AlignedPayload } from '@/lib/payload';
+import { captureClientEvent } from '@/lib/analyticsClient';
 import { format, addDays, differenceInDays } from 'date-fns';
 
 declare global {
@@ -29,6 +30,24 @@ declare global {
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
 const CALENDAR_FETCH_TIMEOUT_MS = 15_000;
 const ROOM_MUTATION_TIMEOUT_MS = 15_000;
+
+function toFlowAction(action: string): 'create' | 'join' | 'update' {
+  if (action.startsWith('join:')) return 'join';
+  if (action.startsWith('update:')) return 'update';
+  return 'create';
+}
+
+function trackFlowFailure(
+  action: 'create' | 'join' | 'update',
+  provider: string,
+  reason: string
+) {
+  captureClientEvent('room_flow_failed', {
+    action,
+    provider,
+    reason,
+  });
+}
 
 // Shared room-flow loader.
 // Reads questionnaire + action from sessionStorage, fetches calendar blocks
@@ -131,9 +150,11 @@ export default function RoomFlowLoader() {
       setFlowError(null);
       const action = sessionStorage.getItem('aligned_room_action') ?? 'create';
       const provider = sessionStorage.getItem('aligned_provider') ?? 'google';
+      const flowAction = toFlowAction(action);
       const requiresCalendarAuth = provider !== 'ics' && provider !== 'manual';
       const isUpdateAction = action.startsWith('update:');
       if (requiresCalendarAuth && !isConnected()) {
+        trackFlowFailure(flowAction, provider, 'auth_required');
         const reconnectCode = action.startsWith('join:') || action.startsWith('update:')
           ? action.slice(action.indexOf(':') + 1)
           : null;
@@ -223,6 +244,7 @@ export default function RoomFlowLoader() {
           }
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : '';
+          trackFlowFailure(flowAction, provider, errorMessage.includes('401') ? 'calendar_auth_failed' : 'calendar_fetch_failed');
           router.replace(connectPath(errorMessage.includes('401') ? 'auth_required' : 'calendar_fetch_failed'));
           return;
         }
@@ -251,11 +273,17 @@ export default function RoomFlowLoader() {
             body: JSON.stringify({ code, payload: encoded, turnstileToken: turnstileTokenOverride }),
           }, ROOM_MUTATION_TIMEOUT_MS);
         } catch (error) {
+          trackFlowFailure(flowAction, provider, error instanceof Error ? error.message : 'join_request_failed');
           router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
           return;
         }
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
+          captureClientEvent('room_flow_completed', {
+            action: flowAction,
+            provider,
+            participant_count: data.room?.participants?.length ?? null,
+          });
           clearFlowState();
           localStorage.setItem(`room_${code}`, String(data.room.participants.length - 1));
           router.replace(`/room/${code}`);
@@ -263,6 +291,9 @@ export default function RoomFlowLoader() {
         }
 
         if (data.challengeRequired) {
+          captureClientEvent('room_join_verification_required', {
+            provider,
+          });
           setJoinChallenge({ code, payload: encoded });
           setJoinCooldownSeconds(0);
           setJoinChallengeMessage('Please complete the verification check to join this room.');
@@ -271,12 +302,17 @@ export default function RoomFlowLoader() {
         }
 
         if (data.cooldownActive) {
+          captureClientEvent('room_join_cooldown_shown', {
+            provider,
+            retry_after_seconds: Number(data.retryAfter) || 30,
+          });
           setJoinCooldownSeconds(Number(data.retryAfter) || 30);
           setJoinChallenge(null);
           setJoinChallengeMessage(null);
           return;
         }
 
+        trackFlowFailure(flowAction, provider, typeof data.error === 'string' ? data.error : 'join_failed');
         router.replace(connectPath(mapRoomError(data.error)));
         return;
       }
@@ -292,14 +328,20 @@ export default function RoomFlowLoader() {
             body: JSON.stringify({ code, payload: encoded }),
           }, ROOM_MUTATION_TIMEOUT_MS);
         } catch (error) {
+          trackFlowFailure(flowAction, provider, error instanceof Error ? error.message : 'update_request_failed');
           router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
           return;
         }
         if (res.ok) {
+          captureClientEvent('room_flow_completed', {
+            action: flowAction,
+            provider,
+          });
           clearFlowState();
           router.replace(`/room/${code}`);
         } else {
           const data = await res.json().catch(() => ({}));
+          trackFlowFailure(flowAction, provider, typeof data.error === 'string' ? data.error : 'update_failed');
           router.replace(connectPath(data.error === 'Not authenticated for this room' ? 'auth_required' : mapRoomError(data.error)));
         }
         return;
@@ -314,20 +356,30 @@ export default function RoomFlowLoader() {
           body: JSON.stringify({ payload: encoded }),
         }, ROOM_MUTATION_TIMEOUT_MS);
       } catch (error) {
+        trackFlowFailure(flowAction, provider, error instanceof Error ? error.message : 'create_request_failed');
         router.replace(connectPath(mapRoomError(error instanceof Error ? error.message : '')));
         return;
       }
       if (res.ok) {
         const { code: createdCode } = await res.json();
+        captureClientEvent('room_flow_completed', {
+          action: flowAction,
+          provider,
+          participant_count: 1,
+        });
         clearFlowState();
         localStorage.setItem(`room_${createdCode}`, '0');
         router.replace(`/room/${createdCode}`);
       } else {
         const data = await res.json().catch(() => ({}));
+        trackFlowFailure(flowAction, provider, typeof data.error === 'string' ? data.error : 'create_failed');
         router.replace(connectPath(mapRoomError(data.error)));
       }
     } catch (error) {
       console.error('room/new flow failed:', error);
+      const action = sessionStorage.getItem('aligned_room_action') ?? 'create';
+      const provider = sessionStorage.getItem('aligned_provider') ?? 'google';
+      trackFlowFailure(toFlowAction(action), provider, error instanceof Error ? error.message : 'unexpected_flow_error');
       setFlowError('ClearSlot could not finish preparing this room. Please try again or start over.');
     }
   }

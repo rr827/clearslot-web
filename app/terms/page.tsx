@@ -121,18 +121,19 @@ export default function TermsPage() {
             scheduling state.
           </p>
           <p>
-            ClearSlot may also collect product usage and performance telemetry
-            to operate and improve the service.
+            ClearSlot may also collect product usage, performance telemetry,
+            and limited error-monitoring data to operate, secure, and improve
+            the service.
           </p>
           <p>
             ClearSlot does not intentionally send calendar content or room
             payload contents to analytics tools.
           </p>
           <p>
-            The web product uses Vercel-hosted telemetry for analytics and
-            performance monitoring. The mobile app may also rely on
-            ClearSlot&apos;s backend room services so room state can stay in sync
-            across devices.
+            The web product uses Vercel-hosted telemetry, PostHog product
+            analytics, and Sentry error monitoring. The mobile app may also
+            rely on ClearSlot&apos;s backend room services so room state can stay
+            in sync across devices.
           </p>
           <p>
             Detailed information about data handling, storage, retention,
