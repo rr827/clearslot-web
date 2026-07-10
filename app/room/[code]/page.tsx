@@ -854,6 +854,7 @@ function RoomContent() {
   const [proposed, setProposed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [acceptingIdx, setAcceptingIdx] = useState<number | null>(null);
+  const [decliningIdx, setDecliningIdx] = useState<number | null>(null);
   const [downloadedIcsIdx, setDownloadedIcsIdx] = useState<number | null>(null);
   const [eventTitles, setEventTitles] = useState<Record<number, string>>({});
   const [actionError, setActionError] = useState<string | null>(null);
@@ -1002,6 +1003,37 @@ function RoomContent() {
       setActionError('Could not accept proposal. Try again.');
     } finally {
       setAcceptingIdx(null);
+    }
+  };
+
+  const handleDecline = async (proposalIndex: number) => {
+    setDecliningIdx(proposalIndex);
+    setRoom(prev => {
+      if (!prev) return prev;
+      const proposals = prev.proposals.map((p, i) =>
+        i === proposalIndex ? { ...p, status: 'declined' as const } : p
+      );
+      return { ...prev, proposals };
+    });
+    try {
+      const res = await fetch('/api/room/decline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, proposalIndex }),
+      });
+      if (!res.ok) throw new Error('Failed to decline');
+      setActionError(null);
+    } catch {
+      setRoom(prev => {
+        if (!prev) return prev;
+        const proposals = prev.proposals.map((p, i) =>
+          i === proposalIndex ? { ...p, status: 'pending' as const } : p
+        );
+        return { ...prev, proposals };
+      });
+      setActionError('Could not decline proposal. Try again.');
+    } finally {
+      setDecliningIdx(null);
     }
   };
 
@@ -1407,7 +1439,10 @@ function RoomContent() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {room.proposals.map((prop, i) => {
                   const isAccepted = prop.status === 'accepted';
-                  const canAccept = prop.status === 'pending' && (myIndex === null || prop.proposer_index !== myIndex);
+                  const isDeclined = prop.status === 'declined';
+                  const isPending = prop.status === 'pending';
+                  const isOwnProposal = myIndex !== null && prop.proposer_index === myIndex;
+                  const actionBusy = acceptingIdx === i || decliningIdx === i;
                   return (
                     <div key={i} style={{ padding: '12px 13px', borderRadius: 14, backgroundColor: isAccepted ? ROOM_ACCENT_SOFT : '#FBFCFE', border: `1px solid ${isAccepted ? ROOM_ACCENT_BORDER : ROOM_BORDER}` }}>
                       <p style={{ fontSize: 13, color: ROOM_MUTED, marginBottom: 6 }}>Person {prop.proposer_index + 1} suggests</p>
@@ -1420,7 +1455,6 @@ function RoomContent() {
                       {isAccepted ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 700 }}>Accepted</span>
-                          {/* Event title input */}
                           <input
                             type="text"
                             placeholder="Event title (optional, default: ClearSlot Meeting)"
@@ -1445,13 +1479,28 @@ function RoomContent() {
                             <a href="/connect" style={{ fontSize: 12, color: ROOM_ACCENT, fontWeight: 600, textDecoration: 'none' }}>Create a room free →</a>
                           </div>
                         </div>
-                      ) : canAccept ? (
-                        <button
-                          onClick={() => handleAccept(i)}
-                          disabled={acceptingIdx === i}
-                          style={{ width: '100%', backgroundColor: ROOM_ACCENT, color: '#fff', borderRadius: 10, padding: '10px', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', opacity: acceptingIdx === i ? 0.6 : 1 }}>
-                          {acceptingIdx === i ? 'Accepting…' : 'Accept'}
-                        </button>
+                      ) : isDeclined ? (
+                        <span style={{ fontSize: 14, color: '#aaa' }}>Declined</span>
+                      ) : isPending ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {isOwnProposal && (
+                            <p style={{ fontSize: 12, color: '#9CA3AF', margin: '0 0 2px' }}>You proposed this</p>
+                          )}
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={() => handleAccept(i)}
+                              disabled={actionBusy}
+                              style={{ flex: 1, backgroundColor: ROOM_ACCENT, color: '#fff', borderRadius: 10, padding: '10px', fontSize: 15, fontWeight: 700, border: 'none', cursor: actionBusy ? 'not-allowed' : 'pointer', opacity: actionBusy ? 0.6 : 1 }}>
+                              {acceptingIdx === i ? 'Accepting…' : 'Accept'}
+                            </button>
+                            <button
+                              onClick={() => handleDecline(i)}
+                              disabled={actionBusy}
+                              style={{ flex: 1, backgroundColor: ROOM_SURFACE, color: '#6B7280', borderRadius: 10, padding: '10px', fontSize: 15, fontWeight: 600, border: `1px solid ${ROOM_BORDER}`, cursor: actionBusy ? 'not-allowed' : 'pointer', opacity: actionBusy ? 0.6 : 1 }}>
+                              {decliningIdx === i ? 'Declining…' : 'Decline'}
+                            </button>
+                          </div>
+                        </div>
                       ) : (
                         <span style={{ fontSize: 14, color: '#aaa', textTransform: 'capitalize' }}>{prop.status}</span>
                       )}
