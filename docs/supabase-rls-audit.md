@@ -5,8 +5,7 @@ This audit must be completed against the production Supabase project before a pu
 ## Scope
 
 - `rooms`
-- `waitlist_members`
-- `waitlist_referral_credits`
+- `waitlist`
 
 ## Required checks
 
@@ -19,12 +18,10 @@ This audit must be completed against the production Supabase project before a pu
 
 ```sql
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE waitlist_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE waitlist_referral_credits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON TABLE rooms FROM anon, authenticated;
-REVOKE ALL ON TABLE waitlist_members FROM anon, authenticated;
-REVOKE ALL ON TABLE waitlist_referral_credits FROM anon, authenticated;
+REVOKE ALL ON TABLE waitlist FROM anon, authenticated;
 ```
 
 Service role bypasses RLS by design — all server-side application calls are unaffected.
@@ -34,8 +31,7 @@ Service role bypasses RLS by design — all server-side application calls are un
 | Table | RLS enabled | Active policies reviewed | `anon` read access | `anon` write access | Result |
 | --- | --- | --- | --- | --- | --- |
 | `rooms` | ✓ | None (REVOKE denies all) | None | None | Pass |
-| `waitlist_members` | ✓ | None (REVOKE denies all) | None | None | Pass |
-| `waitlist_referral_credits` | ✓ | None (REVOKE denies all) | None | None | Pass |
+| `waitlist` | ✓ | None (REVOKE denies all) | None | None | Pass |
 
 ## Release decision
 
