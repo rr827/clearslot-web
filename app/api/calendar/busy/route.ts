@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addDays } from 'date-fns';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { getClientIp } from '@/lib/clientIp';
 
 // Server-side calendar proxy.
 // Reads the httpOnly aligned_token cookie (server OAuth path) or
@@ -153,6 +155,11 @@ export async function GET(request: NextRequest) {
 
   if (!token) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  const ip = getClientIp(request);
+  if (!(await checkRateLimit(`calendar_busy:${ip}`, 10, 60_000))) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '60' } });
   }
 
   const { searchParams } = new URL(request.url);

@@ -217,6 +217,28 @@ export default function PrivacyPage() {
             ClearSlot handles different categories of data differently,
             depending on what the data is and how long it is needed.
           </p>
+          <p>
+            ClearSlot applies the following security measures to protect data
+            in transit and at rest. All communication between your browser or
+            device and ClearSlot&apos;s servers is encrypted using HTTPS and
+            TLS. Room and waitlist data stored at rest in Supabase is encrypted
+            at the storage level. Google access tokens are stored exclusively in
+            httpOnly cookies, which are inaccessible to client-side JavaScript.
+            Room session authentication uses HMAC-SHA256-signed tokens that are
+            verified server-side on every request. ClearSlot&apos;s database
+            tables are protected by Row Level Security policies; the anonymous
+            and authenticated Supabase roles have no access to any application
+            table, and only ClearSlot&apos;s server-side application code,
+            using a service-role credential that is never exposed to the
+            browser, can read or write data. API endpoints that process calendar
+            data and room mutations apply per-IP rate limiting to limit abusive
+            request volumes. Calendar event details such as titles, descriptions,
+            and attendees are processed in server memory only and are never
+            written to any storage layer. Room availability payloads expire and
+            are deleted automatically after 48 hours. To report a security
+            concern, contact{' '}
+            <a href="mailto:privacy@clearslot.net" rel="noopener noreferrer">privacy@clearslot.net</a>.
+          </p>
           <h3 id="how-we-store-and-protect-data-web">Web app</h3>
           <p>
             During sign in, ClearSlot creates a short lived, random value to
@@ -619,7 +641,7 @@ export default function PrivacyPage() {
   return (
     <LegalLayout
       title="Privacy Policy"
-      updated="June 24, 2026"
+      updated="July 12, 2026"
       intro={
         <>
           <p>
