@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, verifyConfirmToken, creditedReferralCount } from '@/lib/waitlist';
 import { trackEvent } from '@/lib/analytics';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { getClientIp } from '@/lib/clientIp';
 
 export async function GET(req: NextRequest) {
+  const ip = getClientIp(req);
+  if (!(await checkRateLimit(`waitlist_confirm:${ip}`, 10, 60_000))) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '60' } });
+  }
+
   const token = req.nextUrl.searchParams.get('token') ?? '';
   const { valid, id } = verifyConfirmToken(token);
 
