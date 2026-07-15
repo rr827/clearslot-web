@@ -126,7 +126,6 @@ export async function POST(req: NextRequest) {
           success: true,
           position: existing.position,
           referralCode: existing.referral_code,
-          alreadyExists: true,
         });
       }
     }

@@ -42,7 +42,6 @@ type Status = 'idle' | 'submitting' | 'submitted' | 'error';
 interface SubmitResult {
   position: number;
   referralCode: string;
-  alreadyExists?: boolean;
 }
 
 export default function WaitlistForm() {
@@ -78,7 +77,7 @@ export default function WaitlistForm() {
       const data = await res.json();
 
       if (data.success) {
-        setResult({ position: data.position, referralCode: data.referralCode, alreadyExists: data.alreadyExists });
+        setResult({ position: data.position, referralCode: data.referralCode });
         setStatus('submitted');
       } else {
         setErrorMsg(data.error ?? 'Something went wrong');
