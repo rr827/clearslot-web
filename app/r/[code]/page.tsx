@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Logo from '@/app/components/Logo';
+import { captureClientEvent } from '@/lib/analyticsClient';
 
 type InviteRoomState =
   | { code: string; expiresAt: string; participantCount: number; joinable: boolean }
@@ -47,6 +48,13 @@ export default function InviteRoomPage() {
         const data = await res.json();
         if (!cancelled) {
           setRoom(data);
+          captureClientEvent('invite_opened', {
+            participant_count: data.participantCount ?? null,
+            joinable: Boolean(data.joinable),
+          });
+          try {
+            localStorage.setItem('clearslot_invite_opened', '1');
+          } catch {}
         }
       } catch {
         if (!cancelled) {

@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     const payload = body?.payload;
     const turnstileToken = body?.turnstileToken;
 
-    if (!code || !payload) {
+    if (typeof code !== 'string' || typeof payload !== 'string' || payload.length === 0) {
       await recordFailedJoin(ip);
       return NextResponse.json({ error: 'Missing code or payload' }, { status: 400 });
     }
@@ -117,11 +117,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Service misconfigured' }, { status: 500 });
     }
     if (
+      err?.message === 'Invalid payload' ||
+      err?.message === 'Payload too large' ||
       err?.message === 'Invalid room code' ||
       err?.message === 'Room not found' ||
       err?.message === 'Room is full'
     ) {
       await recordFailedJoin(ip);
+    }
+    if (err?.message === 'Invalid payload' || err?.message === 'Invalid room code') {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    if (err?.message === 'Payload too large') {
+      return NextResponse.json({ error: err.message }, { status: 413 });
+    }
+    if (err?.message === 'Room not found') {
+      return NextResponse.json({ error: err.message }, { status: 404 });
+    }
+    if (err?.message === 'Room is full') {
+      return NextResponse.json({ error: err.message }, { status: 409 });
     }
     return NextResponse.json({ error: err.message ?? 'Failed to join room' }, { status: 500 });
   }

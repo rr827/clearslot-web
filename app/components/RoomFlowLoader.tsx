@@ -279,6 +279,10 @@ export default function RoomFlowLoader() {
         }
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
+          captureClientEvent('invitee_joined', {
+            provider,
+            participant_count: data.room?.participants?.length ?? null,
+          });
           captureClientEvent('room_flow_completed', {
             action: flowAction,
             provider,
@@ -362,6 +366,15 @@ export default function RoomFlowLoader() {
       }
       if (res.ok) {
         const { code: createdCode } = await res.json();
+        captureClientEvent('room_created', {
+          provider,
+          participant_count: 1,
+        });
+        if (localStorage.getItem('clearslot_invite_opened') === '1') {
+          captureClientEvent('room_created_by_former_invitee', {
+            provider,
+          });
+        }
         captureClientEvent('room_flow_completed', {
           action: flowAction,
           provider,

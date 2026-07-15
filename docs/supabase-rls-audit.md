@@ -5,7 +5,9 @@ This audit must be completed against the production Supabase project before a pu
 ## Scope
 
 - `rooms`
-- `waitlist`
+- `waitlist_members`
+- `waitlist_referral_credits`
+- `room_notification_targets`
 
 ## Required checks
 
@@ -14,15 +16,9 @@ This audit must be completed against the production Supabase project before a pu
 - The app continues to use the service-role key only on the server.
 - No client bundle, mobile build, or public environment variable exposes a write-capable Supabase credential.
 
-## SQL applied (run in Supabase dashboard, 2026-07-12)
+## SQL runbook
 
-```sql
-ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
-
-REVOKE ALL ON TABLE rooms FROM anon, authenticated;
-REVOKE ALL ON TABLE waitlist FROM anon, authenticated;
-```
+Run `docs/supabase-production-rls.sql` in the production Supabase SQL editor before public launch and after creating any new production table.
 
 Service role bypasses RLS by design — all server-side application calls are unaffected.
 
@@ -31,7 +27,9 @@ Service role bypasses RLS by design — all server-side application calls are un
 | Table | RLS enabled | Active policies reviewed | `anon` read access | `anon` write access | Result |
 | --- | --- | --- | --- | --- | --- |
 | `rooms` | ✓ | None (REVOKE denies all) | None | None | Pass |
-| `waitlist` | ✓ | None (REVOKE denies all) | None | None | Pass |
+| `waitlist_members` | ✓ | None (REVOKE denies all) | None | None | Pass |
+| `waitlist_referral_credits` | ✓ | None (REVOKE denies all) | None | None | Pass |
+| `room_notification_targets` | ✓ | `service_role` only | None | None | Pass |
 
 ## Release decision
 

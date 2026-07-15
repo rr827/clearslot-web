@@ -12,8 +12,9 @@ export async function POST(req: NextRequest) {
 
   try {
     requireSessionSecret();
-    const { payload } = await req.json();
-    if (!payload || typeof payload !== 'string') {
+    const body = await req.json().catch(() => null);
+    const payload = body?.payload;
+    if (typeof payload !== 'string' || payload.length === 0) {
       return NextResponse.json({ error: 'Missing payload' }, { status: 400 });
     }
     const code = await createRoom(payload);

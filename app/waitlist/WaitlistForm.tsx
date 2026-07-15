@@ -243,6 +243,9 @@ export default function WaitlistForm() {
                 <p style={{ fontSize: 12, color: MUTED, margin: 0, textAlign: 'center' }}>
                   The free tier stays free forever. This is for groups that keep meeting.
                 </p>
+                <p style={{ fontSize: 11, color: '#9CA3AF', margin: 0, textAlign: 'center', lineHeight: 1.6 }}>
+                  We collect only your email, one intent question, and referral attribution from your invite link.
+                </p>
               </div>
             </>
           )}

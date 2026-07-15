@@ -33,21 +33,16 @@ export async function GET(req: NextRequest) {
 
   // Referral credit
   if (member.referred_by) {
-    const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? '';
     const { data: referrer } = await supabase
       .from('waitlist_members')
-      .select('id, signup_ip')
+      .select('id')
       .eq('id', member.referred_by)
       .single();
 
     if (referrer) {
       const creditCount = await creditedReferralCount(referrer.id);
-      const sameSubnet = ip && referrer.signup_ip
-        ? ip.split('.').slice(0, 3).join('.') === referrer.signup_ip.split('.').slice(0, 3).join('.')
-        : false;
-
-      const excluded = creditCount >= 25 || sameSubnet;
-      const exclusionReason = creditCount >= 25 ? 'cap_reached' : sameSubnet ? 'same_subnet' : null;
+      const excluded = creditCount >= 25;
+      const exclusionReason = excluded ? 'cap_reached' : null;
 
       await supabase.from('waitlist_referral_credits').insert({
         referrer_id: referrer.id,
@@ -58,7 +53,7 @@ export async function GET(req: NextRequest) {
 
       if (!excluded) {
         await supabase.rpc('decrement_waitlist_position', { member_id: referrer.id, amount: 10 });
-        trackEvent('waitlist_referral_credited', referrer.id, { referred_email: member.email });
+        trackEvent('waitlist_referral_credited', referrer.id, { referred_id: member.id });
       }
     }
   }

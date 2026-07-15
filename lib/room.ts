@@ -13,6 +13,8 @@ function validateCode(code: string): string {
 }
 
 function validatePayload(encodedPayload: string): void {
+  if (typeof encodedPayload !== 'string' || encodedPayload.length === 0)
+    throw new Error('Invalid payload');
   if (encodedPayload.length > MAX_PAYLOAD_BYTES)
     throw new Error('Payload too large');
 }
@@ -145,6 +147,8 @@ export async function acceptProposal(code: string, proposalIndex: number): Promi
   if (!room) throw new Error('Room not found');
   if (proposalIndex < 0 || proposalIndex >= room.proposals.length)
     throw new Error('Invalid proposal');
+  if (room.proposals[proposalIndex].status !== 'pending')
+    throw new Error('Proposal is no longer pending');
   const updated = room.proposals.map((p, i) =>
     i === proposalIndex ? { ...p, status: 'accepted' as const } : p
   );
@@ -157,6 +161,8 @@ export async function declineProposal(code: string, proposalIndex: number): Prom
   if (!room) throw new Error('Room not found');
   if (proposalIndex < 0 || proposalIndex >= room.proposals.length)
     throw new Error('Invalid proposal');
+  if (room.proposals[proposalIndex].status !== 'pending')
+    throw new Error('Proposal is no longer pending');
   const updated = room.proposals.map((p, i) =>
     i === proposalIndex ? { ...p, status: 'declined' as const } : p
   );
@@ -164,3 +170,11 @@ export async function declineProposal(code: string, proposalIndex: number): Prom
 }
 
 export type { Proposal, RoomRow } from './storage/types';
+
+export async function getProposal(code: string, proposalIndex: number): Promise<Proposal> {
+  const room = await getRoom(code);
+  if (!room) throw new Error('Room not found');
+  const proposal = room.proposals[proposalIndex];
+  if (!proposal) throw new Error('Invalid proposal');
+  return proposal;
+}

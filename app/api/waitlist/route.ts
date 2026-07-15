@@ -109,7 +109,6 @@ export async function POST(req: NextRequest) {
       referral_code: referralCode,
       referred_by: referredById,
       status: 'pending',
-      signup_ip: ip,
     })
     .select('id, position, referral_code')
     .single();

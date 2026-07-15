@@ -12,8 +12,9 @@ export async function POST(req: NextRequest) {
 
   try {
     requireSessionSecret();
-    const { code, payload } = await req.json();
-    if (!code || !payload) {
+    const body = await req.json().catch(() => null);
+    const { code, payload } = body ?? {};
+    if (typeof code !== 'string' || typeof payload !== 'string' || payload.length === 0) {
       return NextResponse.json({ error: 'Missing code or payload' }, { status: 400 });
     }
 
@@ -21,6 +22,13 @@ export async function POST(req: NextRequest) {
     const participantIndex = await verifyRoomSession(code, token);
     if (participantIndex === null) {
       return NextResponse.json({ error: 'Not authenticated for this room' }, { status: 401 });
+    }
+
+    if (!(await checkRateLimit(`room_update:${code.toUpperCase()}:${participantIndex}`, 10, 60_000))) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      );
     }
 
     const room = await updateParticipantPayload(code, participantIndex, payload);
