@@ -172,3 +172,4 @@ Use these scenarios before calling the product heavy-usage ready:
 - Confirm Turnstile site and secret keys are configured if you want challenge enforcement rather than cooldown-only behavior.
 - Confirm Supabase RLS remains enabled on `rooms`, `waitlist_members`, and `room_notification_targets`, with no `anon` policies that expose row data.
 - Confirm Vercel function logs do not include request bodies containing room payloads.
+- Vercel Hobby only supports daily cron jobs. Keep `vercel.json` daily on Hobby, or move cleanup to Vercel Pro/external cron before using hourly cleanup.
