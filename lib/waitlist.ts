@@ -12,9 +12,16 @@ export function generateReferralCode(): string {
   return randomBytes(6).toString('base64url').slice(0, 8);
 }
 
+function confirmSecret(): string {
+  const secret = process.env.WAITLIST_CONFIRM_SECRET;
+  if (!secret) {
+    throw new Error('WAITLIST_CONFIRM_SECRET is not set');
+  }
+  return secret;
+}
+
 export function generateConfirmToken(id: string): string {
-  const secret = process.env.WAITLIST_CONFIRM_SECRET ?? '';
-  const sig = createHmac('sha256', secret).update(id).digest('hex');
+  const sig = createHmac('sha256', confirmSecret()).update(id).digest('hex');
   return `${id}.${sig}`;
 }
 
@@ -23,8 +30,7 @@ export function verifyConfirmToken(token: string): { valid: boolean; id: string 
   if (dot === -1) return { valid: false, id: '' };
   const id = token.slice(0, dot);
   const provided = token.slice(dot + 1);
-  const secret = process.env.WAITLIST_CONFIRM_SECRET ?? '';
-  const expected = createHmac('sha256', secret).update(id).digest('hex');
+  const expected = createHmac('sha256', confirmSecret()).update(id).digest('hex');
   try {
     const valid = timingSafeEqual(Buffer.from(provided, 'hex'), Buffer.from(expected, 'hex'));
     return { valid, id };
