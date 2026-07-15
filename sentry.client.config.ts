@@ -10,6 +10,16 @@ Sentry.init({
       .replace(/\/room\/[A-Z2-9]{6}/gi, '/room/[code]')
       .replace(/\/r\/[A-Z2-9]{6}/gi, '/r/[code]');
     if (event.request?.url) event.request.url = scrub(event.request.url);
+    if (event.request) {
+      if (event.request.headers) {
+        delete event.request.headers.cookie;
+        delete event.request.headers.Cookie;
+        delete event.request.headers.authorization;
+        delete event.request.headers.Authorization;
+      }
+      event.request.cookies = {};
+      delete event.request.data;
+    }
     event.breadcrumbs?.forEach((b) => {
       if (b.data?.url) b.data.url = scrub(b.data.url);
     });
