@@ -5,11 +5,12 @@ import { deleteExpiredRooms } from '@/lib/room';
 // header to `Bearer ${CRON_SECRET}` for cron-triggered requests when
 // CRON_SECRET is configured.
 export async function GET(req: NextRequest) {
-  if (process.env.CRON_SECRET) {
-    const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'Cron not configured' }, { status: 503 });
+  }
+  const authHeader = req.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
