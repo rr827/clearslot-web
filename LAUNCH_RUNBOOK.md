@@ -88,20 +88,27 @@ curl -s "https://<PROJECT_REF>.supabase.co/rest/v1/room_notification_targets?sel
 
 ---
 
-## 5. Decide the cleanup cron frequency
+## 5. Schedule hourly cleanup via Upstash QStash
 
-**What is wrong:** `vercel.json` currently runs `/api/cron/cleanup-rooms` once daily (`0 3 * * *`). An hourly schedule was tried and reverted because Vercel's Hobby plan only supports daily cron jobs. This means expired rooms can persist up to ~24 hours past their stated 48-hour expiry before the row is actually deleted (they're already inaccessible to the app well before that — this is a data-persistence gap, not a data-exposure gap, since RLS blocks anon reads regardless).
+**What is wrong:** `vercel.json` runs `/api/cron/cleanup-rooms` once daily (`0 3 * * *`) because Vercel's Hobby plan doesn't support finer cron granularity. Rooms are already inaccessible to users the instant they pass 48 hours (`lib/room.ts` enforces this on every read, and now also opportunistically deletes any expired row it encounters — see commit `4e6d58a`). The only remaining gap is rooms that expire and are never revisited by anyone — those still wait for a sweep. This step closes that by scheduling the same cleanup endpoint hourly through Upstash, which is already in the stack for rate limiting, instead of paying for Vercel Pro.
 
-**Where to fix it:** Vercel dashboard → clearslot-web → Settings → General (plan) — only if you choose to upgrade.
+**Where to fix it:** Upstash dashboard → your Redis project's account → QStash → Schedules → Create Schedule.
 
-**Steps (pick one):**
-1. **Accept the current daily schedule.** No action — rooms remain correctly inaccessible to users after 48h; only the underlying row deletion lags by up to ~24h behind. Acceptable since RLS keeps that data unreadable by anyone but the service role in the interim.
-2. **Upgrade to Vercel Pro** to unlock finer cron granularity, then change `vercel.json`'s schedule back to `"0 * * * *"` (hourly) and redeploy.
-3. **Keep Hobby, move cleanup to an external scheduler** (e.g. a GitHub Actions workflow or a third-party cron service) that calls `https://www.clearslot.net/api/cron/cleanup-rooms` hourly with the `Authorization: Bearer <CRON_SECRET>` header.
+**Steps:**
+1. Go to the Upstash console → QStash → Schedules.
+2. Create a new schedule with:
+   - **Destination URL:** `https://www.clearslot.net/api/cron/cleanup-rooms`
+   - **Cron expression:** `0 * * * *` (hourly)
+   - **HTTP Method:** GET
+   - **Headers:** `Authorization: Bearer <CRON_SECRET>` (same value as the Vercel env var from step 4)
+3. Save the schedule. Leave the existing Vercel daily cron entry in `vercel.json` as-is — it's a harmless, free backstop if QStash is ever paused or misconfigured.
 
-**How to verify it worked:** `curl -s https://www.clearslot.net/api/cron/cleanup-rooms -H "Authorization: Bearer <CRON_SECRET>"` returns `{"ok":true,"deleted":<n>}`.
+**How to verify it worked:** in the Upstash QStash dashboard, check the schedule's delivery log after the first hour passes — it should show a `200` response with a body like `{"ok":true,"deleted":<n>}`. You can also trigger it manually with:
+```bash
+curl -s https://www.clearslot.net/api/cron/cleanup-rooms -H "Authorization: Bearer <CRON_SECRET>"
+```
 
-**Risk if skipped:** low — this is a defense-in-depth gap, not an access-control gap.
+**Risk if skipped:** low — this is a defense-in-depth gap, not an access-control gap. Abandoned expired rooms wait up to ~24h for the Vercel daily sweep instead of ~1h; they are already unreadable via the app and via RLS the entire time.
 
 ---
 
