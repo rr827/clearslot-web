@@ -57,7 +57,13 @@ export async function deleteExpiredRooms(): Promise<number> {
 export async function getRoom(code: string): Promise<RoomRow | null> {
   const data = await getRoomStore().getRoom(validateCode(code));
   if (!data) return null;
-  if (new Date(data.expires_at) < new Date()) return null;
+  if (new Date(data.expires_at) < new Date()) {
+    // Opportunistic cleanup: don't block this read on the sweep.
+    deleteExpiredRooms().catch((err) => {
+      console.error('Opportunistic expired-room cleanup failed:', err);
+    });
+    return null;
+  }
   return data;
 }
 
