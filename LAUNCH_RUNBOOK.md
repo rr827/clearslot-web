@@ -4,70 +4,19 @@ Execute top to bottom in one sitting. Production blockers first. Every command i
 
 ---
 
-## 1. Resolve the Supabase table mismatch (blocks everything else)
+## 1–3. Supabase table mismatch, RLS migration, anon access — RESOLVED 2026-07-17
 
-**What is wrong:** the code writes to `rooms`, `waitlist_members`, `waitlist_referral_credits`, and `room_notification_targets`. An earlier manual check of production only showed `rooms` and `waitlist`. Until this is resolved, RLS status on the tables the app actually uses is unverified.
+**What was wrong:** the code writes to `rooms`, `waitlist_members`, `waitlist_referral_credits`, and `room_notification_targets`. Production (`sqfjpjqktqvrbwkyjwrz`) only had `rooms`, `waitlist`, and `room_notification_targets` — `waitlist_members`, `waitlist_referral_credits`, and the `decrement_waitlist_position` RPC did not exist at all. This meant **every waitlist signup attempt had been failing silently since the referral/confirm system was built** — the insert hit a table that didn't exist, threw a Postgres error, and the route returned a generic 500. The old `waitlist` table is an unrelated 3-column stub (`id`, `email`, `joined_at`) with 0 rows — no data was at risk.
 
-**Where to fix it:** Supabase dashboard → your project → Table Editor.
+**What was done:**
+1. Verified via direct Supabase MCP query (`list_projects`, `list_tables`) that the app's `NEXT_PUBLIC_SUPABASE_URL` and the Vercel Production env var both point to the same project (`sqfjpjqktqvrbwkyjwrz`).
+2. Applied `docs/supabase-waitlist-schema.sql` — creates `waitlist_members`, `waitlist_referral_credits`, and `decrement_waitlist_position`, matching the exact columns the code already reads/writes.
+3. Re-ran `docs/supabase-production-rls.sql` — enabled RLS and installed `service_role`-only policies on all five tables.
+4. Verified directly via SQL: all five tables show `rls_enabled: true`; `pg_policies` shows only `*_service_role_only` policies scoped to `{service_role}`; `information_schema.role_table_grants` returns zero rows for `anon`/`authenticated` on any public table; `decrement_waitlist_position` is present in `information_schema.routines`.
 
-**Steps:**
-1. Confirm which Supabase project the app's `NEXT_PUBLIC_SUPABASE_URL` env var points to in Vercel (Vercel dashboard → clearslot-web → Settings → Environment Variables → Production).
-2. Open that exact project in the Supabase dashboard and check Table Editor. Confirm whether `waitlist_members`, `waitlist_referral_credits`, and `room_notification_targets` exist.
-3. If they're missing, the waitlist and notification features have been failing silently in production — check Vercel function logs for `/api/waitlist` and `/api/room/notifications/register` for insert errors.
-4. If they exist under different names than expected, no action needed — `docs/supabase-production-rls.sql` already checks for existence with `to_regclass` before touching each table.
+**Remaining manual step:** do one real end-to-end waitlist signup at clearslot.net/waitlist with an email you control — submit, confirm the email arrives, click confirm, verify you land on the confirmed page with a position number. This is the one part of the fix that can't be verified from the database alone (it depends on the live Resend send). Fold this into step 7 below.
 
-**How to verify it worked:** Table Editor shows all four tables (`rooms`, `waitlist_members`, `waitlist_referral_credits`, `room_notification_targets`) in the same project referenced by `NEXT_PUBLIC_SUPABASE_URL`.
-
-**Risk if skipped:** every other step in this runbook may be run against the wrong database.
-
----
-
-## 2. Apply the RLS migration
-
-**What is wrong:** RLS was enabled manually earlier via ad hoc SQL against possibly the wrong table names. `docs/supabase-production-rls.sql` is now the canonical, idempotent version covering all real tables.
-
-**Where to fix it:** Supabase dashboard → your project (confirmed in step 1) → SQL Editor → New query.
-
-**Steps:**
-1. Open `docs/supabase-production-rls.sql` in this repo.
-2. Paste the entire contents into a new Supabase SQL Editor query.
-3. Run it. It only touches tables that exist (`to_regclass` guard), drops legacy public/anon-exposed policies, drops the `signup_ip` column if present, and installs a service-role-only policy on each table.
-4. Re-run it any time a new production table is added — it's safe to run repeatedly.
-
-**How to verify it worked:** run this query and confirm every listed table shows `rowsecurity = true`:
-```sql
-select tablename, rowsecurity
-from pg_tables
-where schemaname = 'public'
-  and tablename in ('rooms', 'waitlist', 'waitlist_members', 'waitlist_referral_credits', 'room_notification_targets');
-```
-
-**Risk if skipped:** anonymous clients can read or write room and waitlist data directly via the Supabase REST API.
-
----
-
-## 3. Verify anon access is blocked via the live REST endpoint
-
-**Where to fix it:** N/A — verification only. Get `PROJECT_REF` and `ANON_KEY` from Supabase dashboard → Settings → API.
-
-**Steps — run each and inspect the response:**
-```bash
-curl -s "https://<PROJECT_REF>.supabase.co/rest/v1/rooms?select=*&limit=1" \
-  -H "apikey: <ANON_KEY>" -H "Authorization: Bearer <ANON_KEY>"
-
-curl -s "https://<PROJECT_REF>.supabase.co/rest/v1/waitlist_members?select=*&limit=1" \
-  -H "apikey: <ANON_KEY>" -H "Authorization: Bearer <ANON_KEY>"
-
-curl -s "https://<PROJECT_REF>.supabase.co/rest/v1/waitlist_referral_credits?select=*&limit=1" \
-  -H "apikey: <ANON_KEY>" -H "Authorization: Bearer <ANON_KEY>"
-
-curl -s "https://<PROJECT_REF>.supabase.co/rest/v1/room_notification_targets?select=*&limit=1" \
-  -H "apikey: <ANON_KEY>" -H "Authorization: Bearer <ANON_KEY>"
-```
-
-**How to verify it worked:** every response is `[]` or a permission-denied error (e.g. `{"code":"42501",...}`). Any response containing a data row is a failed check — stop and re-run step 2.
-
-**Risk if skipped:** unverified RLS is the single highest-severity gap in the whole audit.
+**Risk if skipped:** none remaining for RLS — this is verified. The only open risk is not yet having done a live signup smoke test.
 
 ---
 
@@ -137,6 +86,7 @@ Run all of these in a single private/incognito window, in order:
 6. Start the Google OAuth connect flow and click "Cancel" on Google's consent screen → confirm you land back on `/connect` with a clear error state, not a crash.
 7. Paste a real room invite link into iMessage, WhatsApp, Slack, and Discord → note that no preview image renders (expected — no OG image exists yet; this is a known Phase B gap, not a regression).
 8. Repeat steps 1–3 on Safari iOS and Chrome Android.
+9. Go to `/waitlist`, submit an email you control, confirm the confirmation email arrives, click the confirm link, and verify you land on the confirmed page with a position number (`#N on the founding list`). This is the first real end-to-end test of the `waitlist_members`/`waitlist_referral_credits` schema created above — confirm it actually works now, not just that the tables exist.
 
 **Risk if skipped:** these are the only remaining checks that can't be verified from source; a real regression here would only surface in production traffic.
 
