@@ -17,6 +17,7 @@ export default function InviteRoomPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [room, setRoom] = useState<InviteRoomState>(null);
+  const [showOpenApp, setShowOpenApp] = useState(false);
 
   function beginJoinFlow() {
     try {
@@ -31,7 +32,19 @@ export default function InviteRoomPage() {
     router.push(`/connect?room=${code}`);
   }
 
+  function openInApp() {
+    window.location.href = `clearslot://room?code=${code}`;
+  }
+
+  function openAppStore() {
+    const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL;
+    if (appStoreUrl) {
+      window.location.href = appStoreUrl;
+    }
+  }
+
   useEffect(() => {
+    setShowOpenApp(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
     let cancelled = false;
 
     async function loadInvite() {
@@ -133,47 +146,120 @@ export default function InviteRoomPage() {
     );
   }
 
+  const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL;
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F8F9FC', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <div style={{ width: '100%', maxWidth: 520, backgroundColor: '#FFFFFF', border: '1px solid #E8EBF0', borderRadius: 28, padding: '34px 30px', boxShadow: '0 16px 34px rgba(15, 23, 42, 0.06), 0 2px 10px rgba(15, 23, 42, 0.04)' }}>
-        <div style={{ marginBottom: 26 }}>
-          <Logo iconSize={60} textSize={42} />
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#F8F9FC',
+        display: 'flex',
+        alignItems: showOpenApp ? 'stretch' : 'center',
+        justifyContent: 'center',
+        padding: showOpenApp ? '18px 16px 24px' : 24,
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: showOpenApp ? 430 : 520,
+          margin: showOpenApp ? '0 auto' : undefined,
+          backgroundColor: '#FFFFFF',
+          border: showOpenApp ? 'none' : '1px solid #E8EBF0',
+          borderRadius: showOpenApp ? 0 : 28,
+          padding: showOpenApp ? '18px 8px 0' : '34px 30px',
+          boxShadow: showOpenApp ? 'none' : '0 16px 34px rgba(15, 23, 42, 0.06), 0 2px 10px rgba(15, 23, 42, 0.04)',
+        }}
+      >
+        <div style={{ marginBottom: showOpenApp ? 34 : 26, display: 'flex', justifyContent: showOpenApp ? 'center' : 'flex-start' }}>
+          <Logo iconSize={showOpenApp ? 34 : 60} textSize={showOpenApp ? 28 : 42} />
         </div>
 
-        <p style={{ fontSize: 12, fontWeight: 700, color: '#2F7B49', letterSpacing: '0.14em', textTransform: 'uppercase', margin: '0 0 10px' }}>
-          Room invite
-        </p>
-        <h1 style={{ fontSize: 34, lineHeight: 1.08, color: '#111827', margin: '0 0 14px' }}>
-          You&apos;re about to join room {code}
-        </h1>
-        <p style={{ fontSize: 16, color: '#667085', lineHeight: 1.75, margin: '0 0 22px', maxWidth: 440 }}>
-          ClearSlot will walk you through your scheduling preferences first, then connect your availability and add you into the shared week view with everyone already in this room.
-        </p>
-
-        <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E8EBF0', borderRadius: 18, padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
-          <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#111827' }}>
-            {room.participantCount === 1
-              ? '1 person is already in this room.'
-              : `${room.participantCount} people are already in this room.`}
+        <div style={{ textAlign: showOpenApp ? 'center' : 'left' }}>
+          <p style={{ fontSize: 12, fontWeight: 800, color: '#22C55E', letterSpacing: '0.16em', textTransform: 'uppercase', margin: '0 0 12px' }}>
+            Room invite
           </p>
-          <p style={{ margin: 0, fontSize: 14, color: '#667085', lineHeight: 1.65 }}>
-            You&apos;ll choose your date range, sleep hours, all-day-event preference, and then connect Google, upload an `.ics` file, or enter your availability manually.
+          <h1 style={{ fontSize: showOpenApp ? 38 : 34, lineHeight: 1.05, color: '#111827', margin: '0 0 14px', letterSpacing: '-0.05em' }}>
+            Join this ClearSlot room
+          </h1>
+          <p style={{ fontSize: showOpenApp ? 17 : 16, color: '#667085', lineHeight: 1.55, margin: '0 auto 24px', maxWidth: 440 }}>
+            Add your availability first, then meet everyone in the shared week view.
+          </p>
+        </div>
+
+        <div
+          style={{
+            backgroundColor: '#F8FAFC',
+            border: '1px solid #E8EBF0',
+            borderRadius: 24,
+            padding: showOpenApp ? '22px 20px' : '18px 18px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            marginBottom: 22,
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#98A2B3', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+            Room code
+          </p>
+          <div
+            style={{
+              alignSelf: showOpenApp ? 'center' : 'flex-start',
+              borderRadius: 18,
+              border: '1px solid rgba(34,197,94,0.26)',
+              backgroundColor: 'rgba(34,197,94,0.10)',
+              color: '#15803D',
+              padding: '10px 16px',
+              fontSize: showOpenApp ? 30 : 26,
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            }}
+          >
+            {code}
+          </div>
+          <p style={{ margin: 0, fontSize: showOpenApp ? 15 : 14, fontWeight: 600, color: '#111827', lineHeight: 1.5, textAlign: showOpenApp ? 'center' : 'left' }}>
+            {room.participantCount === 1
+              ? '1 person is already coordinating here.'
+              : `${room.participantCount} people are already coordinating here.`}
+          </p>
+          <p style={{ margin: 0, fontSize: 14, color: '#667085', lineHeight: 1.6, textAlign: showOpenApp ? 'center' : 'left' }}>
+            Choose preferences, connect Google or enter availability manually, then join the same room.
           </p>
         </div>
 
         {room.joinable ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: showOpenApp ? 14 : 10 }}>
+            {showOpenApp && (
+              <button
+                type="button"
+                onClick={openInApp}
+                style={{ width: '100%', fontSize: 17, fontWeight: 800, color: '#fff', backgroundColor: '#22C55E', border: 'none', borderRadius: 18, padding: '17px 16px', cursor: 'pointer' }}
+              >
+                Open in ClearSlot app
+              </button>
+            )}
+            {showOpenApp && appStoreUrl && (
+              <button
+                type="button"
+                onClick={openAppStore}
+                style={{ width: '100%', fontSize: 16, fontWeight: 750, color: '#111827', backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 18, padding: '16px 16px', cursor: 'pointer' }}
+              >
+                Get the app
+              </button>
+            )}
             <button
               type="button"
               onClick={beginJoinFlow}
-              style={{ width: '100%', fontSize: 16, fontWeight: 700, color: '#fff', backgroundColor: '#22C55E', border: 'none', borderRadius: 14, padding: '14px 16px', cursor: 'pointer' }}
+              style={{ width: '100%', fontSize: showOpenApp ? 16 : 16, fontWeight: 750, color: showOpenApp ? '#15803D' : '#fff', backgroundColor: showOpenApp ? '#FFFFFF' : '#22C55E', border: showOpenApp ? '1px solid rgba(34,197,94,0.30)' : 'none', borderRadius: showOpenApp ? 18 : 14, padding: showOpenApp ? '16px 16px' : '14px 16px', cursor: 'pointer' }}
             >
-              Continue to join room
+              Continue on web
             </button>
             <button
               type="button"
               onClick={() => router.push(`/room/${code}`)}
-              style={{ width: '100%', fontSize: 15, fontWeight: 600, color: '#2F7B49', backgroundColor: 'rgba(61,154,92,0.10)', border: '1px solid rgba(61,154,92,0.22)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}
+              style={{ width: '100%', fontSize: 15, fontWeight: 650, color: '#667085', backgroundColor: 'transparent', border: 'none', borderRadius: 14, padding: '10px 16px', cursor: 'pointer' }}
             >
               I already joined this room
             </button>
@@ -187,6 +273,12 @@ export default function InviteRoomPage() {
               Everyone can still use their existing room link, but no additional participants can be added right now.
             </p>
           </div>
+        )}
+
+        {showOpenApp && (
+          <p style={{ margin: '26px auto 0', maxWidth: 310, textAlign: 'center', fontSize: 13, lineHeight: 1.55, color: '#98A2B3' }}>
+            If the app is installed, ClearSlot opens directly. If not, continue on web for the same room.
+          </p>
         )}
       </div>
     </div>

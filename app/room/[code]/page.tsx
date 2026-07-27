@@ -221,12 +221,13 @@ function WeekGridLines() {
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 function WeekView({
-  weekDates, allBlocks, selectedRange, onRangeChange,
+  weekDates, allBlocks, selectedRange, onRangeChange, compact = false,
 }: {
   weekDates: Date[];
   allBlocks: BusyBlock[][];
   selectedRange: SelectedRange;
   onRangeChange: (range: SelectedRange) => void;
+  compact?: boolean;
 }) {
   const [drag, setDrag] = useState<{ day: Date; startMin: number; endMin: number } | null>(null);
   const dragStateRef = useRef<{ day: Date; startMin: number; endMin: number } | null>(null);
@@ -282,26 +283,26 @@ function WeekView({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 560 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: compact ? 0 : 560 }}>
       {/* Day header row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '44px repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `${compact ? 34 : 44}px repeat(7, minmax(0, 1fr))`, gap: compact ? 1 : 2, marginBottom: 4 }}>
         <div />
         {weekDates.map(date => (
-          <div key={date.toISOString()} style={{ textAlign: 'center', padding: '6px 0', fontSize: 16, fontWeight: 600, color: isSameDay(date, new Date()) ? '#22C55E' : '#6B7280', letterSpacing: '0.05em' }}>
+          <div key={date.toISOString()} style={{ textAlign: 'center', padding: compact ? '4px 0' : '6px 0', fontSize: compact ? 12 : 16, fontWeight: 600, color: isSameDay(date, new Date()) ? '#22C55E' : '#6B7280', letterSpacing: compact ? '0.03em' : '0.05em', minWidth: 0 }}>
             <div>{format(date, 'EEE').toUpperCase()}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: isSameDay(date, new Date()) ? '#22C55E' : '#374151' }}>{format(date, 'd')}</div>
+            <div style={{ fontSize: compact ? 18 : 22, fontWeight: 700, color: isSameDay(date, new Date()) ? '#22C55E' : '#374151' }}>{format(date, 'd')}</div>
           </div>
         ))}
       </div>
 
       {/* Grid body */}
-      <div style={{ display: 'flex', gap: 2 }}>
+      <div style={{ display: 'flex', gap: compact ? 1 : 2, width: '100%' }}>
         {/* Time labels */}
-        <div style={{ width: 44, flexShrink: 0, position: 'relative', height: GRID_H }}>
+        <div style={{ width: compact ? 34 : 44, flexShrink: 0, position: 'relative', height: GRID_H }}>
           {Array.from({ length: GRID_TOTAL_HOURS + 1 }, (_, i) => {
             const h = GRID_DAY_START + i;
             return (
-              <div key={h} style={{ position: 'absolute', top: i * HOUR_HEIGHT - 8, right: 6, fontSize: 13, color: '#9CA3AF', lineHeight: 1 }}>
+              <div key={h} style={{ position: 'absolute', top: i * HOUR_HEIGHT - 8, right: compact ? 4 : 6, fontSize: compact ? 11 : 13, color: '#9CA3AF', lineHeight: 1 }}>
                 {i === 0 ? '' : h === 12 ? '12p' : h > 12 ? `${h - 12}p` : `${h}a`}
               </div>
             );
@@ -337,6 +338,7 @@ function WeekView({
               onMouseDown={e => handleMouseDown(e, date)}
               style={{
                 flex: 1,
+                minWidth: 0,
                 height: GRID_H,
                 backgroundColor: '#DCFCE7',
                 position: 'relative',
@@ -1248,17 +1250,19 @@ function RoomContent() {
       )}
 
       {/* Header */}
-      <div style={{ borderBottom: `1px solid ${ROOM_BORDER}`, backgroundColor: 'rgba(248,249,252,0.9)', backdropFilter: 'blur(10px)', padding: isMobile ? '0 16px' : '0 28px', height: 88, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-        <Logo iconSize={52} textSize={40} />
+      <div style={{ borderBottom: `1px solid ${ROOM_BORDER}`, backgroundColor: 'rgba(248,249,252,0.9)', backdropFilter: 'blur(10px)', padding: isMobile ? '0 10px' : '0 28px', height: isMobile ? 72 : 88, display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flexShrink: 0, maxWidth: '100%', overflow: 'hidden' }}>
+        <div style={{ flexShrink: 1, minWidth: 0, transform: isMobile ? 'scale(0.72)' : undefined, transformOrigin: 'left center' }}>
+          <Logo iconSize={isMobile ? 40 : 52} textSize={isMobile ? 30 : 40} />
+        </div>
 
         {/* Room code badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 14, padding: '7px 12px', boxShadow: '0 6px 18px rgba(15,23,42,0.04)' }}>
-          <span style={{ fontSize: 13, color: ROOM_MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Room</span>
-          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: '0.16em', color: ROOM_TEXT, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{code}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 8, backgroundColor: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: isMobile ? 11 : 14, padding: isMobile ? '6px 8px' : '7px 12px', boxShadow: '0 6px 18px rgba(15,23,42,0.04)', flexShrink: 0 }}>
+          <span style={{ fontSize: isMobile ? 10 : 13, color: ROOM_MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Room</span>
+          <span style={{ fontSize: isMobile ? 15 : 18, fontWeight: 800, letterSpacing: isMobile ? '0.10em' : '0.16em', color: ROOM_TEXT, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{code}</span>
         </div>
 
         {/* Participant count */}
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <div style={{ display: isMobile ? 'none' : 'flex', gap: 4, alignItems: 'center' }}>
           {participants.map((participant, i) => (
             <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 700, border: `2px solid ${ROOM_SURFACE}`, marginLeft: i > 0 ? -8 : 0, boxShadow: '0 3px 10px rgba(15,23,42,0.12)' }}>
               {participantLabel(participant, i)}
@@ -1267,10 +1271,10 @@ function RoomContent() {
           <span style={{ fontSize: 15, color: ROOM_MUTED, marginLeft: 8 }}>{participants.length} {participants.length === 1 ? 'person' : 'people'}</span>
         </div>
 
-        <div style={{ flex: 1 }} />
+        <div style={{ flex: 1, minWidth: 0 }} />
 
         {/* View toggle */}
-        <div style={{ display: 'flex', gap: 2, backgroundColor: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 11, padding: 3, boxShadow: '0 4px 14px rgba(15,23,42,0.03)' }}>
+        <div style={{ display: isMobile ? 'none' : 'flex', gap: 2, backgroundColor: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 11, padding: 3, boxShadow: '0 4px 14px rgba(15,23,42,0.03)' }}>
           {(['week', 'day'] as const).map(m => (
             <button key={m} onClick={() => setViewMode(m)}
               style={{ padding: '6px 14px', borderRadius: 8, fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: viewMode === m ? ROOM_ACCENT_SOFT : 'transparent', color: viewMode === m ? ROOM_ACCENT_DARK : ROOM_MUTED }}>
@@ -1294,7 +1298,7 @@ function RoomContent() {
         <button
           onClick={() => setShowHelp(h => !h)}
           title="How to use ClearSlot"
-          style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${ROOM_BORDER}`, background: showHelp ? ROOM_ACCENT_SOFT : ROOM_SURFACE, color: showHelp ? ROOM_ACCENT_DARK : ROOM_MUTED, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: '50%', border: `1px solid ${ROOM_BORDER}`, background: showHelp ? ROOM_ACCENT_SOFT : ROOM_SURFACE, color: showHelp ? ROOM_ACCENT_DARK : ROOM_MUTED, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           ?
         </button>
       </div>
@@ -1345,13 +1349,13 @@ function RoomContent() {
       )}
 
       {/* Date nav */}
-      <div style={{ borderBottom: `1px solid ${ROOM_BORDER}`, padding: isMobile ? '12px 16px' : '12px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.75)' }}>
+      <div style={{ borderBottom: `1px solid ${ROOM_BORDER}`, padding: isMobile ? '10px 12px' : '12px 28px', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.75)', maxWidth: '100%', overflow: 'hidden' }}>
         {viewMode === 'week' ? (
           <>
-            <button onClick={() => setWeekBase(d => addDays(d, -7))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${ROOM_BORDER}`, background: ROOM_SURFACE, cursor: 'pointer', fontSize: 18, color: ROOM_MUTED }}>←</button>
-            <span style={{ fontSize: 16, color: ROOM_MUTED, minWidth: 180, fontWeight: 600 }}>{format(weekDates[0], 'MMM d')} – {format(weekDates[6], 'MMM d, yyyy')}</span>
-            <button onClick={() => setWeekBase(d => addDays(d, 7))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${ROOM_BORDER}`, background: ROOM_SURFACE, cursor: 'pointer', fontSize: 18, color: ROOM_MUTED }}>→</button>
-            <button onClick={() => setWeekBase(new Date())} style={{ fontSize: 14, color: ROOM_MUTED, background: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}>Today</button>
+            <button onClick={() => setWeekBase(d => addDays(d, -7))} style={{ width: isMobile ? 28 : 30, height: isMobile ? 28 : 30, borderRadius: 8, border: `1px solid ${ROOM_BORDER}`, background: ROOM_SURFACE, cursor: 'pointer', fontSize: 18, color: ROOM_MUTED, flexShrink: 0 }}>←</button>
+            <span style={{ fontSize: isMobile ? 15 : 16, color: ROOM_MUTED, minWidth: 0, flex: 1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: isMobile ? 'center' : 'left' }}>{format(weekDates[0], 'MMM d')} – {format(weekDates[6], isMobile ? 'MMM d' : 'MMM d, yyyy')}</span>
+            <button onClick={() => setWeekBase(d => addDays(d, 7))} style={{ width: isMobile ? 28 : 30, height: isMobile ? 28 : 30, borderRadius: 8, border: `1px solid ${ROOM_BORDER}`, background: ROOM_SURFACE, cursor: 'pointer', fontSize: 18, color: ROOM_MUTED, flexShrink: 0 }}>→</button>
+            <button onClick={() => setWeekBase(new Date())} style={{ fontSize: isMobile ? 13 : 14, color: ROOM_MUTED, background: ROOM_SURFACE, border: `1px solid ${ROOM_BORDER}`, borderRadius: 8, padding: isMobile ? '5px 9px' : '6px 12px', cursor: 'pointer', fontWeight: 600, flexShrink: 0 }}>Today</button>
           </>
         ) : (
           <>
@@ -1364,10 +1368,10 @@ function RoomContent() {
       </div>
 
       {/* Body */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflow: isMobile ? 'auto' : 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflowY: isMobile ? 'auto' : 'hidden', overflowX: 'hidden' }}>
 
         {/* Main view area */}
-        <div style={{ flex: 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', padding: isMobile ? '16px 14px 24px' : '32px 36px 52px' }}>
+        <div style={{ flex: 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: isMobile ? 'hidden' : 'auto', padding: isMobile ? '14px 10px 20px' : '32px 36px 52px', minWidth: 0 }}>
           {participants.length === 0 ? (
             <div style={{ textAlign: 'center', marginTop: 80, color: '#888', fontSize: 19 }}>
               <p style={{ marginBottom: 8 }}>No one has connected yet.</p>
@@ -1377,8 +1381,8 @@ function RoomContent() {
             <>
               {/* Solo nudge */}
               {participants.length === 1 && myIndex === 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: ROOM_ACCENT_SOFT, border: `1px solid ${ROOM_ACCENT_BORDER}`, borderRadius: 14, padding: '12px 16px', marginBottom: 18, gap: 12, boxShadow: ROOM_SHADOW }}>
-                  <span style={{ fontSize: 14, color: ROOM_ACCENT_DARK }}>You&apos;re the only one here — share the link to invite others</span>
+                <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', flexDirection: isMobile ? 'column' : 'row', backgroundColor: ROOM_ACCENT_SOFT, border: `1px solid ${ROOM_ACCENT_BORDER}`, borderRadius: 14, padding: isMobile ? '12px 14px' : '12px 16px', marginBottom: 16, gap: 10, boxShadow: isMobile ? 'none' : ROOM_SHADOW }}>
+                  <span style={{ fontSize: isMobile ? 14 : 14, color: ROOM_ACCENT_DARK, lineHeight: 1.45 }}>You&apos;re the only one here — share the link to invite others</span>
                   <button onClick={handleCopyLink} style={{ fontSize: 13, fontWeight: 600, color: ROOM_ACCENT_DARK, background: ROOM_SURFACE, border: `1px solid ${ROOM_ACCENT_BORDER}`, borderRadius: 9, padding: '7px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                     {copied ? '✓ Copied!' : 'Copy link'}
                   </button>
@@ -1393,7 +1397,7 @@ function RoomContent() {
             </>
           )}
           {participants.length > 0 && viewMode === 'week' ? (
-            <WeekView weekDates={weekDates} allBlocks={allBlocks} selectedRange={selectedRange} onRangeChange={handleRangeChange} />
+            <WeekView weekDates={weekDates} allBlocks={allBlocks} selectedRange={selectedRange} onRangeChange={handleRangeChange} compact={isMobile} />
           ) : dailyView === 'swimlane' ? (
             <SwimLaneView date={selectedDate} participants={participants} allBlocks={allBlocks} onRangeChange={handleRangeChange} selectedRange={selectedRange} />
           ) : (

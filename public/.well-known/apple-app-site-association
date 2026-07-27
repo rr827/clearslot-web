@@ -1,0 +1,22 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "MY3JZUA3YT.net.clearslot.app"
+        ],
+        "components": [
+          {
+            "/": "/r/*",
+            "comment": "Open ClearSlot room invite links in the mobile app."
+          },
+          {
+            "/": "/room/*",
+            "comment": "Open ClearSlot room links in the mobile app."
+          }
+        ]
+      }
+    ]
+  }
+}
