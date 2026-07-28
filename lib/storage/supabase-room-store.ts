@@ -29,25 +29,49 @@ export class SupabaseRoomStore implements RoomStore {
     return data as RoomRow;
   }
 
-  async updateParticipants(code: string, participants: string[]): Promise<RoomRow> {
-    const { data, error } = await getSupabaseAdminClient()
-      .from('rooms')
-      .update({ participants })
-      .eq('code', code)
-      .select()
-      .single();
+  async joinRoomAtomic(code: string, payload: string, maxParticipants: number): Promise<RoomRow> {
+    const { data, error } = await getSupabaseAdminClient().rpc('join_room_atomic', {
+      p_code: code,
+      p_payload: payload,
+      p_max_participants: maxParticipants,
+    });
 
-    if (error || !data) throw new Error(error?.message ?? 'Failed to update room participants');
-    return data as RoomRow;
+    if (error || !data) throw new Error(error?.message ?? 'Failed to join room');
+    return (Array.isArray(data) ? data[0] : data) as RoomRow;
   }
 
-  async updateProposals(code: string, proposals: Proposal[]): Promise<void> {
-    const { error } = await getSupabaseAdminClient()
-      .from('rooms')
-      .update({ proposals })
-      .eq('code', code);
+  async updateParticipantPayloadAtomic(code: string, participantIndex: number, payload: string): Promise<RoomRow> {
+    const { data, error } = await getSupabaseAdminClient().rpc('update_participant_payload_atomic', {
+      p_code: code,
+      p_participant_index: participantIndex,
+      p_payload: payload,
+    });
 
-    if (error) throw new Error(error.message);
+    if (error || !data) throw new Error(error?.message ?? 'Failed to update participant');
+    return (Array.isArray(data) ? data[0] : data) as RoomRow;
+  }
+
+  async appendProposalAtomic(code: string, proposerIndex: number, startTime: string, endTime: string): Promise<RoomRow> {
+    const { data, error } = await getSupabaseAdminClient().rpc('append_proposal_atomic', {
+      p_code: code,
+      p_proposer_index: proposerIndex,
+      p_start_time: startTime,
+      p_end_time: endTime,
+    });
+
+    if (error || !data) throw new Error(error?.message ?? 'Failed to add proposal');
+    return (Array.isArray(data) ? data[0] : data) as RoomRow;
+  }
+
+  async setProposalStatusAtomic(code: string, proposalIndex: number, status: 'accepted' | 'declined'): Promise<RoomRow> {
+    const { data, error } = await getSupabaseAdminClient().rpc('set_proposal_status_atomic', {
+      p_code: code,
+      p_proposal_index: proposalIndex,
+      p_new_status: status,
+    });
+
+    if (error || !data) throw new Error(error?.message ?? 'Failed to update proposal');
+    return (Array.isArray(data) ? data[0] : data) as RoomRow;
   }
 
   async deleteExpiredRooms(beforeIso: string): Promise<number> {

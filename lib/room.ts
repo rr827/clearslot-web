@@ -73,27 +73,31 @@ export async function joinRoom(
 ): Promise<{ room: RoomRow; participantIndex: number }> {
   validatePayload(encodedPayload);
   const roomStore = getRoomStore();
-  const room = await getRoom(code);
-  if (!room) throw new Error('Room not found');
-  if (room.participants.length >= MAX_PARTICIPANTS)
-    throw new Error('Room is full');
+  const upperCode = code.toUpperCase();
 
-  // Duplicate detection: if incoming payload has a uid, check if it's already in the room
+  // Duplicate detection: if incoming payload has a uid, check if it's already in the room.
+  // Best-effort/non-atomic — the same person double-submitting from two tabs is
+  // low-stakes compared to the cross-participant race the atomic join below closes.
   try {
     const incoming = decodePayload(encodedPayload);
     if (incoming.uid) {
-      const existingIdx = room.participants.findIndex((p) => {
-        try { return decodePayload(p).uid === incoming.uid; } catch { return false; }
-      });
-      if (existingIdx !== -1) {
-        return { room, participantIndex: existingIdx };
+      const room = await getRoom(upperCode);
+      if (room) {
+        const existingIdx = room.participants.findIndex((p) => {
+          try { return decodePayload(p).uid === incoming.uid; } catch { return false; }
+        });
+        if (existingIdx !== -1) {
+          return { room, participantIndex: existingIdx };
+        }
       }
+      // If room is null here, fall through — joinRoomAtomic below will
+      // throw its own 'Room not found' error.
     }
   } catch {
     // If decode fails, proceed normally
   }
 
-  const data = await roomStore.updateParticipants(code.toUpperCase(), [...room.participants, encodedPayload]);
+  const data = await roomStore.joinRoomAtomic(upperCode, encodedPayload, MAX_PARTICIPANTS);
   return { room: data, participantIndex: data.participants.length - 1 };
 }
 
@@ -104,16 +108,7 @@ export async function updateParticipantPayload(
 ): Promise<RoomRow> {
   validatePayload(encodedPayload);
   const roomStore = getRoomStore();
-  const room = await getRoom(code);
-  if (!room) throw new Error('Room not found');
-  if (participantIndex < 0 || participantIndex >= room.participants.length) {
-    throw new Error('Invalid participant');
-  }
-
-  const participants = [...room.participants];
-  participants[participantIndex] = encodedPayload;
-
-  return roomStore.updateParticipants(code.toUpperCase(), participants);
+  return roomStore.updateParticipantPayloadAtomic(code.toUpperCase(), participantIndex, encodedPayload);
 }
 
 export async function proposeTime(
@@ -123,56 +118,17 @@ export async function proposeTime(
   endTime: string
 ): Promise<void> {
   const roomStore = getRoomStore();
-  const room = await getRoom(code);
-  if (!room) throw new Error('Room not found');
-
-  if (proposerIndex < 0 || proposerIndex >= room.participants.length)
-    throw new Error('Invalid participant');
-
-  if (room.proposals.length >= 50) throw new Error('Too many proposals in this room');
-
-  // Deduplicate: don't add an identical pending proposal
-  const duplicate = room.proposals.some(
-    (p) => p.start_time === startTime && p.end_time === endTime && p.status === 'pending'
-  );
-  if (duplicate) throw new Error('This time has already been proposed');
-
-  const proposal: Proposal = {
-    proposer_index: proposerIndex,
-    start_time: startTime,
-    end_time: endTime,
-    status: 'pending',
-  };
-
-  await roomStore.updateProposals(code.toUpperCase(), [...room.proposals, proposal]);
+  await roomStore.appendProposalAtomic(code.toUpperCase(), proposerIndex, startTime, endTime);
 }
 
 export async function acceptProposal(code: string, proposalIndex: number): Promise<void> {
   const roomStore = getRoomStore();
-  const room = await getRoom(code);
-  if (!room) throw new Error('Room not found');
-  if (proposalIndex < 0 || proposalIndex >= room.proposals.length)
-    throw new Error('Invalid proposal');
-  if (room.proposals[proposalIndex].status !== 'pending')
-    throw new Error('Proposal is no longer pending');
-  const updated = room.proposals.map((p, i) =>
-    i === proposalIndex ? { ...p, status: 'accepted' as const } : p
-  );
-  await roomStore.updateProposals(code.toUpperCase(), updated);
+  await roomStore.setProposalStatusAtomic(code.toUpperCase(), proposalIndex, 'accepted');
 }
 
 export async function declineProposal(code: string, proposalIndex: number): Promise<void> {
   const roomStore = getRoomStore();
-  const room = await getRoom(code);
-  if (!room) throw new Error('Room not found');
-  if (proposalIndex < 0 || proposalIndex >= room.proposals.length)
-    throw new Error('Invalid proposal');
-  if (room.proposals[proposalIndex].status !== 'pending')
-    throw new Error('Proposal is no longer pending');
-  const updated = room.proposals.map((p, i) =>
-    i === proposalIndex ? { ...p, status: 'declined' as const } : p
-  );
-  await roomStore.updateProposals(code.toUpperCase(), updated);
+  await roomStore.setProposalStatusAtomic(code.toUpperCase(), proposalIndex, 'declined');
 }
 
 export type { Proposal, RoomRow } from './storage/types';
