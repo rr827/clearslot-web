@@ -23,7 +23,7 @@ const proseClasses =
   '[&_p]:mb-6 [&_p:last-child]:mb-0 ' +
   '[&_h3]:mb-3 [&_h3]:mt-8 [&_h3]:text-[11px] [&_h3]:font-semibold [&_h3]:uppercase [&_h3]:tracking-[0.18em] [&_h3]:text-slate-400 [&_h3:first-child]:mt-0 ' +
   '[&_ul]:list-disc [&_ul]:space-y-3 [&_ul]:pl-5 [&_ul]:mb-6 [&_li]:text-slate-600 ' +
-  '[&_a]:font-medium [&_a]:text-[#2F7B49] [&_a]:underline [&_a]:decoration-[#CFE3D5] [&_a]:underline-offset-4 [&_a:hover]:decoration-[#2F7B49] ' +
+  '[&_a]:font-medium [&_a]:text-[#16A34A] [&_a]:underline [&_a]:decoration-[#CFE3D5] [&_a]:underline-offset-4 [&_a:hover]:decoration-[#16A34A] ' +
   '[&_code]:break-all [&_code]:rounded-md [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:font-mono [&_code]:text-slate-700';
 
 function TocList({
@@ -186,7 +186,7 @@ export default function LegalLayout({
               </Link>
 
               <header className="mt-8">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2F7B49]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#16A34A]">
                   ClearSlot Legal
                 </p>
                 <h1 className="mt-5 text-4xl font-semibold tracking-tight text-slate-900 sm:text-[2.75rem]">

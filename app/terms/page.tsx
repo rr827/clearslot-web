@@ -232,6 +232,31 @@ export default function TermsPage() {
       ),
     },
     {
+      id: 'indemnification',
+      title: 'Indemnification',
+      content: (
+        <p>
+          You agree to defend, indemnify, and hold harmless ClearSlot and its
+          owners, operators, and service providers from and against claims,
+          damages, liabilities, losses, and expenses arising out of or related
+          to your misuse of ClearSlot, your violation of these Terms of Use,
+          your violation of applicable law, or your violation of another
+          person&apos;s rights.
+        </p>
+      ),
+    },
+    {
+      id: 'governing-law',
+      title: 'Governing Law',
+      content: (
+        <p>
+          These Terms of Use and any dispute arising out of or relating to
+          ClearSlot will be governed by the laws of the State of New York,
+          without regard to its conflict of law rules.
+        </p>
+      ),
+    },
+    {
       id: 'changes-to-these-terms',
       title: 'Changes to These Terms',
       content: (
@@ -276,7 +301,7 @@ export default function TermsPage() {
   return (
     <LegalLayout
       title="Terms of Use"
-      updated="June 22, 2026"
+      updated="July 27, 2026"
       intro={
         <p>
           These Terms of Use explain the rules that apply when you access or
