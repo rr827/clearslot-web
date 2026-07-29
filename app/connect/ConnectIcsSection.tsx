@@ -5,8 +5,8 @@ import { RRule } from 'rrule';
 import { captureClientEvent } from '@/lib/analyticsClient';
 
 const MAX_ICS_FILE_BYTES = 1_000_000;
-const MAX_ICS_BLOCKS = 10_000;
-const ICS_PARSE_TIMEOUT_MS = 5_000;
+const MAX_ICS_BLOCKS = 5_000;
+const ICS_PARSE_TIMEOUT_MS = 2_000;
 
 interface BusyBlock {
   start: string;

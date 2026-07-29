@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/clientIp';
 import { verifyTurnstileToken, isTurnstileConfigured } from '@/lib/turnstile';
@@ -150,6 +151,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (emailErr) {
     console.error('Confirmation email failed:', emailErr);
+    Sentry.captureException(emailErr, { tags: { flow: 'waitlist_confirmation_email' } });
   }
 
   trackEvent('waitlist_email_submitted', email, { position: member.position, referred: !!referredById });

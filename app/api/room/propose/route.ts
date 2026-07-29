@@ -43,6 +43,9 @@ export async function POST(req: NextRequest) {
     if (err?.message === 'Invalid participant') {
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
+    if (err?.message === 'Too many proposals, or this time has already been proposed') {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     return NextResponse.json({ error: err.message ?? 'Failed to propose' }, { status: 500 });
   }
 }

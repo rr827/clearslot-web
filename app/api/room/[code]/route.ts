@@ -3,6 +3,7 @@ import { getRoom, MAX_PARTICIPANTS } from '@/lib/room';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getRoomSessionToken, verifyRoomSession } from '@/lib/roomSession';
 import { getClientIp } from '@/lib/clientIp';
+import { getRoomCooldownTtlMs, recordFailedRoomAttempt } from '@/lib/roomFailedAttempts';
 
 export async function GET(
   req: NextRequest,
@@ -13,10 +14,24 @@ export async function GET(
     return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '60' } });
   }
 
+  // Repeated 404s here feed the same failed-attempt/cooldown ladder the join
+  // endpoint uses, so guessing room codes via GET can't dodge that protection.
+  const cooldownTtlMs = await getRoomCooldownTtlMs(ip);
+  if (cooldownTtlMs > 0) {
+    const retryAfter = Math.max(1, Math.ceil(cooldownTtlMs / 1000));
+    return NextResponse.json(
+      { error: 'Too many failed attempts. Try again soon.', code: 'cooldown_active', cooldownActive: true, retryAfter },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+    );
+  }
+
   try {
     const { code } = await params;
     const room = await getRoom(code);
-    if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    if (!room) {
+      await recordFailedRoomAttempt(ip);
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    }
     const inviteMode = req.nextUrl.searchParams.get('invite') === '1';
 
     const token = inviteMode ? undefined : getRoomSessionToken(req, code);

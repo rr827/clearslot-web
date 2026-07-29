@@ -1,31 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { joinRoom } from '@/lib/room';
 import { signRoomSession, requireSessionSecret } from '@/lib/roomSession';
+import { checkRateLimit } from '@/lib/rateLimit';
 import {
-  checkRateLimit,
-  clearExpiringCounter,
-  getExpiringCounter,
-  getExpiringCounterTtlMs,
-  incrementExpiringCounter,
-  setExpiringCounter,
-} from '@/lib/rateLimit';
+  CHALLENGE_THRESHOLD,
+  clearFailedRoomAttempts,
+  getFailedRoomAttemptCount,
+  getRoomCooldownTtlMs,
+  recordFailedRoomAttempt,
+} from '@/lib/roomFailedAttempts';
 import { getClientIp } from '@/lib/clientIp';
 import { isTurnstileConfigured, TURNSTILE_SITE_KEY, verifyTurnstileToken } from '@/lib/turnstile';
-
-const FAILED_JOIN_WINDOW_MS = 15 * 60_000;
-const SHORT_COOLDOWN_MS = 30_000;
-const LONG_COOLDOWN_MS = 10 * 60_000;
-const CHALLENGE_THRESHOLD = 5;
-const SHORT_COOLDOWN_THRESHOLD = 8;
-const LONG_COOLDOWN_THRESHOLD = 12;
-
-function failureKey(ip: string): string {
-  return `room_join_failed:${ip}`;
-}
-
-function cooldownKey(ip: string): string {
-  return `room_join_cooldown:${ip}`;
-}
 
 function challengeResponse() {
   return NextResponse.json(
@@ -53,53 +38,40 @@ function cooldownResponse(ttlMs: number) {
   );
 }
 
-async function recordFailedJoin(ip: string): Promise<number> {
-  const count = await incrementExpiringCounter(failureKey(ip), FAILED_JOIN_WINDOW_MS);
-
-  if (count >= LONG_COOLDOWN_THRESHOLD) {
-    await setExpiringCounter(cooldownKey(ip), 1, LONG_COOLDOWN_MS);
-  } else if (count >= SHORT_COOLDOWN_THRESHOLD) {
-    await setExpiringCounter(cooldownKey(ip), 1, SHORT_COOLDOWN_MS);
-  }
-
-  return count;
-}
-
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   if (!(await checkRateLimit(`room_join:${ip}`, 10, 60_000))) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '60' } });
   }
 
-  const cooldownTtlMs = await getExpiringCounterTtlMs(cooldownKey(ip));
+  const cooldownTtlMs = await getRoomCooldownTtlMs(ip);
   if (cooldownTtlMs > 0) {
     return cooldownResponse(cooldownTtlMs);
   }
 
   try {
     requireSessionSecret();
-    const failureCount = await getExpiringCounter(failureKey(ip));
+    const failureCount = await getFailedRoomAttemptCount(ip);
     const body = await req.json().catch(() => null);
     const code = body?.code;
     const payload = body?.payload;
     const turnstileToken = body?.turnstileToken;
 
     if (typeof code !== 'string' || typeof payload !== 'string' || payload.length === 0) {
-      await recordFailedJoin(ip);
+      await recordFailedRoomAttempt(ip);
       return NextResponse.json({ error: 'Missing code or payload' }, { status: 400 });
     }
 
     if (failureCount >= CHALLENGE_THRESHOLD && isTurnstileConfigured()) {
       const verified = await verifyTurnstileToken(turnstileToken, ip);
       if (!verified) {
-        await recordFailedJoin(ip);
+        await recordFailedRoomAttempt(ip);
         return challengeResponse();
       }
     }
 
     const { room, participantIndex } = await joinRoom(code, payload);
-    await clearExpiringCounter(failureKey(ip));
-    await clearExpiringCounter(cooldownKey(ip));
+    await clearFailedRoomAttempts(ip);
 
     const sessionValue = await signRoomSession(code, participantIndex);
     const response = NextResponse.json({ room, participantIndex, sessionToken: sessionValue });
@@ -123,7 +95,7 @@ export async function POST(req: NextRequest) {
       err?.message === 'Room not found' ||
       err?.message === 'Room is full'
     ) {
-      await recordFailedJoin(ip);
+      await recordFailedRoomAttempt(ip);
     }
     if (err?.message === 'Invalid payload' || err?.message === 'Invalid room code') {
       return NextResponse.json({ error: err.message }, { status: 400 });

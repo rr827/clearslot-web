@@ -11,6 +11,12 @@ import { getClientIp } from '@/lib/clientIp';
 const GOOGLE_FETCH_TIMEOUT_MS = 15_000;
 const MICROSOFT_FETCH_TIMEOUT_MS = 15_000;
 
+async function hashToken(token: string): Promise<string> {
+  const data = new TextEncoder().encode(token);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function fetchWithTimeout(
   input: string,
   init: RequestInit,
@@ -157,8 +163,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
+  // Two independent dimensions: IP (protects against distributed abuse) and a
+  // non-reversible hash of the caller's own token (protects one person's own
+  // token from being throttled by unrelated traffic sharing their IP, e.g.
+  // office/campus wifi, and vice versa).
   const ip = getClientIp(request);
-  if (!(await checkRateLimit(`calendar_busy:${ip}`, 10, 60_000))) {
+  const tokenHash = await hashToken(token);
+  const [ipAllowed, tokenAllowed] = await Promise.all([
+    checkRateLimit(`calendar_busy:${ip}`, 10, 60_000),
+    checkRateLimit(`calendar_busy_token:${tokenHash}`, 10, 60_000),
+  ]);
+  if (!ipAllowed || !tokenAllowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '60' } });
   }
 
