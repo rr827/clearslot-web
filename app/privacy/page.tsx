@@ -291,19 +291,34 @@ export default function PrivacyPage() {
             are stored in the device&apos;s secure storage.
           </p>
           <p>
-            To complete Google sign-in, the mobile app opens a brief,
-            secure in-app browser session. Google redirects to a stateless
-            page at clearslot.net/mobile/google-redirect, which immediately
-            forwards the sign-in result to the app through a private
-            clearslot:// link on your device. This redirect page does not
-            log, store, or otherwise process the sign-in result on any
-            ClearSlot server; it only relays it, client-side, back into the
-            app.
+            To complete Google sign-in, the mobile app opens a brief, secure
+            in-app browser session. Google redirects directly back into the
+            app through a private URL scheme registered specifically for
+            this sign-in flow, with no intermediate web page involved. The
+            resulting authorization code is exchanged for an access token
+            directly between your device and Google&apos;s servers; this
+            exchange does not pass through any ClearSlot server.
           </p>
           <p>
             The mobile app also stores minimal local room and session
             references needed to rejoin rooms and maintain the user&apos;s
             place in a room.
+          </p>
+          <p>
+            To prevent the same person from appearing twice in one room, the
+            mobile app also generates a random, anonymous identifier on your
+            device and includes it in the availability data you send when you
+            join a room. This identifier is not derived from your name,
+            email, or device identity, and is used only for duplicate-join
+            detection within that room.
+          </p>
+          <p>
+            If you enable notifications, the mobile app registers your
+            device&apos;s push notification token with ClearSlot&apos;s
+            backend for the room you are in, so ClearSlot can notify you
+            about proposal and scheduling updates in that room. This token is
+            tied to the room you registered it for and is not used for
+            advertising or shared with third parties.
           </p>
           <p>
             The mobile app communicates with ClearSlot&apos;s backend room
@@ -379,6 +394,12 @@ export default function PrivacyPage() {
           <p>
             Room availability payloads are retained for up to 48 hours across
             products, then deleted automatically by expiration.
+          </p>
+          <p>
+            Push notification tokens registered for a room, and the anonymous
+            join-dedup identifier included in room availability data, are
+            retained only as long as that room&apos;s availability data (up
+            to 48 hours), then removed.
           </p>
           <p>
             Authentication cookies on the web app are retained until their

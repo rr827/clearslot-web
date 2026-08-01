@@ -92,8 +92,26 @@ Run all of these in a single private/incognito window, in order:
 
 ---
 
-## Known deferred item (do not re-open without a plan)
+## Concurrent write race — RESOLVED 2026-07-27
 
-**Concurrent proposal accept/decline race** — `lib/room.ts` now rejects an accept/decline if the proposal is no longer `pending` (returns 409), which closes the case where one request completes before a later one arrives. It does **not** close true simultaneous races: two requests that both read the room row as `pending` before either write commits can still both succeed, since `updateProposals` is a full-array read-modify-write with no transaction or optimistic lock. `docs/pressure-test-audit.md` (P1) has the recommended fix: move to a Postgres RPC function that performs the read-check-write inside one transaction. This should land before Stripe/premium (Phase C) — accepting duplicate confirmations is a correctness problem once money is involved, but is low-stakes pre-payment.
+**What was wrong:** `lib/room.ts` did a JS-side read-then-write for joins, proposals, and accept/decline — two concurrent requests on the same room could both read the same starting state and the second write would silently overwrite the first.
+
+**What was done:** replaced with four Postgres RPC functions (`join_room_atomic`, `update_participant_payload_atomic`, `append_proposal_atomic`, `set_proposal_status_atomic`) that do the read-check-write inside one atomic transaction. `lib/room.ts` and `lib/storage/supabase-room-store.ts` now call these instead of doing read-then-write in JS.
+
+**Verified:** 10 truly simultaneous join requests fired at one production room resulted in exactly 10 unique participants, zero duplicates or drops — the exact race condition this fix targets, confirmed closed under real concurrent load.
 
 Room code entropy (30 bits, 6 chars) was reviewed and accepted for the initial launch scale given per-IP rate limiting on lookups; revisit only if abuse patterns appear or before a large distribution push (per `docs/pressure-test-audit.md`).
+
+## Waitlist confirmation email — RESOLVED 2026-07-29
+
+**What was wrong:** `RESEND_API_KEY` was never configured in Vercel Production — Resend was never actually set up for this project at all (no account, no domain verification, nothing documented anywhere in the repo). The send failure was also silently swallowed in `app/api/waitlist/route.ts`, so nobody saw an error; signups appeared to succeed while the confirmation email never sent.
+
+**What was done:** created a Resend account, verified `clearslot.net` as a sending domain in Cloudflare DNS, added `RESEND_API_KEY` to Vercel Production, and redeployed (env var changes only apply to new deployments, not the currently-running one). Also added `Sentry.captureException` alongside the existing `console.error` on email-send failure, so a future failure is actually visible instead of disappearing.
+
+**Verified:** live end-to-end signup test — confirmation email arrived.
+
+## Known deferred items (do not re-open without a plan)
+
+**Turnstile bot-challenge is not configured in production** — confirmed via the join-failure-ladder load test (no `challenge_required` response at the expected threshold). The cooldown-based throttling on `/api/room/join` is active and confirmed working regardless; Turnstile would add a CAPTCHA-style layer on top. Not urgent at current scale — revisit before a large public launch push.
+
+**`.ics` stress test not run** — the only pressure-test scenario that can't be scripted (a crafted recurring calendar file uploaded through the browser UI). Needs a manual pass; low priority since this only risks the uploader's own browser tab, not server load.
