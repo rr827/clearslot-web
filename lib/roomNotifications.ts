@@ -44,6 +44,46 @@ export async function upsertRoomNotificationTarget(input: {
   }
 }
 
+export async function deleteRoomNotificationTarget(input: {
+  roomCode: string;
+  participantIndex: number;
+  expoPushToken: string;
+}): Promise<void> {
+  if (!isExpoPushToken(input.expoPushToken)) {
+    throw new Error('Invalid Expo push token');
+  }
+
+  const { error } = await getSupabaseAdminClient()
+    .from('room_notification_targets')
+    .delete()
+    .eq('room_code', input.roomCode)
+    .eq('participant_index', input.participantIndex)
+    .eq('expo_push_token', input.expoPushToken);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Unlike deleteRoomNotificationTarget, this doesn't require the caller to
+// know the exact push token — used by data-deletion, where the goal is
+// "remove whatever's registered for this participant," not "unregister this
+// specific device."
+export async function deleteRoomNotificationTargetByParticipant(
+  roomCode: string,
+  participantIndex: number
+): Promise<void> {
+  const { error } = await getSupabaseAdminClient()
+    .from('room_notification_targets')
+    .delete()
+    .eq('room_code', roomCode)
+    .eq('participant_index', participantIndex);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export async function getRoomNotificationTarget(
   roomCode: string,
   participantIndex: number

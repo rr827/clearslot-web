@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Logo from '@/app/components/Logo';
 import { captureClientEvent } from '@/lib/analyticsClient';
@@ -18,6 +18,10 @@ export default function InviteRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [room, setRoom] = useState<InviteRoomState>(null);
   const [showOpenApp, setShowOpenApp] = useState(false);
+  const [appOpenAttempted, setAppOpenAttempted] = useState(false);
+  const [showInstallFallback, setShowInstallFallback] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const appOpenFallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function beginJoinFlow() {
     try {
@@ -33,6 +37,14 @@ export default function InviteRoomPage() {
   }
 
   function openInApp() {
+    setAppOpenAttempted(true);
+    setShowInstallFallback(false);
+    if (appOpenFallbackTimer.current) {
+      clearTimeout(appOpenFallbackTimer.current);
+    }
+    appOpenFallbackTimer.current = setTimeout(() => {
+      setShowInstallFallback(true);
+    }, 1400);
     window.location.href = `clearslot://room?code=${code}`;
   }
 
@@ -40,6 +52,16 @@ export default function InviteRoomPage() {
     const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL;
     if (appStoreUrl) {
       window.location.href = appStoreUrl;
+    }
+  }
+
+  async function copyRoomCode() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 1800);
+    } catch {
+      setCodeCopied(false);
     }
   }
 
@@ -89,6 +111,9 @@ export default function InviteRoomPage() {
 
     return () => {
       cancelled = true;
+      if (appOpenFallbackTimer.current) {
+        clearTimeout(appOpenFallbackTimer.current);
+      }
     };
   }, [code]);
 
@@ -147,6 +172,7 @@ export default function InviteRoomPage() {
   }
 
   const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL;
+  const canInstallApp = Boolean(appStoreUrl);
 
   return (
     <div
@@ -232,15 +258,24 @@ export default function InviteRoomPage() {
         {room.joinable ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: showOpenApp ? 14 : 10 }}>
             {showOpenApp && (
-              <button
-                type="button"
-                onClick={openInApp}
-                style={{ width: '100%', fontSize: 17, fontWeight: 800, color: '#fff', backgroundColor: '#22C55E', border: 'none', borderRadius: 18, padding: '17px 16px', cursor: 'pointer' }}
-              >
-                Open in ClearSlot app
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={openInApp}
+                  style={{ width: '100%', fontSize: 17, fontWeight: 800, color: '#fff', backgroundColor: '#22C55E', border: 'none', borderRadius: 18, padding: '17px 16px', cursor: 'pointer' }}
+                >
+                  Open in ClearSlot app
+                </button>
+                {appOpenAttempted && (
+                  <p style={{ margin: 0, textAlign: 'center', fontSize: 13, lineHeight: 1.5, color: '#667085' }}>
+                    {showInstallFallback
+                      ? "Still here? The app may not be installed, or this browser didn't allow the handoff."
+                      : 'Opening the app...'}
+                  </p>
+                )}
+              </div>
             )}
-            {showOpenApp && appStoreUrl && (
+            {showOpenApp && canInstallApp && showInstallFallback && (
               <button
                 type="button"
                 onClick={openAppStore}
@@ -248,6 +283,22 @@ export default function InviteRoomPage() {
               >
                 Get the app
               </button>
+            )}
+            {showOpenApp && showInstallFallback && (
+              <div style={{ border: '1px solid #E8EBF0', borderRadius: 18, padding: '14px 16px', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: '#667085', textAlign: 'center' }}>
+                  {canInstallApp
+                    ? 'If the app is installed but did not open, copy the room code and enter it in ClearSlot.'
+                    : 'If the app is installed but did not open, copy the room code and enter it in ClearSlot. Otherwise, continue on web.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={copyRoomCode}
+                  style={{ width: '100%', fontSize: 15, fontWeight: 750, color: '#15803D', backgroundColor: '#FFFFFF', border: '1px solid rgba(34,197,94,0.30)', borderRadius: 14, padding: '12px 14px', cursor: 'pointer' }}
+                >
+                  {codeCopied ? 'Copied' : `Copy room code ${code}`}
+                </button>
+              </div>
             )}
             <button
               type="button"
@@ -277,7 +328,7 @@ export default function InviteRoomPage() {
 
         {showOpenApp && (
           <p style={{ margin: '26px auto 0', maxWidth: 310, textAlign: 'center', fontSize: 13, lineHeight: 1.55, color: '#98A2B3' }}>
-            If the app is installed, ClearSlot opens directly. If not, continue on web for the same room.
+            If the app is installed, this button opens the room there. If not, continue on web for the same room.
           </p>
         )}
       </div>
