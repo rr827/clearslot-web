@@ -58,7 +58,7 @@ interface ConnectClientProps {
 
 const CONNECT_ERRORS: Record<ConnectErrorCode, { title: string; body: string }> = {
   oauth_denied: {
-    title: 'Google sign-in was cancelled',
+    title: 'Sign-in was cancelled',
     body: 'ClearSlot could not connect your calendar because access was denied before sign-in finished.',
   },
   invalid_state: {
@@ -67,7 +67,7 @@ const CONNECT_ERRORS: Record<ConnectErrorCode, { title: string; body: string }> 
   },
   token_exchange: {
     title: 'Calendar connection failed',
-    body: 'Google sign-in finished, but ClearSlot could not complete the secure token exchange.',
+    body: 'Sign-in finished, but ClearSlot could not complete the secure token exchange.',
   },
   server: {
     title: 'Something went wrong on our side',
@@ -101,6 +101,7 @@ const CONNECT_ERRORS: Record<ConnectErrorCode, { title: string; body: string }> 
 
 // Minimum scope for the initial verification flow.
 const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+const MICROSOFT_SCOPES = 'Calendars.Read';
 
 const ConnectIcsSection = dynamic(() => import('./ConnectIcsSection'), {
   ssr: false,
@@ -243,6 +244,27 @@ export default function ConnectClient({
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   }
 
+  async function launchMicrosoftOAuth(q: Questionnaire) {
+    captureClientEvent('connect_microsoft_started', {
+      ...questionnaireEventProps(q),
+      has_room_code: Boolean(roomCode),
+      is_editing: isEditing,
+    });
+    storeQuestionnaire(q);
+    sessionStorage.setItem('aligned_provider', 'microsoft');
+    const res = await fetch('/api/auth/state', { method: 'POST' });
+    const { nonce } = await res.json();
+    const state = JSON.stringify({ nonce, returnTo: '/connect?resume=1' });
+    const params = new URLSearchParams({
+      client_id: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
+      redirect_uri: `${window.location.origin}/api/auth/microsoft/callback`,
+      response_type: 'code',
+      scope: MICROSOFT_SCOPES,
+      state,
+    });
+    window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;
+  }
+
   const getQuestionnaire = () => ({
     range: { start: rangeStart, end: rangeEnd },
     sleep: sleepEnabled ? { from: sleepFrom, to: sleepTo } : null,
@@ -254,6 +276,11 @@ export default function ConnectClient({
   const handleOAuth = () => {
     setLaunching(true);
     launchOAuth(getQuestionnaire());
+  };
+
+  const handleMicrosoftOAuth = () => {
+    setLaunching(true);
+    launchMicrosoftOAuth(getQuestionnaire());
   };
 
   const handleIcsParsed = (blocks: { start: string; end: string }[]) => {
@@ -542,6 +569,18 @@ export default function ConnectClient({
               <path fill="white" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             {launching ? 'Redirecting...' : 'Continue with Google'}
+          </button>
+
+          {/* Outlook */}
+          <button onClick={handleMicrosoftOAuth} disabled={busy} type="button"
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#fff', color: '#111111', borderRadius: 14, padding: '17px', fontSize: 15, fontWeight: 600, border: '1.5px solid #E5E7EB', cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>
+            <svg width="20" height="20" viewBox="0 0 21 21">
+              <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+              <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+              <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+              <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+            </svg>
+            {launching ? 'Redirecting...' : 'Continue with Outlook'}
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
