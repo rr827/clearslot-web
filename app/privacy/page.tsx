@@ -222,8 +222,9 @@ export default function PrivacyPage() {
             in transit and at rest. All communication between your browser or
             device and ClearSlot&apos;s servers is encrypted using HTTPS and
             TLS. Room and waitlist data stored at rest in Supabase is encrypted
-            at the storage level. Google access tokens are stored exclusively in
-            httpOnly cookies, which are inaccessible to client-side JavaScript.
+            at the storage level. Google and Microsoft access tokens are stored
+            exclusively in httpOnly cookies, which are inaccessible to
+            client-side JavaScript.
             Room session authentication uses HMAC-SHA256-signed tokens that are
             verified server-side on every request. ClearSlot&apos;s database
             tables are protected by Row Level Security policies; the anonymous
@@ -243,9 +244,9 @@ export default function PrivacyPage() {
           <p>
             During sign in, ClearSlot creates a short lived, random value to
             prevent cross site request forgery, stored as an httpOnly cookie
-            for five minutes. This value is validated against what Google
-            returns during the callback step and is discarded once sign in
-            completes. It contains no calendar data and no personal
+            for five minutes. This value is validated against what Google or
+            Microsoft returns during the callback step and is discarded once
+            sign in completes. It contains no calendar data and no personal
             information.
           </p>
           <p>
@@ -259,8 +260,8 @@ export default function PrivacyPage() {
             sessionStorage until you create or join a room, at which point they
             become part of the room&apos;s availability payload in the same
             derived availability form as availability from a connected Google
-            Calendar. This data exists only in your browser and is cleared when
-            your browser session ends.
+            or Microsoft Calendar. This data exists only in your browser and is
+            cleared when your browser session ends.
           </p>
           <p>
             Separately from sessionStorage, ClearSlot stores a small room
@@ -272,18 +273,19 @@ export default function PrivacyPage() {
             reference only, not calendar event details.
           </p>
           <p>
-            Your Google access token is stored in a separate httpOnly cookie,
-            set and managed entirely by ClearSlot&apos;s server, and is not
-            accessible to client-side JavaScript at any point. This token is
-            short lived and is never written to ClearSlot&apos;s database.
+            Your Google or Microsoft access token is stored in a separate
+            httpOnly cookie, set and managed entirely by ClearSlot&apos;s
+            server, and is not accessible to client-side JavaScript at any
+            point. This token is short lived and is never written to
+            ClearSlot&apos;s database.
           </p>
           <p>
             Separately from the room-participation reference described above,
             if PostHog analytics is enabled for the web product, PostHog stores
             an anonymous analytics identifier in your browser&apos;s localStorage
             so ClearSlot can measure product usage across page loads. This
-            analytics storage is separate from Google authentication and does
-            not contain calendar content.
+            analytics storage is separate from Google or Microsoft
+            authentication and does not contain calendar content.
           </p>
           <h3 id="how-we-store-and-protect-data-mobile">Mobile app</h3>
           <p>
