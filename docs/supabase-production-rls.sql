@@ -16,7 +16,15 @@ begin
     'waitlist',
     'waitlist_members',
     'waitlist_referral_credits',
-    'room_notification_targets'
+    'room_notification_targets',
+    'users',
+    'accounts',
+    'account_sessions',
+    'groups',
+    'group_members',
+    'account_claimed_rooms',
+    'account_calendar_connections',
+    'account_availability_cache'
   ]
   loop
     if to_regclass(format('public.%I', table_name)) is not null then
