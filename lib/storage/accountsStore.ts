@@ -9,6 +9,45 @@ export interface AccountSessionRecord {
   replacedBySessionId: string | null;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+  subscriptionStatus: string;
+  createdAt: string;
+}
+
+export async function getUserById(userId: string): Promise<UserProfile | null> {
+  const supabase = getSupabaseAdminClient();
+  const { data } = await supabase
+    .from('users')
+    .select('id, email, display_name, subscription_status, created_at')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    id: data.id,
+    email: data.email,
+    displayName: data.display_name,
+    subscriptionStatus: data.subscription_status,
+    createdAt: data.created_at,
+  };
+}
+
+// Hard delete, not soft — Apple's App Store rule requires real deletion, and
+// Invariant #4 argues against keeping rows around. Every other Phase 2 table
+// (accounts, account_sessions, groups, group_members, account_claimed_rooms,
+// account_calendar_connections, account_availability_cache) has ON DELETE
+// CASCADE back to users.id, so deleting this one row is sufficient, Postgres
+// handles the rest. RevenueCat's own copy is a separate system and must be
+// deleted independently — see lib/revenuecat.ts, called by the route before
+// this, not by this function.
+export async function deleteUser(userId: string): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+  await supabase.from('users').delete().eq('id', userId);
+}
+
 // Looks up an existing account by Apple's stable sub claim. Returns null if
 // this is the first time this Apple ID has signed in to ClearSlot.
 export async function findUserIdByAppleSub(sub: string): Promise<string | null> {
