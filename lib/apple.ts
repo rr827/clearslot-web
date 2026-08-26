@@ -79,7 +79,8 @@ async function mintAppleClientSecret(clientId: string): Promise<string> {
 // flow, with clientId varying by platform.
 export async function exchangeAppleAuthorizationCode(
   authorizationCode: string,
-  clientId: string
+  clientId: string,
+  expectedNonce?: string
 ): Promise<AppleIdentityClaims> {
   const clientSecret = await mintAppleClientSecret(clientId);
 
@@ -103,5 +104,5 @@ export async function exchangeAppleAuthorizationCode(
     throw new Error('Apple token response missing id_token');
   }
 
-  return verifyAppleIdentityToken(data.id_token, clientId);
+  return verifyAppleIdentityToken(data.id_token, clientId, expectedNonce);
 }

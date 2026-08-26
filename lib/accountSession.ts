@@ -55,6 +55,30 @@ export function getAccountAccessToken(req: { headers: { get(name: string): strin
   return authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
 }
 
+// Reuses ACCOUNT_SESSION_SECRET rather than adding a dedicated secret for
+// this — low-stakes (a nonce's only job is replay/CSRF protection during the
+// sign-in handshake, not authentication itself) and the distinct `purpose`
+// claim prevents an access token from ever being mistaken for a valid nonce
+// or vice versa.
+export async function signAppleNonce(): Promise<string> {
+  requireAccountSessionSecret();
+  return new SignJWT({ purpose: 'apple_nonce' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('5m')
+    .sign(signingKey());
+}
+
+export async function verifyAppleNonce(nonce: string): Promise<boolean> {
+  if (!ACCESS_TOKEN_SECRET) return false;
+  try {
+    const { payload } = await jwtVerify(nonce, signingKey());
+    return payload.purpose === 'apple_nonce';
+  } catch {
+    return false;
+  }
+}
+
 // Opaque refresh token — random, returned to the client once at issuance,
 // only its hash is ever stored in account_sessions.refresh_token_hash.
 export function generateRefreshToken(): string {
